@@ -17,6 +17,7 @@ use ByJG\MicroOrm\Exception\RepositoryReadOnlyException;
 use ByJG\MicroOrm\Exception\UpdateConstraintException;
 use ByJG\Serializer\Exception\InvalidArgumentException;
 use Exception;
+use KingPandaApi\Model\StatementCodes;
 
 class StatementBLL
 {
@@ -353,7 +354,8 @@ class StatementBLL
 
     /**
      * @param int $statementId
-     * @param StatementDTO|null $statementDto
+     * @param StatementDTO $statementDtoWithdraw
+     * @param StatementDTO $statementDtoRefund
      * @return int|null
      * @throws AccountException
      * @throws AmountException
@@ -365,13 +367,9 @@ class StatementBLL
      * @throws UpdateConstraintException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function acceptPartialFundsById(int $statementId, ?StatementDTO $statementDto): ?int
+    public function acceptPartialFundsById(int $statementId, StatementDTO $statementDtoWithdraw, StatementDTO $statementDtoRefund): ?int
     {
-        if (is_null($statementDto)) {
-            throw new StatementException('acceptPartialFundsById: StatementDTO cannot be null.');
-        }
-
-        $partialAmount = $statementDto->getAmount();
+        $partialAmount = $statementDtoWithdraw->getAmount();
 
         if ($partialAmount <= 0) {
             throw new AmountException('Partial amount must be greater than zero.');
@@ -397,11 +395,11 @@ class StatementBLL
                 );
             }
 
-            $this->rejectFundsById($statementId, StatementDTO::createEmpty()->setDescription('Reversal of partial acceptance for reserve ' . $statementId));
+            $this->rejectFundsById($statementId, $statementDtoRefund);
 
-            $statementDto->setAccountId($statement->getAccountId());
+            $statementDtoWithdraw->setAccountId($statement->getAccountId());
 
-            $finalDebitStatementId = $this->withdrawFunds($statementDto);
+            $finalDebitStatementId = $this->withdrawFunds($statementDtoWithdraw);
 
             $this->getRepository()->getDbDriver()->commitTransaction();
 
