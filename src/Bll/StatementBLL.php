@@ -3,7 +3,6 @@
 namespace ByJG\AccountStatements\Bll;
 
 use ByJG\AccountStatements\DTO\StatementDTO;
-use ByJG\AccountStatements\Entity\AccountEntity;
 use ByJG\AccountStatements\Entity\StatementEntity;
 use ByJG\AccountStatements\Exception\AccountException;
 use ByJG\AccountStatements\Exception\AmountException;
@@ -15,6 +14,10 @@ use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
 use ByJG\MicroOrm\Exception\OrmInvalidFieldsException;
 use ByJG\MicroOrm\Exception\RepositoryReadOnlyException;
 use ByJG\MicroOrm\Exception\UpdateConstraintException;
+use ByJG\MicroOrm\InsertSelectQuery;
+use ByJG\MicroOrm\Query;
+use ByJG\MicroOrm\QueryRaw;
+use ByJG\MicroOrm\UpdateQuery;
 use ByJG\Serializer\Exception\InvalidArgumentException;
 use Exception;
 use KingPandaApi\Model\StatementCodes;
@@ -71,27 +74,7 @@ class StatementBLL
      */
     public function addFunds(StatementDTO $dto): ?int
     {
-        // Validations
-        $this->validateStatementDto($dto);
-
-        // Get an Account
-        $this->getRepository()->getDbDriver()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, true);
-        try {
-            $account = $this->accountRepository->getById($dto->getAccountId());
-            if (is_null($account) || $account->getAccountId() == "") {
-                throw new AccountException("addFunds: Account " . $dto->getAccountId() . " not found");
-            }
-
-            $result = $this->updateFunds(StatementEntity::DEPOSIT, $account, $dto);
-
-            $this->getRepository()->getDbDriver()->commitTransaction();
-
-            return $result->getStatementId();
-        } catch (Exception $ex) {
-            $this->getRepository()->getDbDriver()->rollbackTransaction();
-
-            throw $ex;
-        }
+        return $this->updateFunds(StatementEntity::DEPOSIT, $dto);
     }
 
     protected function validateStatementDto(StatementDTO $dto): void
@@ -109,15 +92,19 @@ class StatementBLL
     }
 
     /**
-     * @throws RepositoryReadOnlyException
+     * @param string $operation
+     * @param StatementDTO $dto
+     * @return int
+     * @throws AccountException
+     * @throws AmountException
      * @throws InvalidArgumentException
+     * @throws StatementException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
-     * @throws OrmInvalidFieldsException
-     * @throws UpdateConstraintException
-     * @throws OrmBeforeInvalidException
      */
-    protected function updateFunds(string $operation, AccountEntity $account, StatementDTO $dto): StatementEntity
+    protected function updateFunds(string $operation, StatementDTO $dto): int
     {
+        $this->validateStatementDto($dto);;
+
         $sumGrossBalance = $dto->getAmount() * match($operation) {
             StatementEntity::DEPOSIT => 1,
             StatementEntity::WITHDRAW => -1,
@@ -134,21 +121,99 @@ class StatementBLL
             default => 0,
         };
 
-        // Update Values in an account
-        $account->setGrossBalance($account->getGrossBalance() + $sumGrossBalance);
-        $account->setUncleared($account->getUncleared() + $sumUnCleared);
-        $account->setNetBalance($account->getNetBalance() + $sumNetBalance);
-        $this->accountRepository->save($account);
+        $accountUpdate = UpdateQuery::getInstance()
+            ->table('account')
+            ->setLiteral('grossbalance', "grossbalance + $sumGrossBalance")
+            ->setLiteral('uncleared', "uncleared + $sumUnCleared")
+            ->setLiteral('netbalance', "netbalance + $sumNetBalance")
+            ->where('accountid = :accid', ['accid' => $dto->getAccountId()]);
 
-        // Add the new line
-        /** @var StatementEntity $statement */
-        $statement = $this->statementRepository->getRepository()->entity([]);
-        $dto->setToStatement($statement);
-        $statement->setTypeId($operation);
-        $statement->attachAccount($account);
+        // Build base target columns and select fields
+        $targetColumns = [
+            'accountid',
+            'accounttypeid',
+            'grossbalance',
+            'netbalance',
+            'uncleared',
+            'price',
+            'amount',
+            'description',
+            'code',
+            'referenceid',
+            'referencesource',
+            'typeid',
+            'date',
+            'statementparentid',
+        ];
 
-        // Save to DB
-        return $this->statementRepository->save($statement);
+        $selectFields = [
+            'accountid',
+            'accounttypeid',
+            'grossbalance',
+            'netbalance',
+            'uncleared',
+            'price',
+            $dto->getAmount(),
+            !is_null($dto->getDescription()) ? "'" . $dto->getDescription() . "'" : 'null',
+            !is_null($dto->getCode()) ? "'" . $dto->getCode() . "'" : 'null',
+            !is_null($dto->getReferenceId()) ? "'" . $dto->getReferenceId() . "'" : 'null',
+            !is_null($dto->getReferenceSource()) ? "'" . $dto->getReferenceSource() . "'" : 'null',
+            "'$operation'",
+            $this->statementRepository->getDbDriver()->getDbHelper()->sqlDate('Y-m-d H:i:s'),
+            'null',
+        ];
+
+        // Append any extra mapped fields provided via DTO properties (for extended entities)
+        $mapper = $this->statementRepository->getMapper();
+        foreach ($dto->getProperties() as $propertyName => $propertyValue) {
+            $fieldMap = $mapper->getFieldMap($propertyName);
+            if ($fieldMap && $fieldMap->isSyncWithDb()) {
+                $fieldName = $fieldMap->getFieldName();
+                if (!in_array($fieldName, $targetColumns, true)) {
+                    $targetColumns[] = $fieldName;
+                    $selectFields[] = !is_null($propertyValue) ? "'" . $propertyValue . "'" : 'null';
+                }
+            }
+        }
+
+        $statementQuery = Query::getInstance()
+            ->table('account')
+            ->fields($selectFields)
+            ->where('accountid = :accid2', ['accid2' => $dto->getAccountId()]);
+
+        $statementInsert = InsertSelectQuery::getInstance(
+            $this->statementRepository->getMapper()->getTable(),
+            $targetColumns
+        )
+        ->fromQuery($statementQuery);
+
+        $lastId = QueryRaw::getInstance(
+            $this->statementRepository->getDbDriver()->getDbHelper()->getSqlLastInsertId() .
+            " from account " .
+            " where accountid = " . $dto->getAccountId()
+        );
+
+        try {
+            $it = $this->getRepository()->bulkExecute(
+                [
+                    $accountUpdate,
+                    $statementInsert,
+                    $lastId,
+                ]
+            )->toArray();
+
+            $statementid = $it[0]['id'] ?? null;
+            if (is_null($statementid)) {
+                throw new AccountException('Account not found');
+            }
+
+            return $statementid;
+        } catch (\PDOException $ex) {
+            if (strpos($ex->getMessage(), 'chk_value_nonnegative') !== false) {
+                throw new AmountException('Cannot withdraw above the account balance');
+            }
+            throw $ex;
+        }
     }
 
     /**
@@ -160,44 +225,12 @@ class StatementBLL
      * @throws AccountException
      * @throws AmountException
      * @throws InvalidArgumentException
-     * @throws OrmBeforeInvalidException
-     * @throws OrmInvalidFieldsException
-     * @throws RepositoryReadOnlyException
      * @throws StatementException
-     * @throws UpdateConstraintException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
     public function withdrawFunds(StatementDTO $dto, bool $allowZeroNoBalance = false): ?int
     {
-        // Validations
-        $this->validateStatementDto($dto);
-
-        $this->getRepository()->getDbDriver()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, true);
-        try {
-            $account = $this->accountRepository->getById($dto->getAccountId());
-            if (is_null($account)) {
-                throw new AccountException('addFunds: Account not found');
-            }
-
-            // Cannot withdraw above the account balance.
-            $newBalance = $account->getNetBalance() - $dto->getAmount();
-            if ($newBalance < $account->getMinValue()) {
-                if (!$allowZeroNoBalance) {
-                    throw new AmountException('Cannot withdraw above the account balance.');
-                }
-                $dto->setAmount($account->getNetBalance() - $account->getMinValue());
-            }
-
-            $result = $this->updateFunds(StatementEntity::WITHDRAW, $account, $dto);
-
-            $this->getRepository()->getDbDriver()->commitTransaction();
-
-            return $result->getStatementId();
-        } catch (Exception $ex) {
-            $this->getRepository()->getDbDriver()->rollbackTransaction();
-
-            throw $ex;
-        }
+        return $this->updateFunds(StatementEntity::WITHDRAW, $dto);
     }
 
     /**
@@ -217,31 +250,7 @@ class StatementBLL
      */
     public function reserveFundsForWithdraw(StatementDTO $dto): ?int
     {
-        // Validations
-        $this->validateStatementDto($dto);
-
-        $this->getRepository()->getDbDriver()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, true);
-        try {
-            $account = $this->accountRepository->getById($dto->getAccountId());
-            if (is_null($account)) {
-                throw new AccountException('reserveFundsForWithdraw: Account not found');
-            }
-
-            // Cannot withdraw above the account balance.
-            if ($account->getNetBalance() - $dto->getAmount() < $account->getMinValue()) {
-                throw new AmountException('Cannot withdraw above the account balance.');
-            }
-
-            $result = $this->updateFunds(StatementEntity::WITHDRAW_BLOCKED, $account, $dto);
-
-            $this->getRepository()->getDbDriver()->commitTransaction();
-
-            return $result->getStatementId();
-        } catch (Exception $ex) {
-            $this->getRepository()->getDbDriver()->rollbackTransaction();
-
-            throw $ex;
-        }
+        return $this->updateFunds(StatementEntity::WITHDRAW_BLOCKED, $dto);
     }
 
     /**
@@ -261,26 +270,7 @@ class StatementBLL
      */
     public function reserveFundsForDeposit(StatementDTO $dto): ?int
     {
-        // Validações
-        $this->validateStatementDto($dto);
-
-        $this->getRepository()->getDbDriver()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, true);
-        try {
-            $account = $this->accountRepository->getById($dto->getAccountId());
-            if (is_null($account)) {
-                throw new AccountException('reserveFundsForDeposit: Account not found');
-            }
-
-            $result = $this->updateFunds(StatementEntity::DEPOSIT_BLOCKED, $account, $dto);
-
-            $this->getRepository()->getDbDriver()->commitTransaction();
-
-            return $result->getStatementId();
-        } catch (Exception $ex) {
-            $this->getRepository()->getDbDriver()->rollbackTransaction();
-
-            throw $ex;
-        }
+        return $this->updateFunds(StatementEntity::DEPOSIT_BLOCKED, $dto);
     }
 
     /**

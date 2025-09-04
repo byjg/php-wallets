@@ -95,10 +95,10 @@ class ReserveFundsWithdrawTest extends TestCase
                 ->setReferenceSource('Source Withdraw'));
     }
 
-    public function testReserveForWithdrawFunds_Negative()
+    public function testReserveForWithdrawFunds_Allow_Negative()
     {
         // Populate Data!
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000, 1, -400);
+        $accountId = $this->accountBLL->createAccount('NEGTEST', "___TESTUSER-1", 1000, 1, -400);
         $statementId = $this->statementBLL->reserveFundsForWithdraw(
             StatementDTO::create($accountId, 1150)
                 ->setDescription('Test Withdraw')
@@ -120,7 +120,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $statement->setUnCleared('1150.00');
         $statement->setReferenceId('Referencia Withdraw');
         $statement->setReferenceSource('Source Withdraw');
-        $statement->setAccountTypeId('USDTEST');
+        $statement->setAccountTypeId('NEGTEST');
 
         $actual = $this->statementBLL->getById($statementId);
         $statement->setDate($actual->getDate());

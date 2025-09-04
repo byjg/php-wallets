@@ -77,7 +77,13 @@ trait BaseDALTrait
 
         $migration = new Migration($this->uri, __DIR__ . "/../db");
         $migration->prepareEnvironment();
-        $migration->reset();
+        // This will delete the constraint to validate the negative amount
+        $maxVersion = null;
+        /** @psalm-suppress InternalMethod */
+        if (strpos($this->getName(), "Allow_Negativ") !== false) {
+            $maxVersion = 2;
+        }
+        $migration->reset($maxVersion);
 
         $migration->getDbDriver()->execute("CREATE TABLE statement_extended LIKE statement");
         $migration->getDbDriver()->execute("alter table statement_extended add extra_property varchar(100) null;");
@@ -126,9 +132,14 @@ trait BaseDALTrait
         $dto3->setAccountTypeId('ABCTEST');
         $dto3->setName('Test 3');
 
+        $dto4 = new AccountTypeEntity();
+        $dto4->setAccountTypeId('NEGTEST');
+        $dto4->setName('Test 4');
+
         $this->accountTypeBLL->update($dto1);
         $this->accountTypeBLL->update($dto2);
         $this->accountTypeBLL->update($dto3);
+        $this->accountTypeBLL->update($dto4);
 
         $this->accountBLL->createAccount('BRLTEST', '___TESTUSER-1', 1000, 1);
     }

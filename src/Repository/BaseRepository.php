@@ -2,8 +2,10 @@
 
 namespace ByJG\AccountStatements\Repository;
 
+use ByJG\AnyDataset\Core\GenericIterator;
 use ByJG\AnyDataset\Core\IteratorFilter;
 use ByJG\AnyDataset\Db\DbDriverInterface;
+use ByJG\AnyDataset\Db\IsolationLevelEnum;
 use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
 use ByJG\MicroOrm\Exception\OrmInvalidFieldsException;
 use ByJG\MicroOrm\Exception\RepositoryReadOnlyException;
@@ -87,6 +89,11 @@ abstract class BaseRepository
     public function save($model): mixed
     {
         return $this->repository->save($model);
+    }
+
+    public function bulkExecute(array $queries): ?GenericIterator
+    {
+        return $this->repository->bulkExecute($queries, IsolationLevelEnum::SERIALIZABLE);
     }
 
     public function getDbDriver(): DbDriverInterface
