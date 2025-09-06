@@ -73,6 +73,8 @@ class AccountEntity extends BaseModel
     #[FieldAttribute(syncWithDb: false)]
     protected ?string $entrydate = null;
 
+    protected ?int $laststatementid = null;
+
     /**
      * @var float|null
      * @OA\Property()
@@ -177,6 +179,16 @@ class AccountEntity extends BaseModel
     public function setMinValue(?float $minvalue): void
     {
         $this->minvalue = $minvalue;
+    }
+
+    public function getLastStatementId(): ?int
+    {
+        return $this->laststatementid;
+    }
+
+    public function setLastStatementId(?int $laststatementid): void
+    {
+        $this->laststatementid = $laststatementid;
     }
 
     /**

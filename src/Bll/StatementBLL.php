@@ -17,7 +17,6 @@ use ByJG\MicroOrm\Exception\UpdateConstraintException;
 use ByJG\MicroOrm\InsertSelectQuery;
 use ByJG\MicroOrm\ORMSubject;
 use ByJG\MicroOrm\Query;
-use ByJG\MicroOrm\QueryRaw;
 use ByJG\MicroOrm\UpdateQuery;
 use ByJG\Serializer\Exception\InvalidArgumentException;
 use Exception;
@@ -97,7 +96,7 @@ class StatementBLL
      * @throws StatementException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    protected function updateFunds(string $operation, StatementDTO $dto): StatementEntity
+    protected function updateFunds(string $operation, StatementDTO $dto, bool $capAtZero = false): StatementEntity
     {
         $this->validateStatementDto($dto);;
 
@@ -117,12 +116,14 @@ class StatementBLL
             default => 0,
         };
 
-        $accountUpdate = UpdateQuery::getInstance()
-            ->table('account')
-            ->setLiteral('grossbalance', "grossbalance + $sumGrossBalance")
-            ->setLiteral('uncleared', "uncleared + $sumUnCleared")
-            ->setLiteral('netbalance', "netbalance + $sumNetBalance")
-            ->where('accountid = :accid', ['accid' => $dto->getAccountId()]);
+        $expressionSumGrossBalance = "grossbalance + $sumGrossBalance";
+        $expressionSumNetBalance = "netbalance + $sumNetBalance";
+        $expressionAmount = $dto->getAmount();
+        if ($capAtZero && $operation == StatementEntity::WITHDRAW) {
+            $expressionAmount = "case when netbalance - {$dto->getAmount()} < 0 then {$dto->getAmount()} + (netbalance - {$dto->getAmount()}) else {$dto->getAmount()} end";
+            $expressionSumGrossBalance = "grossbalance - $expressionAmount";
+            $expressionSumNetBalance = "netbalance - $expressionAmount";
+        }
 
         // Build base target columns and select fields
         $targetColumns = [
@@ -145,11 +146,11 @@ class StatementBLL
         $selectFields = [
             'accountid',
             'accounttypeid',
-            'grossbalance',
-            'netbalance',
-            'uncleared',
+            $expressionSumGrossBalance,
+            $expressionSumNetBalance,
+            "uncleared + $sumUnCleared",
             'price',
-            $dto->getAmount(),
+            $expressionAmount,
             ':description',
             ':code',
             ':referenceid',
@@ -190,27 +191,37 @@ class StatementBLL
         )
         ->fromQuery($statementQuery);
 
-        $lastId = QueryRaw::getInstance(
-            $this->statementRepository->getDbDriver()->getDbHelper()->getSqlLastInsertId() .
-            " from account " .
-            " where accountid = " . $dto->getAccountId()
-        );
+        $selectStatement = Query::getInstance()
+            ->table($this->statementRepository->getMapper()->getTable())
+            ->fields([
+                'statementid',
+                'accountid',
+                'grossbalance',
+                'netbalance',
+                'uncleared',
+            ])
+            ->where('statementid = (' . $this->statementRepository->getDbDriver()->getDbHelper()->getSqlLastInsertId() . ')');
+        $accountUpdate = UpdateQuery::getInstance()
+            ->table('account')
+            ->setLiteral('account.grossbalance', 'st.grossbalance')
+            ->setLiteral('account.uncleared', 'st.uncleared')
+            ->setLiteral('account.netbalance', 'st.netbalance')
+            ->setLiteral('account.laststatementid', 'st.statementid')
+            ->where('account.accountid = :accid', ['accid' => $dto->getAccountId()])
+            ->join($selectStatement, 'st.accountid = account.accountid', 'st');
 
         try {
-            $it = $this->getRepository()->bulkExecute(
+            $this->getRepository()->bulkExecute(
                 [
-                    $accountUpdate,
                     $statementInsert,
-                    $lastId,
+                    $accountUpdate
                 ]
             )->toArray();
 
-            $statementid = $it[0]['id'] ?? null;
-            if (is_null($statementid)) {
+            $account = $this->accountRepository->getById($dto->getAccountId());
+            if (empty($account)) {
                 throw new AccountException('Account not found');
             }
-
-            $account = $this->accountRepository->getById($dto->getAccountId());
             $oldAccount = clone $account;
             $oldAccount->setGrossbalance($oldAccount->getGrossbalance() - $sumGrossBalance);
             $oldAccount->setUncleared($oldAccount->getUncleared() - $sumUnCleared);
@@ -222,13 +233,15 @@ class StatementBLL
                 $account, $oldAccount
             );
 
-            $statement = $this->statementRepository->getById($statementid);
+            $statement = $this->statementRepository->getById($account->getLastStatementId());;
 
             ORMSubject::getInstance()->notify(
                 $this->statementRepository->getMapper()->getTable(),
                 ORMSubject::EVENT_INSERT,
                 $statement, null
             );
+
+            $dto->setAmount($statement->getAmount());
 
             return $statement;
         } catch (\PDOException $ex) {
@@ -243,7 +256,7 @@ class StatementBLL
      * Withdraw funds from an account
      *
      * @param StatementDTO $dto
-     * @param bool $allowZeroNoBalance
+     * @param bool $capAtZero
      * @return int|null Statement ID
      * @throws AccountException
      * @throws AmountException
@@ -251,9 +264,9 @@ class StatementBLL
      * @throws StatementException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function withdrawFunds(StatementDTO $dto, bool $allowZeroNoBalance = false): ?int
+    public function withdrawFunds(StatementDTO $dto, bool $capAtZero = false): ?int
     {
-        return $this->updateFunds(StatementEntity::WITHDRAW, $dto)->getStatementId();
+        return $this->updateFunds(StatementEntity::WITHDRAW, $dto, $capAtZero)->getStatementId();
     }
 
     /**

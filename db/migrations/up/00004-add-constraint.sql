@@ -5,3 +5,4 @@ ALTER TABLE statement
 ALTER TABLE account
     ADD CONSTRAINT account_chk_value_nonnegative
         CHECK (netbalance >= 0);
+
