@@ -87,8 +87,13 @@ class StatementBLL
     }
 
     /**
-     * @param string $operation
-     * @param StatementDTO $dto
+     * Central method to apply a balance-changing operation.
+     * - Creates a new statement row reflecting the post-operation balances
+     * - Updates the account with the same balances and the last statement id
+     *
+     * @param string $operation One of StatementEntity::DEPOSIT, WITHDRAW, DEPOSIT_BLOCKED, WITHDRAW_BLOCKED
+     * @param StatementDTO $dto Input data (account, amount, description, etc.)
+     * @param bool $capAtZero When true and operation is WITHDRAW, caps the withdrawal so net balance never goes below zero
      * @return StatementEntity
      * @throws AccountException
      * @throws AmountException
@@ -98,33 +103,167 @@ class StatementBLL
      */
     protected function updateFunds(string $operation, StatementDTO $dto, bool $capAtZero = false): StatementEntity
     {
-        $this->validateStatementDto($dto);;
+        $this->validateStatementDto($dto);
 
-        $sumGrossBalance = $dto->getAmount() * match($operation) {
+        // 1) Compute numeric deltas for balances (used for notifications) and the SQL expressions (used for insert/select)
+        [$grossDelta, $unclearedDelta, $netDelta] = $this->computeBalanceDeltas($operation, $dto->getAmount());
+        [$exprAmount, $exprGross, $exprNet] = $this->buildAmountAndExpressions($operation, $dto->getAmount(), $capAtZero);
+
+        // 2) Build the insert-select for the statement and the account update based on the new statement
+        $statementInsert = $this->getInsertStatementQuery(
+            $operation,
+            $dto,
+            $exprGross,
+            $exprNet,
+            $exprAmount,
+            (string)$unclearedDelta
+        );
+
+        $accountUpdate = $this->getAccountUpdateQuery($dto);
+
+        // 3) Execute both queries atomically
+        try {
+            $this->getRepository()->bulkExecute([
+                $statementInsert,
+                $accountUpdate,
+            ])->toArray();
+
+            // 4) Notify observers of account change, providing an oldAccount with pre-change balances
+            $account = $this->accountRepository->getById($dto->getAccountId());
+            if (empty($account)) {
+                throw new AccountException('Account not found');
+            }
+
+            $oldAccount = clone $account;
+            $oldAccount->setGrossbalance($oldAccount->getGrossbalance() - $grossDelta);
+            $oldAccount->setUncleared($oldAccount->getUncleared() - $unclearedDelta);
+            $oldAccount->setNetbalance($oldAccount->getNetbalance() - $netDelta);
+
+            ORMSubject::getInstance()->notify(
+                $this->accountRepository->getMapper()->getTable(),
+                ORMSubject::EVENT_UPDATE,
+                $account,
+                $oldAccount
+            );
+
+            // 5) Load the statement just created to notify and return
+            $statement = $this->statementRepository->getById($account->getLastStatementId());
+
+            ORMSubject::getInstance()->notify(
+                $this->statementRepository->getMapper()->getTable(),
+                ORMSubject::EVENT_INSERT,
+                $statement,
+                null
+            );
+
+            // If capping occurred on withdraw, the actual amount may differ from the DTO amount
+            $dto->setAmount($statement->getAmount());
+
+            return $statement;
+        } catch (\PDOException $ex) {
+            if (strpos($ex->getMessage(), 'chk_value_nonnegative') !== false) {
+                throw new AmountException('Cannot withdraw above the account balance');
+            }
+            throw $ex;
+        }
+    }
+
+    // ---- Helpers: computations and query building ---------------------------------------------------------------
+
+    /**
+     * Compute numeric deltas for balances according to the operation and amount.
+     * Returns [grossDelta, unclearedDelta, netDelta].
+     */
+    private function computeBalanceDeltas(string $operation, float $amount): array
+    {
+        $grossDelta = $amount * match ($operation) {
             StatementEntity::DEPOSIT => 1,
             StatementEntity::WITHDRAW => -1,
             default => 0,
         };
-        $sumUnCleared = $dto->getAmount() * match($operation) {
+
+        $unclearedDelta = $amount * match ($operation) {
             StatementEntity::DEPOSIT_BLOCKED => -1,
             StatementEntity::WITHDRAW_BLOCKED => 1,
             default => 0,
         };
-        $sumNetBalance = $dto->getAmount() * match($operation) {
+
+        $netDelta = $amount * match ($operation) {
             StatementEntity::DEPOSIT, StatementEntity::DEPOSIT_BLOCKED => 1,
             StatementEntity::WITHDRAW, StatementEntity::WITHDRAW_BLOCKED => -1,
             default => 0,
         };
 
-        $expressionSumGrossBalance = "grossbalance + $sumGrossBalance";
-        $expressionSumNetBalance = "netbalance + $sumNetBalance";
-        $expressionAmount = $dto->getAmount();
-        if ($capAtZero && $operation == StatementEntity::WITHDRAW) {
-            $expressionAmount = "case when netbalance - {$dto->getAmount()} < 0 then {$dto->getAmount()} + (netbalance - {$dto->getAmount()}) else {$dto->getAmount()} end";
-            $expressionSumGrossBalance = "grossbalance - $expressionAmount";
-            $expressionSumNetBalance = "netbalance - $expressionAmount";
+        return [$grossDelta, $unclearedDelta, $netDelta];
+    }
+
+    /**
+     * Build SQL literal expressions for amount, gross and net balances.
+     * When capping at zero (withdraw), it ensures the amount is reduced to avoid negative net balance.
+     * Returns [exprAmount, exprGross, exprNet].
+     */
+    private function buildAmountAndExpressions(string $operation, float $amount, bool $capAtZero): array
+    {
+        $exprGross = "grossbalance + " . ($amount * match ($operation) {
+            StatementEntity::DEPOSIT => 1,
+            StatementEntity::WITHDRAW => -1,
+            default => 0,
+        });
+        $exprNet = "netbalance + " . ($amount * match ($operation) {
+            StatementEntity::DEPOSIT, StatementEntity::DEPOSIT_BLOCKED => 1,
+            StatementEntity::WITHDRAW, StatementEntity::WITHDRAW_BLOCKED => -1,
+            default => 0,
+        });
+        $exprAmount = (string)$amount;
+
+        if ($capAtZero && $operation === StatementEntity::WITHDRAW) {
+            // Cap withdraw so netbalance never goes below zero
+            $exprAmount = "case when netbalance - {$amount} < 0 then {$amount} + (netbalance - {$amount}) else {$amount} end";
+            $exprGross = "grossbalance - $exprAmount";
+            $exprNet = "netbalance - $exprAmount";
         }
 
+        return [$exprAmount, $exprGross, $exprNet];
+    }
+
+    /**
+     * Append extra mapped fields from the DTO properties (extended entities) into the target/select lists.
+     */
+    private function appendExtraMappedFields(StatementDTO $dto, array &$targetColumns, array &$selectFields): void
+    {
+        $mapper = $this->statementRepository->getMapper();
+        foreach ($dto->getProperties() as $propertyName => $propertyValue) {
+            $fieldMap = $mapper->getFieldMap($propertyName);
+            if ($fieldMap && $fieldMap->isSyncWithDb()) {
+                $fieldName = $fieldMap->getFieldName();
+                if (!in_array($fieldName, $targetColumns, true)) {
+                    $targetColumns[] = $fieldName;
+                    $selectFields[] = !is_null($propertyValue) ? "'" . $propertyValue . "'" : 'null';
+                }
+            }
+        }
+    }
+
+    /**
+     * Subquery selecting the last inserted statement to update account fields with.
+     */
+    private function buildLastInsertedStatementSnapshotQuery(): Query
+    {
+        return Query::getInstance()
+            ->table($this->statementRepository->getMapper()->getTable())
+            ->fields(['statementid', 'accountid', 'grossbalance', 'netbalance', 'uncleared'])
+            ->where('statementid = (' . $this->statementRepository->getDbDriver()->getDbHelper()->getSqlLastInsertId() . ')');
+    }
+
+    protected function getInsertStatementQuery(
+        string $operation,
+        StatementDTO $dto,
+        string $expressionSumGrossBalance,
+        string $expressionSumNetBalance,
+        string $expressionAmount,
+        string $sumUnCleared
+    ): InsertSelectQuery
+    {
         // Build base target columns and select fields
         $targetColumns = [
             'accountid',
@@ -161,17 +300,7 @@ class StatementBLL
         ];
 
         // Append any extra mapped fields provided via DTO properties (for extended entities)
-        $mapper = $this->statementRepository->getMapper();
-        foreach ($dto->getProperties() as $propertyName => $propertyValue) {
-            $fieldMap = $mapper->getFieldMap($propertyName);
-            if ($fieldMap && $fieldMap->isSyncWithDb()) {
-                $fieldName = $fieldMap->getFieldName();
-                if (!in_array($fieldName, $targetColumns, true)) {
-                    $targetColumns[] = $fieldName;
-                    $selectFields[] = !is_null($propertyValue) ? "'" . $propertyValue . "'" : 'null';
-                }
-            }
-        }
+        $this->appendExtraMappedFields($dto, $targetColumns, $selectFields);
 
         $statementQuery = Query::getInstance()
             ->table('account')
@@ -185,71 +314,24 @@ class StatementBLL
                 'operation' => $operation,
             ]);
 
-        $statementInsert = InsertSelectQuery::getInstance(
+        return InsertSelectQuery::getInstance(
             $this->statementRepository->getMapper()->getTable(),
             $targetColumns
-        )
-        ->fromQuery($statementQuery);
+        )->fromQuery($statementQuery);
+    }
 
-        $selectStatement = Query::getInstance()
-            ->table($this->statementRepository->getMapper()->getTable())
-            ->fields([
-                'statementid',
-                'accountid',
-                'grossbalance',
-                'netbalance',
-                'uncleared',
-            ])
-            ->where('statementid = (' . $this->statementRepository->getDbDriver()->getDbHelper()->getSqlLastInsertId() . ')');
-        $accountUpdate = UpdateQuery::getInstance()
+    public function getAccountUpdateQuery(StatementDTO $dto): UpdateQuery
+    {
+        $statementSnapshot = $this->buildLastInsertedStatementSnapshotQuery();
+
+        return UpdateQuery::getInstance()
             ->table('account')
             ->setLiteral('account.grossbalance', 'st.grossbalance')
             ->setLiteral('account.uncleared', 'st.uncleared')
             ->setLiteral('account.netbalance', 'st.netbalance')
             ->setLiteral('account.laststatementid', 'st.statementid')
             ->where('account.accountid = :accid', ['accid' => $dto->getAccountId()])
-            ->join($selectStatement, 'st.accountid = account.accountid', 'st');
-
-        try {
-            $this->getRepository()->bulkExecute(
-                [
-                    $statementInsert,
-                    $accountUpdate
-                ]
-            )->toArray();
-
-            $account = $this->accountRepository->getById($dto->getAccountId());
-            if (empty($account)) {
-                throw new AccountException('Account not found');
-            }
-            $oldAccount = clone $account;
-            $oldAccount->setGrossbalance($oldAccount->getGrossbalance() - $sumGrossBalance);
-            $oldAccount->setUncleared($oldAccount->getUncleared() - $sumUnCleared);
-            $oldAccount->setNetbalance($oldAccount->getNetbalance() - $sumNetBalance);
-
-            ORMSubject::getInstance()->notify(
-                $this->accountRepository->getMapper()->getTable(),
-                ORMSubject::EVENT_UPDATE,
-                $account, $oldAccount
-            );
-
-            $statement = $this->statementRepository->getById($account->getLastStatementId());;
-
-            ORMSubject::getInstance()->notify(
-                $this->statementRepository->getMapper()->getTable(),
-                ORMSubject::EVENT_INSERT,
-                $statement, null
-            );
-
-            $dto->setAmount($statement->getAmount());
-
-            return $statement;
-        } catch (\PDOException $ex) {
-            if (strpos($ex->getMessage(), 'chk_value_nonnegative') !== false) {
-                throw new AmountException('Cannot withdraw above the account balance');
-            }
-            throw $ex;
-        }
+            ->join($statementSnapshot, 'st.accountid = account.accountid', 'st');
     }
 
     /**
