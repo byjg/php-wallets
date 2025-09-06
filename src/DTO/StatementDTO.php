@@ -137,40 +137,40 @@ class StatementDTO
     }
 
     /**
-     * @param string $description
+     * @param string|null $description
      * @return $this
      */
-    public function setDescription(string $description): static
+    public function setDescription(?string $description): static
     {
         $this->description = $description;
         return $this;
     }
 
     /**
-     * @param string $referenceId
+     * @param string|null $referenceId
      * @return $this
      */
-    public function setReferenceId(string $referenceId): static
+    public function setReferenceId(?string $referenceId): static
     {
         $this->referenceId = $referenceId;
         return $this;
     }
 
     /**
-     * @param string $referenceSource
+     * @param string|null $referenceSource
      * @return $this
      */
-    public function setReferenceSource(string $referenceSource): static
+    public function setReferenceSource(?string $referenceSource): static
     {
         $this->referenceSource = $referenceSource;
         return $this;
     }
 
     /**
-     * @param string $code
+     * @param string|null $code
      * @return $this
      */
-    public function setCode(string $code): static
+    public function setCode(?string $code): static
     {
         $this->code = $code;
         return $this;
@@ -186,5 +186,4 @@ class StatementDTO
     {
         return $this->properties;
     }
-
 }
