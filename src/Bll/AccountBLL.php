@@ -254,30 +254,26 @@ class AccountBLL
      * @param int $accountId
      * @param float $balance
      * @param string $description
-     * @return int|null
+     * @return StatementEntity
      * @throws AccountException
      * @throws AmountException
      * @throws InvalidArgumentException
-     * @throws OrmBeforeInvalidException
-     * @throws OrmInvalidFieldsException
-     * @throws RepositoryReadOnlyException
      * @throws StatementException
-     * @throws UpdateConstraintException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function partialBalance(int $accountId, float $balance, string $description = "Partial Balance"): ?int
+    public function partialBalance(int $accountId, float $balance, string $description = "Partial Balance"): StatementEntity
     {
         $account = $this->getById($accountId);
 
         $amount = $balance - $account->getNetBalance();
 
         if ($amount >= 0) {
-            $statementId = $this->statementBLL->addFunds(StatementDTO::create($accountId, $amount)->setDescription($description));
+            $statement = $this->statementBLL->addFunds(StatementDTO::create($accountId, $amount)->setDescription($description));
         } else {
-            $statementId = $this->statementBLL->withdrawFunds(StatementDTO::create($accountId, abs($amount))->setDescription($description));
+            $statement = $this->statementBLL->withdrawFunds(StatementDTO::create($accountId, abs($amount))->setDescription($description));
         }
 
-        return $statementId;
+        return $statement;
     }
 
     /**
@@ -288,11 +284,7 @@ class AccountBLL
      * @throws AccountException
      * @throws AmountException
      * @throws InvalidArgumentException
-     * @throws OrmBeforeInvalidException
-     * @throws OrmInvalidFieldsException
-     * @throws RepositoryReadOnlyException
      * @throws StatementException
-     * @throws UpdateConstraintException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
     public function transferFunds(int $accountSource, int $accountTarget, float $amount): array
@@ -315,10 +307,10 @@ class AccountBLL
         $statementTargetDTO->setReferenceId($refSource);
         $statementTargetDTO->setDescription('Transfer from account id ' . $accountSource);
 
-        $statementSourceId = $this->statementBLL->withdrawFunds($statementSourceDTO);
-        $statementTargetId = $this->statementBLL->addFunds($statementTargetDTO);
+        $statementSource = $this->statementBLL->withdrawFunds($statementSourceDTO);
+        $statementTarget = $this->statementBLL->addFunds($statementTargetDTO);
 
-        return [ $statementSourceId, $statementTargetId ];
+        return [ $statementSource, $statementTarget ];
     }
 
     public function getRepository(): AccountRepository

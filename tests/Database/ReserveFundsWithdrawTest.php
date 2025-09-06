@@ -37,7 +37,7 @@ class ReserveFundsWithdrawTest extends TestCase
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $statementId = $this->statementBLL->reserveFundsForWithdraw(
+        $actual = $this->statementBLL->reserveFundsForWithdraw(
             StatementDTO::create($accountId, 350)
                 ->setDescription('Test Withdraw')
                 ->setReferenceId('Referencia Withdraw')
@@ -51,7 +51,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $statement->setDescription('Test Withdraw');
         $statement->setGrossBalance('1000.00');
         $statement->setAccountId($accountId);
-        $statement->setStatementId($statementId);
+        $statement->setStatementId($actual->getStatementId());;
         $statement->setTypeId('WB');
         $statement->setNetBalance('650.00');
         $statement->setPrice('1.00');
@@ -59,8 +59,6 @@ class ReserveFundsWithdrawTest extends TestCase
         $statement->setReferenceId('Referencia Withdraw');
         $statement->setReferenceSource('Source Withdraw');
         $statement->setAccountTypeId('USDTEST');
-
-        $actual = $this->statementBLL->getById($statementId);
         $statement->setDate($actual->getDate());
 
         // Executar teste
@@ -99,7 +97,7 @@ class ReserveFundsWithdrawTest extends TestCase
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('NEGTEST', "___TESTUSER-1", 1000, 1, -400);
-        $statementId = $this->statementBLL->reserveFundsForWithdraw(
+        $actual = $this->statementBLL->reserveFundsForWithdraw(
             StatementDTO::create($accountId, 1150)
                 ->setDescription('Test Withdraw')
                 ->setReferenceId('Referencia Withdraw')
@@ -113,7 +111,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $statement->setDescription('Test Withdraw');
         $statement->setGrossBalance('1000.00');
         $statement->setAccountId($accountId);
-        $statement->setStatementId($statementId);
+        $statement->setStatementId($actual->getStatementId());
         $statement->setTypeId('WB');
         $statement->setNetBalance('-150.00');
         $statement->setPrice('1.00');
@@ -121,8 +119,6 @@ class ReserveFundsWithdrawTest extends TestCase
         $statement->setReferenceId('Referencia Withdraw');
         $statement->setReferenceSource('Source Withdraw');
         $statement->setAccountTypeId('NEGTEST');
-
-        $actual = $this->statementBLL->getById($statementId);
         $statement->setDate($actual->getDate());
 
         // Executar teste
@@ -159,14 +155,14 @@ class ReserveFundsWithdrawTest extends TestCase
 
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $statementId = $this->statementBLL->withdrawFunds(
+        $statement = $this->statementBLL->withdrawFunds(
             StatementDTO::create($accountId, 200)
                 ->setDescription('Test Withdraw')
                 ->setReferenceId('Referencia Withdraw')
                 ->setReferenceSource('Source Withdraw')
             );
 
-        $this->statementBLL->acceptFundsById($statementId);
+        $this->statementBLL->acceptFundsById($statement->getStatementId());
     }
 
     public function testAcceptFundsById_HasParentTransation()
@@ -176,13 +172,13 @@ class ReserveFundsWithdrawTest extends TestCase
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
         $this->statementBLL->withdrawFunds(StatementDTO::create($accountId, 150)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
-        $statementId = $this->statementBLL->reserveFundsForWithdraw(StatementDTO::create($accountId, 350)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
+        $statement = $this->statementBLL->reserveFundsForWithdraw(StatementDTO::create($accountId, 350)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
 
         // Executar ação
-        $this->statementBLL->acceptFundsById($statementId);
+        $this->statementBLL->acceptFundsById($statement->getStatementId());
 
         // Provar o erro:
-        $this->statementBLL->acceptFundsById($statementId);    
+        $this->statementBLL->acceptFundsById($statement->getStatementId());
     }
 
     public function testAcceptFundsById_OK()
@@ -195,7 +191,7 @@ class ReserveFundsWithdrawTest extends TestCase
                 ->setReferenceId('Referencia Withdraw')
                 ->setReferenceSource('Source Withdraw')
             );
-        $statementId = $this->statementBLL->reserveFundsForWithdraw(
+        $reserveStatement = $this->statementBLL->reserveFundsForWithdraw(
             StatementDTO::create($accountId, 350)
                 ->setDescription('Test Withdraw')
                 ->setReferenceId('Referencia Withdraw')
@@ -203,7 +199,7 @@ class ReserveFundsWithdrawTest extends TestCase
             );
 
         // Executar ação
-        $actualId = $this->statementBLL->acceptFundsById($statementId);
+        $actualId = $this->statementBLL->acceptFundsById($reserveStatement->getStatementId());
         $actual = $this->statementBLL->getById($actualId);
 
         // Objeto que é esperado
@@ -213,7 +209,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $statement->setGrossBalance('500.00');
         $statement->setAccountId($accountId);
         $statement->setStatementId($actualId);
-        $statement->setStatementParentId($statementId);
+        $statement->setStatementParentId($reserveStatement->getStatementId());
         $statement->setTypeId('W');
         $statement->setNetBalance('500.00');
         $statement->setPrice('1.00');
@@ -243,9 +239,9 @@ class ReserveFundsWithdrawTest extends TestCase
 
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $statementId = $this->statementBLL->withdrawFunds(StatementDTO::create($accountId, 300));
+        $statement = $this->statementBLL->withdrawFunds(StatementDTO::create($accountId, 300));
 
-        $this->statementBLL->rejectFundsById($statementId);
+        $this->statementBLL->rejectFundsById($statement->getStatementId());
     }
 
     public function testRejectFundsById_HasParentTransation()
@@ -260,7 +256,7 @@ class ReserveFundsWithdrawTest extends TestCase
                 ->setReferenceId('Referencia Withdraw')
                 ->setReferenceSource('Source Withdraw')
             );
-        $statementId = $this->statementBLL->reserveFundsForWithdraw(
+        $statement = $this->statementBLL->reserveFundsForWithdraw(
             StatementDTO::create($accountId, 350)
                 ->setDescription('Test Withdraw')
                 ->setReferenceId('Referencia Withdraw')
@@ -268,10 +264,10 @@ class ReserveFundsWithdrawTest extends TestCase
             );
 
         // Executar ação
-        $this->statementBLL->rejectFundsById($statementId);
+        $this->statementBLL->rejectFundsById($statement->getStatementId());
 
         // Provocar o erro:
-        $this->statementBLL->rejectFundsById($statementId);
+        $this->statementBLL->rejectFundsById($statement->getStatementId());
     }
 
     public function testRejectFundsById_OK()
@@ -284,7 +280,7 @@ class ReserveFundsWithdrawTest extends TestCase
                 ->setReferenceId('Referencia Withdraw')
                 ->setReferenceSource('Source Withdraw')
             );
-        $statementId = $this->statementBLL->reserveFundsForWithdraw(
+        $reserveStatement = $this->statementBLL->reserveFundsForWithdraw(
             StatementDTO::create($accountId, 350)
                 ->setDescription('Test Withdraw')
                 ->setReferenceId('Referencia Withdraw')
@@ -292,7 +288,7 @@ class ReserveFundsWithdrawTest extends TestCase
             );
 
         // Executar ação
-        $actualId = $this->statementBLL->rejectFundsById($statementId);
+        $actualId = $this->statementBLL->rejectFundsById($reserveStatement->getStatementId());
         $actual = $this->statementBLL->getById($actualId);
 
         // Objeto que é esperado
@@ -302,7 +298,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $statement->setGrossBalance('850.00');
         $statement->setAccountId($accountId);
         $statement->setStatementId($actualId);
-        $statement->setStatementParentId($statementId);
+        $statement->setStatementParentId($reserveStatement->getStatementId());
         $statement->setTypeId('R');
         $statement->setNetBalance('850.00');
         $statement->setPrice('1.00');

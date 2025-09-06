@@ -56,22 +56,6 @@ class StatementBLL
         return $this->statementRepository->getById($statementId);
     }
 
-    /**
-     * Add funds to an account
-     *
-     * @param StatementDTO $dto
-     * @return int|null Statement ID
-     * @throws AccountException
-     * @throws AmountException
-     * @throws InvalidArgumentException
-     * @throws StatementException
-     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
-     */
-    public function addFunds(StatementDTO $dto): ?int
-    {
-        return $this->updateFunds(StatementEntity::DEPOSIT, $dto)->getStatementId();
-    }
-
     protected function validateStatementDto(StatementDTO $dto): void
     {
         if (!$dto->hasAccount()) {
@@ -335,52 +319,68 @@ class StatementBLL
     }
 
     /**
-     * Withdraw funds from an account
+     * Add funds to an account
      *
      * @param StatementDTO $dto
-     * @param bool $capAtZero
-     * @return int|null Statement ID
+     * @return StatementEntity Newly created statement entity
      * @throws AccountException
      * @throws AmountException
      * @throws InvalidArgumentException
      * @throws StatementException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function withdrawFunds(StatementDTO $dto, bool $capAtZero = false): ?int
+    public function addFunds(StatementDTO $dto): StatementEntity
     {
-        return $this->updateFunds(StatementEntity::WITHDRAW, $dto, $capAtZero)->getStatementId();
+        return $this->updateFunds(StatementEntity::DEPOSIT, $dto);
+    }
+
+    /**
+     * Withdraw funds from an account
+     *
+     * @param StatementDTO $dto
+     * @param bool $capAtZero
+     * @return StatementEntity Statement ID
+     * @throws AccountException
+     * @throws AmountException
+     * @throws InvalidArgumentException
+     * @throws StatementException
+     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     */
+    public function withdrawFunds(StatementDTO $dto, bool $capAtZero = false): StatementEntity
+    {
+        return $this->updateFunds(StatementEntity::WITHDRAW, $dto, $capAtZero);
     }
 
     /**
      * Reserve funds to future withdrawn. It affects the net balance but not the gross balance
      *
      * @param StatementDTO $dto
-     * @return int|null Statement ID
+     * @return StatementEntity Statement ID
      * @throws AccountException
      * @throws AmountException
      * @throws InvalidArgumentException
      * @throws StatementException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function reserveFundsForWithdraw(StatementDTO $dto): ?int
+    public function reserveFundsForWithdraw(StatementDTO $dto): StatementEntity
     {
-        return $this->updateFunds(StatementEntity::WITHDRAW_BLOCKED, $dto)->getStatementId();
+        return $this->updateFunds(StatementEntity::WITHDRAW_BLOCKED, $dto);
     }
 
     /**
      * Reserve funds to future deposit. Update net balance but not gross balance.
      *
      * @param StatementDTO $dto
-     * @return int|null Statement ID
+     * @return StatementEntity Statement ID
      * @throws AccountException
      * @throws AmountException
      * @throws InvalidArgumentException
      * @throws StatementException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function reserveFundsForDeposit(StatementDTO $dto): ?int
+    public function reserveFundsForDeposit(StatementDTO $dto): StatementEntity
     {
-        return $this->updateFunds(StatementEntity::DEPOSIT_BLOCKED, $dto)->getStatementId();
+        return $this->updateFunds(StatementEntity::DEPOSIT_BLOCKED, $dto);
     }
 
     /**
@@ -456,7 +456,7 @@ class StatementBLL
      * @param int $statementId
      * @param StatementDTO $statementDtoWithdraw
      * @param StatementDTO $statementDtoRefund
-     * @return int|null
+     * @return StatementEntity
      * @throws AccountException
      * @throws AmountException
      * @throws InvalidArgumentException
@@ -467,7 +467,7 @@ class StatementBLL
      * @throws UpdateConstraintException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function acceptPartialFundsById(int $statementId, StatementDTO $statementDtoWithdraw, StatementDTO $statementDtoRefund): ?int
+    public function acceptPartialFundsById(int $statementId, StatementDTO $statementDtoWithdraw, StatementDTO $statementDtoRefund): StatementEntity
     {
         $partialAmount = $statementDtoWithdraw->getAmount();
 
@@ -499,11 +499,11 @@ class StatementBLL
 
             $statementDtoWithdraw->setAccountId($statement->getAccountId());
 
-            $finalDebitStatementId = $this->withdrawFunds($statementDtoWithdraw);
+            $finalDebitStatement = $this->withdrawFunds($statementDtoWithdraw);
 
             $this->getRepository()->getDbDriver()->commitTransaction();
 
-            return $finalDebitStatementId;
+            return $finalDebitStatement;
 
         } catch (Exception $ex) {
             $this->getRepository()->getDbDriver()->rollbackTransaction();

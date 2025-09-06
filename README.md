@@ -61,10 +61,10 @@ $statementBLL->withdrawFunds($statement);
 
 // Add 50 USD hold to the account
 $statement = new StatementDTO($accountId, 50);
-$statementId = $statementBLL->reserveFundsForDeposit($statement);
+$reserve = $statementBLL->reserveFundsForDeposit($statement);
 
 // Accept the hold
-$statementBLL->acceptFundsById($statementId);
+$statementBLL->acceptFundsById($reserve->getStatementId());
 ```
 
 ## Installation
