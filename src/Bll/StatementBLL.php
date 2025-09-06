@@ -20,7 +20,6 @@ use ByJG\MicroOrm\QueryRaw;
 use ByJG\MicroOrm\UpdateQuery;
 use ByJG\Serializer\Exception\InvalidArgumentException;
 use Exception;
-use KingPandaApi\Model\StatementCodes;
 
 class StatementBLL
 {
@@ -154,11 +153,11 @@ class StatementBLL
             'uncleared',
             'price',
             $dto->getAmount(),
-            !is_null($dto->getDescription()) ? "'" . $dto->getDescription() . "'" : 'null',
-            !is_null($dto->getCode()) ? "'" . $dto->getCode() . "'" : 'null',
-            !is_null($dto->getReferenceId()) ? "'" . $dto->getReferenceId() . "'" : 'null',
-            !is_null($dto->getReferenceSource()) ? "'" . $dto->getReferenceSource() . "'" : 'null',
-            "'$operation'",
+            ':description',
+            ':code',
+            ':referenceid',
+            ':referencesource',
+            ':operation',
             $this->statementRepository->getDbDriver()->getDbHelper()->sqlDate('Y-m-d H:i:s'),
             'null',
         ];
@@ -179,7 +178,14 @@ class StatementBLL
         $statementQuery = Query::getInstance()
             ->table('account')
             ->fields($selectFields)
-            ->where('accountid = :accid2', ['accid2' => $dto->getAccountId()]);
+            ->where('accountid = :accid2', [
+                'accid2' => $dto->getAccountId(),
+                'description' => $dto->getDescription(),
+                'code' => $dto->getCode(),
+                'referenceid' => $dto->getReferenceId(),
+                'referencesource' => $dto->getReferenceSource(),
+                'operation' => $operation,
+            ]);
 
         $statementInsert = InsertSelectQuery::getInstance(
             $this->statementRepository->getMapper()->getTable(),
