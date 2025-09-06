@@ -3,6 +3,7 @@
 namespace Tests\Database;
 
 use ByJG\AccountStatements\DTO\StatementDTO;
+use ByJG\AccountStatements\Entity\AccountEntity;
 use ByJG\AccountStatements\Entity\StatementEntity;
 use ByJG\AccountStatements\Exception\AccountException;
 use ByJG\AccountStatements\Exception\AccountTypeException;
@@ -16,7 +17,9 @@ use ByJG\MicroOrm\Exception\TransactionException;
 use ByJG\Serializer\Serialize;
 use PHPUnit\Framework\TestCase;
 use Tests\BaseDALTrait;
+use Tests\Classes\AccountRepositoryExtended;
 use Tests\Classes\StatementExtended;
+use Tests\Classes\StatementRepositoryExtended;
 
 
 class AccountStatementsTest extends TestCase
@@ -1054,5 +1057,29 @@ class AccountStatementsTest extends TestCase
         $this->expectException(AccountException::class);
         $this->expectExceptionMessage('Account not found');
         $this->statementBLL->reserveFundsForDeposit(StatementDTO::create(1023, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
+    }
+
+    public function testStatementObserver()
+    {
+        $accountRepository = new AccountRepositoryExtended($this->dbDriver, AccountEntity::class);
+        $statementRepository = new StatementRepositoryExtended($this->dbDriver, StatementEntity::class);
+
+        // Sanity Check
+        $this->assertFalse($accountRepository->getReach());
+        $this->assertFalse($statementRepository->getReach());
+
+        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $statementId = $this->statementBLL->addFunds(
+            StatementDTO::create($accountId, 250)
+                ->setDescription('Test Add Funds')
+                ->setReferenceId('Referencia Add Funds')
+                ->setReferenceSource('Source Add Funds')
+        );
+
+        // I don´t need to test the values, because it is tested before.
+        // I just need to check if the observer was called.
+        // And inside the observer, I will check the values.
+        $this->assertTrue($accountRepository->getReach());
+        $this->assertTrue($statementRepository->getReach());
     }
 }

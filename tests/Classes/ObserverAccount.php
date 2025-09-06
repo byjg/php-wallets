@@ -1,0 +1,31 @@
+<?php
+
+namespace Tests\Classes;
+
+use ByJG\MicroOrm\Interface\ObserverProcessorInterface;
+use ByJG\MicroOrm\ObserverData;
+use Throwable;
+
+class ObserverAccount implements ObserverProcessorInterface
+{
+    public function __construct(public AccountRepositoryExtended $repository)
+    {
+
+    }
+
+    public function process(ObserverData $observerData): void
+    {
+        // This is tied to the test AccountStatementTest::testStatementObserver()
+        $this->repository->setReach($observerData->getEvent() == 'update' && $observerData->getData()->getNetbalance() == 1250);
+    }
+
+    public function getObservedTable(): string
+    {
+        return "account";
+    }
+
+    public function onError(Throwable $exception, ObserverData $observerData): void
+    {
+        throw $exception;
+    }
+}
