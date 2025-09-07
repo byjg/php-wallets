@@ -4,8 +4,10 @@ namespace Tests\Classes;
 
 use ByJG\AccountStatements\Repository\AccountRepository;
 use ByJG\AnyDataset\Db\DbDriverInterface;
+use ByJG\MicroOrm\Exception\InvalidArgumentException;
 use ByJG\MicroOrm\Exception\OrmModelInvalidException;
 use ByJG\MicroOrm\FieldMapping;
+use ReflectionException;
 
 class AccountRepositoryExtended extends AccountRepository
 {
@@ -19,6 +21,7 @@ class AccountRepositoryExtended extends AccountRepository
      * @param string $accountEntity
      * @param FieldMapping[] $fieldMappingList
      * @throws OrmModelInvalidException
+     * @throws InvalidArgumentException
      * @throws ReflectionException
      */
     public function __construct(DbDriverInterface $dbDriver, string $accountEntity, array $fieldMappingList = [])
