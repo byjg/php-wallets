@@ -1,12 +1,14 @@
 <?php
 
-namespace Tests;
+namespace Tests\Database;
 
 use ByJG\AccountStatements\DTO\StatementDTO;
 use ByJG\AccountStatements\Entity\StatementEntity;
 use ByJG\AccountStatements\Exception\AmountException;
 use ByJG\AccountStatements\Exception\StatementException;
+use ByJG\MicroOrm\Literal\HexUuidLiteral;
 use PHPUnit\Framework\TestCase;
+use Tests\BaseDALTrait;
 
 class ReserveFundsWithdrawTest extends TestCase
 {
@@ -37,12 +39,11 @@ class ReserveFundsWithdrawTest extends TestCase
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $actual = $this->statementBLL->reserveFundsForWithdraw(
-            StatementDTO::create($accountId, 350)
-                ->setDescription('Test Withdraw')
-                ->setReferenceId('Referencia Withdraw')
-                ->setReferenceSource('Source Withdraw')
-            );
+        $dto = StatementDTO::create($accountId, 350)
+            ->setDescription('Test Withdraw')
+            ->setReferenceId('Referencia Withdraw')
+            ->setReferenceSource('Source Withdraw');
+        $actual = $this->statementBLL->reserveFundsForWithdraw($dto);
 
         // Objeto que é esperado
         $statement = new StatementEntity();
@@ -60,6 +61,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $statement->setReferenceSource('Source Withdraw');
         $statement->setAccountTypeId('USDTEST');
         $statement->setDate($actual->getDate());
+        $statement->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
 
         // Executar teste
         $this->assertEquals($statement->toArray(), $actual->toArray());
@@ -97,12 +99,11 @@ class ReserveFundsWithdrawTest extends TestCase
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('NEGTEST', "___TESTUSER-1", 1000, 1, -400);
-        $actual = $this->statementBLL->reserveFundsForWithdraw(
-            StatementDTO::create($accountId, 1150)
-                ->setDescription('Test Withdraw')
-                ->setReferenceId('Referencia Withdraw')
-                ->setReferenceSource('Source Withdraw')
-            );
+        $dto = StatementDTO::create($accountId, 1150)
+            ->setDescription('Test Withdraw')
+            ->setReferenceId('Referencia Withdraw')
+            ->setReferenceSource('Source Withdraw');
+        $actual = $this->statementBLL->reserveFundsForWithdraw($dto);
 
         // Objeto que é esperado
         $statement = new StatementEntity();
@@ -120,6 +121,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $statement->setReferenceSource('Source Withdraw');
         $statement->setAccountTypeId('NEGTEST');
         $statement->setDate($actual->getDate());
+        $statement->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
 
         // Executar teste
         $this->assertEquals($statement->toArray(), $actual->toArray());
@@ -218,6 +220,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $statement->setReferenceSource('Source Withdraw');
         $statement->setDate($actual->getDate());
         $statement->setAccountTypeId('USDTEST');
+        $statement->setUuid($actual->getUuid());
 
         // Executar teste
         $this->assertEquals($statement->toArray(), $actual->toArray());
@@ -307,6 +310,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $statement->setReferenceSource('Source Withdraw');
         $statement->setDate($actual->getDate());
         $statement->setAccountTypeId('USDTEST');
+        $statement->setUuid($actual->getUuid());
 
         // Executar teste
         $this->assertEquals($statement->toArray(), $actual->toArray());

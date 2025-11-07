@@ -5,6 +5,8 @@ namespace ByJG\AccountStatements\DTO;
 
 
 use ByJG\AccountStatements\Entity\StatementEntity;
+use ByJG\AnyDataset\Db\DbDriverInterface;
+use ByJG\MicroOrm\Literal\Literal;
 
 class StatementDTO
 {
@@ -15,6 +17,7 @@ class StatementDTO
     protected ?string $referenceId = null;
     protected ?string $referenceSource = null;
     protected ?string $code = null;
+    protected string|Literal|null $uuid = null;
     
     protected array $properties = [];
 
@@ -63,6 +66,9 @@ class StatementDTO
         }
         if (!empty($this->getReferenceSource())) {
             $statement->setReferenceSource($this->getReferenceSource());
+        }
+        if (!empty($this->getUuid())) {
+            $statement->setUuid($this->getUuid());
         }
 
         foreach ($this->getProperties() as $name => $value) {
@@ -185,5 +191,20 @@ class StatementDTO
     public function getProperties(): array
     {
         return $this->properties;
+    }
+
+    public function setUuid(string|Literal|null $uuid): void
+    {
+        $this->uuid = $uuid;
+    }
+
+    public function getUuid(): string|Literal|null
+    {
+        return $this->uuid;
+    }
+
+    public function calculateUuid(DbDriverInterface $dbDriver): mixed
+    {
+        return new Literal("X'" . $dbDriver->getScalar("SELECT hex(uuid_to_bin(uuid()))") . "'");
     }
 }

@@ -28,6 +28,18 @@ abstract class BaseRepository
      */
     public function getById(string|int $itemId): mixed
     {
+        // Check if there's an active transaction and use forUpdate if so
+        if ($this->repository->getDbDriver()->hasActiveTransaction()) {
+            [$filterList, $filterKeys] = $this->repository->getMapper()->getPkFilter($itemId);
+            $result = $this->repository->getByFilter($filterList, $filterKeys, true); // forUpdate = true
+            
+            if (count($result) === 1) {
+                return $result[0];
+            }
+            
+            return null;
+        }
+        
         return $this->repository->get($itemId);
     }
 

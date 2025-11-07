@@ -4,7 +4,9 @@ namespace ByJG\AccountStatements\Entity;
 
 use ByJG\AccountStatements\Exception\AmountException;
 use ByJG\MicroOrm\Attributes\FieldAttribute;
+use ByJG\MicroOrm\Attributes\FieldUuidAttribute;
 use ByJG\MicroOrm\Attributes\TableAttribute;
+use ByJG\MicroOrm\Literal\Literal;
 use ByJG\Serializer\BaseModel;
 
 /**
@@ -110,6 +112,13 @@ class StatementEntity extends BaseModel
      * @OA\Property()
      */
     protected ?string $referencesource = null;
+
+    /**
+     * @var string|Literal|null
+     * @OA\Property()
+     */
+    #[FieldUuidAttribute()]
+    protected string|Literal|null $uuid = null;
 
     /**
      * @var string|null
@@ -307,6 +316,16 @@ class StatementEntity extends BaseModel
     public function setReferenceSource(?string $referencesource): void
     {
         $this->referencesource = $referencesource;
+    }
+
+    public function getUuid(): string|Literal|null
+    {
+        return $this->uuid;
+    }
+
+    public function setUuid(string|Literal|null $uuid): void
+    {
+        $this->uuid = $uuid;
     }
 
     /**

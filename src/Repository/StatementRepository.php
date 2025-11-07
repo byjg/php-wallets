@@ -6,6 +6,8 @@ use ByJG\AccountStatements\Entity\StatementEntity;
 use ByJG\AnyDataset\Db\DbDriverInterface;
 use ByJG\MicroOrm\Exception\OrmModelInvalidException;
 use ByJG\MicroOrm\FieldMapping;
+use ByJG\MicroOrm\Literal\HexUuidLiteral;
+use ByJG\MicroOrm\Literal\Literal;
 use ByJG\MicroOrm\Mapper;
 use ByJG\MicroOrm\Query;
 use ByJG\MicroOrm\Repository;
@@ -68,6 +70,32 @@ class StatementRepository extends BaseRepository
         } else {
             return null;
         }
+    }
+
+    /**
+     * Get a Statement by its UUID.
+     *
+     * @param Literal|string $uuid
+     * @return StatementEntity|null
+     */
+    public function getByUuid(Literal|string $uuid): ?StatementEntity
+    {
+        if (is_string($uuid)) {
+            $uuid = new HexUuidLiteral($uuid);
+        }
+
+        $query = Query::getInstance()
+            ->table($this->repository->getMapper()->getTable())
+            ->where('uuid = :uuid', ['uuid' => $uuid])
+        ;
+
+        if ($this->repository->getDbDriver()->hasActiveTransaction()) {
+            $query->forUpdate();
+        }
+
+        $result = $this->repository->getByQuery($query);
+
+        return $result[0] ?? null;
     }
 
     /**

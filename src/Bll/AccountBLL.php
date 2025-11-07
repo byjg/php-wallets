@@ -183,50 +183,60 @@ class AccountBLL
         string $description = "Reset Balance"
     ): ?int
     {
-        
-        $model = $this->accountRepository->getById($accountId);
+        $account = $this->accountRepository->getById($accountId);
 
-        if (empty($model)) {
-            throw new AccountException('Id da conta não existe. Não é possível fechar a conta');
+        if (empty($account)) {
+            throw new AccountException('Account Id doesnt exists');
         }
 
-        // Get total value reserved
-        $unclearedValues = 0;
-        $qtd = 0;
-        $object = $this->statementBLL->getUnclearedStatements($model->getAccountId());
-        foreach ($object as $stmt) {
-            $qtd++;
-            $unclearedValues += $stmt->getAmount();
+        $dto = StatementDTO::createEmpty();
+        $dto->setUuid($dto->calculateUuid($this->accountRepository->getDbDriver()));;
+
+        $this->accountRepository->getDbDriver()->beginTransaction();
+        try {
+            // Get total value reserved
+            $unclearedValues = 0;
+            $qtd = 0;
+            $object = $this->statementBLL->getUnclearedStatements($account->getAccountId());
+            foreach ($object as $stmt) {
+                $qtd++;
+                $unclearedValues += $stmt->getAmount();
+            }
+
+            if ($newBalance - $unclearedValues < $newMinValue) {
+                throw new StatementException(
+                    "Can't override balance because there is $qtd pending statements with the amount of $unclearedValues"
+                );
+            }
+
+            // Update object Account
+            $account->setGrossBalance($newBalance);
+            $account->setNetBalance($newBalance - $unclearedValues);
+            $account->setUnCleared($unclearedValues);
+            $account->setPrice($newPrice);
+            $account->setMinValue($newMinValue);
+            $account->setLastUuid($dto->getUuid());
+            $this->accountRepository->save($account);
+
+            // Create new Statement
+            $statement = new StatementEntity();
+            $statement->setAmount($newBalance);
+            $statement->setAccountId($account->getAccountId());
+            $statement->setDescription(empty($description) ? "Reset Balance" : $description);
+            $statement->setTypeId(StatementEntity::BALANCE);
+            $statement->setCode('BAL');
+            $statement->setGrossBalance($newBalance);
+            $statement->setNetBalance($newBalance - $unclearedValues);
+            $statement->setUnCleared($unclearedValues);
+            $statement->setPrice($newPrice);
+            $statement->setAccountTypeId($account->getAccountTypeId());
+            $statement->setUuid($dto->getUuid());
+            $this->statementBLL->getRepository()->save($statement);
+            $this->accountRepository->getDbDriver()->commitTransaction();
+        } catch (\Exception $ex) {
+            $this->accountRepository->getDbDriver()->rollbackTransaction();
+            throw $ex;
         }
-
-        if ($newBalance - $unclearedValues < $newMinValue) {
-            throw new StatementException(
-                "Nâo é possível alterar para esse valor pois ainda existem $qtd transações pendentes " .
-                "totalizando $unclearedValues milhas"
-            );
-        }
-
-        // Update object Account
-        $model->setGrossBalance($newBalance);
-        $model->setNetBalance($newBalance - $unclearedValues);
-        $model->setUnCleared($unclearedValues);
-        $model->setPrice($newPrice);
-        $model->setMinValue($newMinValue);
-        $this->accountRepository->save($model);
-
-        // Create new Statement
-        $statement = new StatementEntity();
-        $statement->setAmount($newBalance);
-        $statement->setAccountId($model->getAccountId());
-        $statement->setDescription(empty($description) ? "Reset Balance" : $description);
-        $statement->setTypeId(StatementEntity::BALANCE);
-        $statement->setCode('BAL');
-        $statement->setGrossBalance($newBalance);
-        $statement->setNetBalance($newBalance - $unclearedValues);
-        $statement->setUnCleared($unclearedValues);
-        $statement->setPrice($newPrice);
-        $statement->setAccountTypeId($model->getAccountTypeId());
-        $this->statementBLL->getRepository()->save($statement);
 
         return $statement->getStatementId();
     }

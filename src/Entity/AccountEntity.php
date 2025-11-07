@@ -4,7 +4,9 @@ namespace ByJG\AccountStatements\Entity;
 
 use ByJG\AccountStatements\Exception\AmountException;
 use ByJG\MicroOrm\Attributes\FieldAttribute;
+use ByJG\MicroOrm\Attributes\FieldUuidAttribute;
 use ByJG\MicroOrm\Attributes\TableAttribute;
+use ByJG\MicroOrm\Literal\Literal;
 use ByJG\Serializer\BaseModel;
 
 /**
@@ -73,7 +75,8 @@ class AccountEntity extends BaseModel
     #[FieldAttribute(syncWithDb: false)]
     protected ?string $entrydate = null;
 
-    protected ?int $laststatementid = null;
+    #[FieldUuidAttribute(fieldName: 'last_uuid')]
+    protected string|Literal|null $lastUuid = null;
 
     /**
      * @var float|null
@@ -181,14 +184,14 @@ class AccountEntity extends BaseModel
         $this->minvalue = $minvalue;
     }
 
-    public function getLastStatementId(): ?int
+    public function getLastUuid(): Literal|string|null
     {
-        return $this->laststatementid;
+        return $this->lastUuid;
     }
 
-    public function setLastStatementId(?int $laststatementid): void
+    public function setLastUuid(Literal|string|null $lastUuid): void
     {
-        $this->laststatementid = $laststatementid;
+        $this->lastUuid = $lastUuid;
     }
 
     /**

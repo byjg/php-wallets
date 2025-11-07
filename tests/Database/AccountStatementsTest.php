@@ -14,6 +14,7 @@ use ByJG\MicroOrm\Exception\InvalidArgumentException;
 use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
 use ByJG\MicroOrm\Exception\OrmInvalidFieldsException;
 use ByJG\MicroOrm\Exception\TransactionException;
+use ByJG\MicroOrm\Literal\HexUuidLiteral;
 use ByJG\Serializer\Serialize;
 use PHPUnit\Framework\TestCase;
 use Tests\BaseDALTrait;
@@ -89,13 +90,12 @@ class AccountStatementsTest extends TestCase
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $actual = $this->statementBLL->withdrawFunds(
-            StatementDTO::create($accountId, 10)
-                ->setDescription('Test')
-                ->setReferenceId('Referencia')
-                ->setReferenceSource('Source')
-                ->setCode('XYZ')
-        );
+        $dto = StatementDTO::create($accountId, 10)
+            ->setDescription('Test')
+            ->setReferenceId('Referencia')
+            ->setReferenceSource('Source')
+            ->setCode('XYZ');
+        $actual = $this->statementBLL->withdrawFunds($dto);
 
         // Objeto que é esperado
         $statement = new StatementEntity();
@@ -114,6 +114,7 @@ class AccountStatementsTest extends TestCase
         $statement->setCode('XYZ');
         $statement->setAccountTypeId('USDTEST');
         $statement->setDate($actual->getDate());
+        $statement->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
 
         // Executar teste
         $this->assertEquals($statement->toArray(), $actual->toArray());
@@ -123,13 +124,12 @@ class AccountStatementsTest extends TestCase
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 0);
-        $actual = $this->statementBLL->addFunds(
-            StatementDTO::create($accountId, 10)
-                ->setDescription('Test')
-                ->setReferenceId('Referencia')
-                ->setReferenceSource('Source')
-                ->setCode('XYZ')
-        );
+        $dto = StatementDTO::create($accountId, 10)
+            ->setDescription('Test')
+            ->setReferenceId('Referencia')
+            ->setReferenceSource('Source')
+            ->setCode('XYZ');
+        $actual = $this->statementBLL->addFunds($dto);
 
         // Objeto que é esperado
         $statement = new StatementEntity();
@@ -148,6 +148,7 @@ class AccountStatementsTest extends TestCase
         $statement->setCode('XYZ');
         $statement->setAccountTypeId('USDTEST');
         $statement->setDate($actual->getDate());
+        $statement->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
 
         // Executar teste
         $this->assertEquals($statement->toArray(), $actual->toArray());
@@ -231,8 +232,10 @@ class AccountStatementsTest extends TestCase
         for ($i = 0; $i < count($statement); $i++) {
             $statement[$i]->setDate(null);
             $statement[$i]->setStatementId(null);
+            $statement[$i]->setUuid(null);
             $listAll[$i]->setDate(null);
             $listAll[$i]->setStatementId(null);
+            $listAll[$i]->setUuid(null);
         }
 
         // Testar método
@@ -246,12 +249,11 @@ class AccountStatementsTest extends TestCase
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $actual = $this->statementBLL->addFunds(
-            StatementDTO::create($accountId, 250)
-                ->setDescription('Test Add Funds')
-                ->setReferenceId('Referencia Add Funds')
-                ->setReferenceSource('Source Add Funds')
-        );
+        $dto = StatementDTO::create($accountId, 250)
+            ->setDescription('Test Add Funds')
+            ->setReferenceId('Referencia Add Funds')
+            ->setReferenceSource('Source Add Funds');
+        $actual = $this->statementBLL->addFunds($dto);
 
         // Check
         $statement = new StatementEntity;
@@ -269,6 +271,7 @@ class AccountStatementsTest extends TestCase
         $statement->setReferenceSource('Source Add Funds');
         $statement->setAccountTypeId('USDTEST');
         $statement->setDate($actual->getDate());
+        $statement->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
 
         $this->assertEquals($statement->toArray(), $actual->toArray());
     }
@@ -297,12 +300,11 @@ class AccountStatementsTest extends TestCase
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $actual = $this->statementBLL->addFunds(
-            StatementDTO::create($accountId, $amount)
-                ->setDescription('Test Add Funds')
-                ->setReferenceId('Referencia Add Funds')
-                ->setReferenceSource('Source Add Funds')
-        );
+        $dto = StatementDTO::create($accountId, $amount)
+            ->setDescription('Test Add Funds')
+            ->setReferenceId('Referencia Add Funds')
+            ->setReferenceSource('Source Add Funds');
+        $actual = $this->statementBLL->addFunds($dto);
 
         // Check
         $statement = new StatementEntity;
@@ -320,6 +322,7 @@ class AccountStatementsTest extends TestCase
         $statement->setReferenceSource('Source Add Funds');
         $statement->setAccountTypeId('USDTEST');
         $statement->setDate($actual->getDate());
+        $statement->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
 
         $this->assertEquals($statement->toArray(), $actual->toArray());
     }
@@ -352,12 +355,11 @@ class AccountStatementsTest extends TestCase
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $actual = $this->statementBLL->withdrawFunds(
-            StatementDTO::create($accountId, 350)
-                ->setDescription('Test Withdraw')
-                ->setReferenceId('Referencia Withdraw')
-                ->setReferenceSource('Source Withdraw')
-        );
+        $dto = StatementDTO::create($accountId, 350)
+            ->setDescription('Test Withdraw')
+            ->setReferenceId('Referencia Withdraw')
+            ->setReferenceSource('Source Withdraw');
+        $actual = $this->statementBLL->withdrawFunds($dto);
 
         // Objeto que é esperado
         $statement = new StatementEntity();
@@ -375,6 +377,7 @@ class AccountStatementsTest extends TestCase
         $statement->setReferenceSource('Source Withdraw');
         $statement->setAccountTypeId('USDTEST');
         $statement->setDate($actual->getDate());
+        $statement->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
 
         // Executar teste
         $this->assertEquals($statement->toArray(), $actual->toArray());
@@ -408,12 +411,11 @@ class AccountStatementsTest extends TestCase
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('NEGTEST', "___TESTUSER-1", 1000, 1, -400);
-        $actual = $this->statementBLL->withdrawFunds(
-            StatementDTO::create($accountId, 1150)
-                ->setDescription('Test Withdraw')
-                ->setReferenceId('Referencia Withdraw')
-                ->setReferenceSource('Source Withdraw')
-        );
+        $dto = StatementDTO::create($accountId, 1150)
+            ->setDescription('Test Withdraw')
+            ->setReferenceId('Referencia Withdraw')
+            ->setReferenceSource('Source Withdraw');
+        $actual = $this->statementBLL->withdrawFunds($dto);
 
         // Objeto que é esperado
         $statement = new StatementEntity();
@@ -431,6 +433,7 @@ class AccountStatementsTest extends TestCase
         $statement->setReferenceSource('Source Withdraw');
         $statement->setAccountTypeId('NEGTEST');
         $statement->setDate($actual->getDate());
+        $statement->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
 
         // Executar teste
         $this->assertEquals($statement->toArray(), $actual->toArray());
@@ -494,7 +497,10 @@ class AccountStatementsTest extends TestCase
             "entrydate" => null,
             "minvalue" => "0.00",
             "laststatementid" => 2,
+            "last_uuid" => $account[0]->getLastUuid(),
         ]);
+
+        $this->assertNotNull($account[0]->getLastUuid());
 
         $this->assertEquals([
             $accountEntity
@@ -536,8 +542,10 @@ class AccountStatementsTest extends TestCase
             "extra" => "Extra Information",
             "entrydate" => null,
             "minvalue" => "0.00",
-            "laststatementid" => 2,
+            "last_uuid" => $account[0]->getLastUuid(),
         ]);
+
+        $this->assertNotNull($account[0]->getLastUuid());
 
         $this->assertEquals([
             $accountEntity
@@ -553,6 +561,9 @@ class AccountStatementsTest extends TestCase
         $account = $this->accountBLL->getById($accountId)->toArray();
         unset($account["entrydate"]);
 
+        $statement = $this->statementBLL->getById($statementId)->toArray();
+        unset($statement["date"]);
+
         // Executar teste
         $this->assertEquals([
             'accountid' => $accountId,
@@ -564,13 +575,10 @@ class AccountStatementsTest extends TestCase
             'price' => '1.00',
             'extra' => '',
             'minvalue' => '0.00',
-            "laststatementid" => 2,
+            "lastUuid" => $statement["uuid"],
         ],
             $account
         );
-
-        $statement = $this->statementBLL->getById($statementId)->toArray();
-        unset($statement["date"]);
 
         $this->assertEquals([
             'accountid' => $accountId,
@@ -586,7 +594,8 @@ class AccountStatementsTest extends TestCase
             'statementparentid' => '',
             'code' => 'BAL',
             'referenceid' => '',
-            'referencesource' => ''
+            'referencesource' => '',
+            'uuid' => $statement["uuid"],
         ],
             $statement
         );
@@ -613,13 +622,14 @@ class AccountStatementsTest extends TestCase
                 'price' => '1.00',
                 'extra' => '',
                 'minvalue' => '0.00',
-                "laststatementid" => 3,
+                "lastUuid" => $statementPartial->getUuid(),
             ],
             $account
         );
 
         $statement = Serialize::from($statementPartial)->toArray();
         unset($statement["date"]);
+        unset($statement["uuid"]);
 
         $this->assertEquals(
             [
@@ -657,6 +667,9 @@ class AccountStatementsTest extends TestCase
         $account = $this->accountBLL->getById($accountId)->toArray();
         unset($account["entrydate"]);
 
+        $statement = $this->statementBLL->getById($statementId)->toArray();
+        unset($statement["date"]);
+
         // Executar teste
         $this->assertEquals([
             'accountid' => $accountId,
@@ -668,13 +681,10 @@ class AccountStatementsTest extends TestCase
             'price' => '0.00',
             'extra' => '',
             'minvalue' => '0.00',
-            "laststatementid" => 5,
+            "lastUuid" => $statement["uuid"],
         ],
             $account
         );
-
-        $statement = $this->statementBLL->getById($statementId)->toArray();
-        unset($statement["date"]);
 
         $this->assertEquals(
             [
@@ -691,7 +701,8 @@ class AccountStatementsTest extends TestCase
                 'statementparentid' => '',
                 'referenceid' => '',
                 'referencesource' => '',
-                'code' => 'BAL'
+                'code' => 'BAL',
+                "uuid" => $statement["uuid"],
             ],
             $statement
         );
@@ -769,6 +780,7 @@ class AccountStatementsTest extends TestCase
                 function ($value) {
                     $value = $value->toArray();
                     unset($value["date"]);
+                    unset($value["uuid"]);
                     return $value;
                 },
                 $statementList
@@ -843,6 +855,7 @@ class AccountStatementsTest extends TestCase
                 function ($value) {
                     $value = $value->toArray();
                     unset($value["date"]);
+                    unset($value["uuid"]);
                     return $value;
                 },
                 $statementList
@@ -892,6 +905,7 @@ class AccountStatementsTest extends TestCase
                 function ($value) {
                     $value = $value->toArray();
                     unset($value["date"]);
+                    unset($value["uuid"]);
                     return $value;
                 },
                 $statementList
@@ -995,13 +1009,12 @@ class AccountStatementsTest extends TestCase
 
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $actual = $this->statementBLL->addFunds(
-            StatementDTO::create($accountId, 250)
-                ->setDescription('Test Add Funds')
-                ->setReferenceId('Referencia Add Funds')
-                ->setReferenceSource('Source Add Funds')
-                ->setProperty('extraProperty', 'Extra')
-        );
+        $dto = StatementDTO::create($accountId, 250)
+            ->setDescription('Test Add Funds')
+            ->setReferenceId('Referencia Add Funds')
+            ->setReferenceSource('Source Add Funds')
+            ->setProperty('extraProperty', 'Extra');
+        $actual = $this->statementBLL->addFunds($dto);
 
         // Check
         $statement = new StatementExtended();
@@ -1020,6 +1033,7 @@ class AccountStatementsTest extends TestCase
         $statement->setAccountTypeId('USDTEST');
         $statement->setExtraProperty('Extra');
         $statement->setDate($actual->getDate());
+        $statement->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
 
         $this->assertEquals($statement, $actual);
     }
@@ -1116,6 +1130,33 @@ class AccountStatementsTest extends TestCase
 
         // The DTO should be the same
         $this->assertEquals(1000, $dto->getAmount());;
+    }
+
+    public function testCapAtZeroTruePartial()
+    {
+        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
+
+        $dto = StatementDTO::create($accountId, 800)
+            ->setDescription('Test Add Funds')
+            ->setReferenceId('Referencia Add Funds')
+            ->setReferenceSource('Source Add Funds');
+        $statement = $this->statementBLL->withdrawFunds(
+            $dto,
+            capAtZero: true
+        );
+
+        // Should be zero, because allow cap at zero
+        $account = $this->accountBLL->getById($accountId);
+        $this->assertEquals(200, $account->getGrossBalance());
+        $this->assertEquals(0, $account->getUnCleared());
+        $this->assertEquals(200, $account->getNetBalance());
+
+        // Needs to be adjusted to the new balance - 750
+        $statement = $this->statementBLL->getById($statement->getStatementId());
+        $this->assertEquals(800, $statement->getAmount());
+
+        // The DTO should be the same
+        $this->assertEquals(800, $dto->getAmount());;
     }
 
     public function testCapAtZeroTrueUncleared()
