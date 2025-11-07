@@ -2,9 +2,6 @@
 
 namespace Tests;
 
-use ByJG\AccountTransactions\Bll\AccountBLL;
-use ByJG\AccountTransactions\Bll\AccountTypeBLL;
-use ByJG\AccountTransactions\Bll\TransactionBLL;
 use ByJG\AccountTransactions\Entity\AccountEntity;
 use ByJG\AccountTransactions\Entity\AccountTypeEntity;
 use ByJG\AccountTransactions\Entity\TransactionEntity;
@@ -15,6 +12,9 @@ use ByJG\AccountTransactions\Exception\TransactionException;
 use ByJG\AccountTransactions\Repository\AccountRepository;
 use ByJG\AccountTransactions\Repository\AccountTypeRepository;
 use ByJG\AccountTransactions\Repository\TransactionRepository;
+use ByJG\AccountTransactions\Service\AccountService;
+use ByJG\AccountTransactions\Service\AccountTypeService;
+use ByJG\AccountTransactions\Service\TransactionService;
 use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\DbMigration\Database\MySqlDatabase;
 use ByJG\DbMigration\Migration;
@@ -31,19 +31,19 @@ trait BaseDALTrait
 {
 
     /**
-     * @var AccountBLL
+     * @var AccountService
      */
-    protected AccountBLL $accountBLL;
+    protected AccountService $accountService;
 
     /**
-     * @var AccountTypeBLL
+     * @var AccountTypeService
      */
-    protected AccountTypeBLL $accountTypeBLL;
+    protected AccountTypeService $accountTypeService;
 
     /**
-     * @var TransactionBLL
+     * @var TransactionService
      */
-    protected TransactionBLL $transactionBLL;
+    protected TransactionService $transactionService;
 
     /**
      * @throws ReflectionException
@@ -55,9 +55,9 @@ trait BaseDALTrait
         $accountTypeRepository = new AccountTypeRepository($this->dbExecutor, $accountTypeEntity);
         $transactionRepository = new TransactionRepository($this->dbExecutor, $transactionEntity);
 
-        $this->accountTypeBLL = new AccountTypeBLL($accountTypeRepository);
-        $this->transactionBLL = new TransactionBLL($transactionRepository, $accountRepository);
-        $this->accountBLL = new AccountBLL($accountRepository, $this->accountTypeBLL, $this->transactionBLL);
+        $this->accountTypeService = new AccountTypeService($accountTypeRepository);
+        $this->transactionService = new TransactionService($transactionRepository, $accountRepository);
+        $this->accountService = new AccountService($accountRepository, $this->accountTypeService, $this->transactionService);
     }
 
     /**
@@ -141,11 +141,11 @@ trait BaseDALTrait
         $dto4->setAccountTypeId('NEGTEST');
         $dto4->setName('Test 4');
 
-        $this->accountTypeBLL->update($dto1);
-        $this->accountTypeBLL->update($dto2);
-        $this->accountTypeBLL->update($dto3);
-        $this->accountTypeBLL->update($dto4);
+        $this->accountTypeService->update($dto1);
+        $this->accountTypeService->update($dto2);
+        $this->accountTypeService->update($dto3);
+        $this->accountTypeService->update($dto4);
 
-        $this->accountBLL->createAccount('BRLTEST', '___TESTUSER-1', 1000, 1);
+        $this->accountService->createAccount('BRLTEST', '___TESTUSER-1', 1000, 1);
     }
 }

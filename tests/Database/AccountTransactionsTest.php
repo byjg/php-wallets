@@ -2,9 +2,6 @@
 
 namespace Tests\Database;
 
-use ByJG\AccountTransactions\Bll\AccountBLL;
-use ByJG\AccountTransactions\Bll\AccountTypeBLL;
-use ByJG\AccountTransactions\Bll\TransactionBLL;
 use ByJG\AccountTransactions\DTO\TransactionDTO;
 use ByJG\AccountTransactions\Entity\AccountEntity;
 use ByJG\AccountTransactions\Entity\AccountTypeEntity;
@@ -12,6 +9,9 @@ use ByJG\AccountTransactions\Entity\TransactionEntity;
 use ByJG\AccountTransactions\Exception\AccountException;
 use ByJG\AccountTransactions\Exception\AccountTypeException;
 use ByJG\AccountTransactions\Exception\AmountException;
+use ByJG\AccountTransactions\Service\AccountService;
+use ByJG\AccountTransactions\Service\AccountTypeService;
+use ByJG\AccountTransactions\Service\TransactionService;
 use ByJG\AnyDataset\Db\Exception\TransactionStartedException;
 use ByJG\AnyDataset\Db\IsolationLevelEnum;
 use ByJG\MicroOrm\Exception\InvalidArgumentException;
@@ -60,7 +60,7 @@ class AccountTransactionsTest extends TestCase
      */
     public function testGetAccountType()
     {
-        $accountTypeRepo = $this->accountTypeBLL->getRepository();
+        $accountTypeRepo = $this->accountTypeService->getRepository();
         $list = $accountTypeRepo->getAll(null, null, null, [["accounttypeid like '___TEST'", []]]);
 
         $this->assertEquals(4, count($list));
@@ -87,7 +87,7 @@ class AccountTransactionsTest extends TestCase
             Serialize::from($list)->toArray()
         );
 
-        $dto = $this->accountTypeBLL->getById('USDTEST');
+        $dto = $this->accountTypeService->getById('USDTEST');
         $this->assertEquals('Test 1', $dto->getName());
         $this->assertEquals('USDTEST', $dto->getAccountTypeId());
     }
@@ -95,13 +95,13 @@ class AccountTransactionsTest extends TestCase
     public function testGetById(): void
     {
         // Populate Data!
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
         $dto = TransactionDTO::create($accountId, 10)
             ->setDescription('Test')
             ->setReferenceId('Referencia')
             ->setReferenceSource('Source')
             ->setCode('XYZ');
-        $actual = $this->transactionBLL->withdrawFunds($dto);
+        $actual = $this->transactionService->withdrawFunds($dto);
 
         // Objeto que é esperado
         $transaction = new TransactionEntity();
@@ -129,13 +129,13 @@ class AccountTransactionsTest extends TestCase
     public function testGetById_Zero(): void
     {
         // Populate Data!
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 0);
+        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 0);
         $dto = TransactionDTO::create($accountId, 10)
             ->setDescription('Test')
             ->setReferenceId('Referencia')
             ->setReferenceSource('Source')
             ->setCode('XYZ');
-        $actual = $this->transactionBLL->addFunds($dto);
+        $actual = $this->transactionService->addFunds($dto);
 
         // Objeto que é esperado
         $transaction = new TransactionEntity();
@@ -163,20 +163,20 @@ class AccountTransactionsTest extends TestCase
     public function testGetById_NotFound(): void
     {
         // Executar teste
-        $this->assertEquals($this->transactionBLL->getById(2), null);
+        $this->assertEquals($this->transactionService->getById(2), null);
     }
 
     public function testGetAll(): void
     {
         // Populate Data!
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $transactionResult = $this->transactionBLL->withdrawFunds(
+        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $transactionResult = $this->transactionService->withdrawFunds(
             TransactionDTO::create($accountId, 10)
                 ->setDescription('Test')
                 ->setReferenceId('Referencia')
                 ->setReferenceSource('Source')
         );
-        $this->transactionBLL->withdrawFunds(
+        $this->transactionService->withdrawFunds(
             TransactionDTO::create($accountId, 50)
                 ->setDescription('Test')
                 ->setReferenceId('Referencia')
@@ -232,7 +232,7 @@ class AccountTransactionsTest extends TestCase
         $transaction[2]->setReferenceSource('Source');
         $transaction[2]->setAccountTypeId('USDTEST');
 
-        $listAll = $this->transactionBLL->getRepository()->getAll(null, null, null, [["accounttypeid = :id", ["id" => 'USDTEST']]]);
+        $listAll = $this->transactionService->getRepository()->getAll(null, null, null, [["accounttypeid = :id", ["id" => 'USDTEST']]]);
 
         /** @psalm-suppress InvalidArrayOffset */
         for ($i = 0; $i < count($transaction); $i++) {
@@ -254,12 +254,12 @@ class AccountTransactionsTest extends TestCase
     public function testAddFunds(): void
     {
         // Populate Data!
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
         $dto = TransactionDTO::create($accountId, 250)
             ->setDescription('Test Add Funds')
             ->setReferenceId('Referencia Add Funds')
             ->setReferenceSource('Source Add Funds');
-        $actual = $this->transactionBLL->addFunds($dto);
+        $actual = $this->transactionService->addFunds($dto);
 
         // Check
         $transaction = new TransactionEntity;
@@ -294,21 +294,21 @@ class AccountTransactionsTest extends TestCase
         $this->expectExceptionMessage('Amount needs to be greater than zero');
 
         // Populate Data!
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
         // Check;
-        $this->transactionBLL->addFunds(TransactionDTO::create($accountId, -15));
+        $this->transactionService->addFunds(TransactionDTO::create($accountId, -15));
     }
 
     public function testWithdrawFunds(): void
     {
         // Populate Data!
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
         $dto = TransactionDTO::create($accountId, 350)
             ->setDescription('Test Withdraw')
             ->setReferenceId('Referencia Withdraw')
             ->setReferenceSource('Source Withdraw');
-        $actual = $this->transactionBLL->withdrawFunds($dto);
+        $actual = $this->transactionService->withdrawFunds($dto);
 
         // Objeto que é esperado
         $transaction = new TransactionEntity();
@@ -338,21 +338,21 @@ class AccountTransactionsTest extends TestCase
         $this->expectExceptionMessage('Amount needs to be greater than zero');
 
         // Populate Data!
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
         // Check
-        $this->transactionBLL->withdrawFunds(TransactionDTO::create($accountId, -15));
+        $this->transactionService->withdrawFunds(TransactionDTO::create($accountId, -15));
     }
 
     public function testWithdrawFunds_Allow_Negative(): void
     {
         // Populate Data!
-        $accountId = $this->accountBLL->createAccount('NEGTEST', "___TESTUSER-1", 1000, 1, -400);
+        $accountId = $this->accountService->createAccount('NEGTEST', "___TESTUSER-1", 1000, 1, -400);
         $dto = TransactionDTO::create($accountId, 1150)
             ->setDescription('Test Withdraw')
             ->setReferenceId('Referencia Withdraw')
             ->setReferenceSource('Source Withdraw');
-        $actual = $this->transactionBLL->withdrawFunds($dto);
+        $actual = $this->transactionService->withdrawFunds($dto);
 
         // Objeto que é esperado
         $transaction = new TransactionEntity();
@@ -379,10 +379,10 @@ class AccountTransactionsTest extends TestCase
     public function testWithdrawFunds_Allow_Negative2(): void
     {
         // Populate Data!
-        $accountId = $this->accountBLL->createAccount('NEGTEST', "___TESTUSER-1", 1000, 1, -400);
-        $transaction = $this->transactionBLL->withdrawFunds(TransactionDTO::create($accountId, 1400)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
+        $accountId = $this->accountService->createAccount('NEGTEST', "___TESTUSER-1", 1000, 1, -400);
+        $transaction = $this->transactionService->withdrawFunds(TransactionDTO::create($accountId, 1400)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
 
-        $transaction = $this->transactionBLL->getById($transaction->getTransactionId());
+        $transaction = $this->transactionService->getById($transaction->getTransactionId());
         $this->assertEquals(-400, $transaction->getAvailable());
         $this->assertEquals(1400, $transaction->getAmount());
     }
@@ -393,8 +393,8 @@ class AccountTransactionsTest extends TestCase
         $this->expectException(AmountException::class);
 
         // Populate Data!
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000, 1, -400);
-        $this->transactionBLL->withdrawFunds(TransactionDTO::create($accountId, 1401)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
+        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000, 1, -400);
+        $this->transactionService->withdrawFunds(TransactionDTO::create($accountId, 1401)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
     }
 
     /**
@@ -410,7 +410,7 @@ class AccountTransactionsTest extends TestCase
      */
     public function testGetAccountByUserId()
     {
-        $accountId = $this->accountBLL->createAccount(
+        $accountId = $this->accountService->createAccount(
             'USDTEST',
             "___TESTUSER-10",
             1000,
@@ -419,10 +419,10 @@ class AccountTransactionsTest extends TestCase
             'Extra Information'
         );
 
-        $account = $this->accountBLL->getByUserId("___TESTUSER-10");
+        $account = $this->accountService->getByUserId("___TESTUSER-10");
         $account[0]->setEntryDate(null);
 
-        $accountEntity = $this->accountBLL->getRepository()->getMapper()->getEntity([
+        $accountEntity = $this->accountService->getRepository()->getMapper()->getEntity([
             "accountid" => $accountId,
             "accounttypeid" => "USDTEST",
             "userid" => "___TESTUSER-10",
@@ -455,7 +455,7 @@ class AccountTransactionsTest extends TestCase
      */
     public function testGetAccountByAccountType(): void
     {
-        $accountId = $this->accountBLL->createAccount(
+        $accountId = $this->accountService->createAccount(
             'ABCTEST',
             "___TESTUSER-10",
             1000,
@@ -464,10 +464,10 @@ class AccountTransactionsTest extends TestCase
             'Extra Information'
         );
 
-        $account = $this->accountBLL->getByAccountTypeId('ABCTEST');
+        $account = $this->accountService->getByAccountTypeId('ABCTEST');
         $account[0]->setEntryDate(null);
 
-        $accountEntity = $this->accountBLL->getRepository()->getMapper()->getEntity([
+        $accountEntity = $this->accountService->getRepository()->getMapper()->getEntity([
             "accountid" => $accountId,
             "accounttypeid" => "ABCTEST",
             "userid" => "___TESTUSER-10",
@@ -491,13 +491,13 @@ class AccountTransactionsTest extends TestCase
     public function testOverrideFunds(): void
     {
         // Populate Data!
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
-        $transactionId = $this->accountBLL->overrideBalance($accountId, 650);
-        $account = $this->accountBLL->getById($accountId)->toArray();
+        $transactionId = $this->accountService->overrideBalance($accountId, 650);
+        $account = $this->accountService->getById($accountId)->toArray();
         unset($account["entrydate"]);
 
-        $transaction = $this->transactionBLL->getById($transactionId)->toArray();
+        $transaction = $this->transactionService->getById($transactionId)->toArray();
         unset($transaction["date"]);
 
         // Executar teste
@@ -540,10 +540,10 @@ class AccountTransactionsTest extends TestCase
     public function testPartialFunds(): void
     {
         // Populate Data!
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
-        $transactionPartial = $this->accountBLL->partialBalance($accountId, 650);
-        $account = $this->accountBLL->getById($accountId)->toArray();
+        $transactionPartial = $this->accountService->partialBalance($accountId, 650);
+        $account = $this->accountService->getById($accountId)->toArray();
         unset($account["entrydate"]);
 
         // Executar teste
@@ -592,18 +592,18 @@ class AccountTransactionsTest extends TestCase
     public function testCloseAccount(): void
     {
         // Populate Data!
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
-        $this->transactionBLL->addFunds(TransactionDTO::create($accountId, 400));
-        $this->transactionBLL->addFunds(TransactionDTO::create($accountId, 200));
-        $this->transactionBLL->withdrawFunds(TransactionDTO::create($accountId, 300));
+        $this->transactionService->addFunds(TransactionDTO::create($accountId, 400));
+        $this->transactionService->addFunds(TransactionDTO::create($accountId, 200));
+        $this->transactionService->withdrawFunds(TransactionDTO::create($accountId, 300));
 
-        $transactionId = $this->accountBLL->closeAccount($accountId);
+        $transactionId = $this->accountService->closeAccount($accountId);
 
-        $account = $this->accountBLL->getById($accountId)->toArray();
+        $account = $this->accountService->getById($accountId)->toArray();
         unset($account["entrydate"]);
 
-        $transaction = $this->transactionBLL->getById($transactionId)->toArray();
+        $transaction = $this->transactionService->getById($transactionId)->toArray();
         unset($transaction["date"]);
 
         // Executar teste
@@ -648,17 +648,17 @@ class AccountTransactionsTest extends TestCase
     public function testGetByDate(): void
     {
         // Populate Data!
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $this->transactionBLL->addFunds(TransactionDTO::create($accountId, 400));
-        $this->transactionBLL->withdrawFunds(TransactionDTO::create($accountId, 300));
+        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $this->transactionService->addFunds(TransactionDTO::create($accountId, 400));
+        $this->transactionService->withdrawFunds(TransactionDTO::create($accountId, 300));
 
-        $ignore = $this->accountBLL->createAccount('BRLTEST', "___TESTUSER-999", 1000); // I dont want this account
-        $this->transactionBLL->addFunds(TransactionDTO::create($ignore, 200));
+        $ignore = $this->accountService->createAccount('BRLTEST', "___TESTUSER-999", 1000); // I dont want this account
+        $this->transactionService->addFunds(TransactionDTO::create($ignore, 200));
 
         $startDate = date('Y') . "/" . date('m') . "/01";
         $endDate = (intval(date('Y')) + (date('m') == 12 ? 1 : 0)) . "/" . (date('m') == 12 ? 1 : intval(date('m')) + 1) . "/01";
 
-        $transactionList = $this->transactionBLL->getByDate($accountId, $startDate, $endDate);
+        $transactionList = $this->transactionService->getByDate($accountId, $startDate, $endDate);
 
         // Executar teste
         $this->assertEquals(
@@ -723,7 +723,7 @@ class AccountTransactionsTest extends TestCase
             )
         );
 
-        $transactionList = $this->transactionBLL->getByDate($accountId, '1900/01/01', '1900/02/01');
+        $transactionList = $this->transactionService->getByDate($accountId, '1900/01/01', '1900/02/01');
 
         $this->assertEquals([], $transactionList);
 
@@ -732,25 +732,25 @@ class AccountTransactionsTest extends TestCase
     public function testGetByTransactionId(): void
     {
         // Populate Data!
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $transaction = $this->transactionBLL->addFunds(TransactionDTO::create($accountId, 400));
-        $this->transactionBLL->withdrawFunds(TransactionDTO::create($accountId, 300));
+        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $transaction = $this->transactionService->addFunds(TransactionDTO::create($accountId, 400));
+        $this->transactionService->withdrawFunds(TransactionDTO::create($accountId, 300));
 
-        $ignore = $this->accountBLL->createAccount('BRLTEST', "___TESTUSER-999", 1000); // I dont want this account
-        $this->transactionBLL->addFunds(TransactionDTO::create($ignore, 200));
+        $ignore = $this->accountService->createAccount('BRLTEST', "___TESTUSER-999", 1000); // I dont want this account
+        $this->transactionService->addFunds(TransactionDTO::create($ignore, 200));
 
-        $accountRepo = $this->accountBLL->getRepository();
+        $accountRepo = $this->accountService->getRepository();
 
         $accountResult = $accountRepo->getByTransactionId($transaction->getTransactionId());;
         $accountExpected = $accountRepo->getById($accountId);
 
-        // Executar teste$this->transactionBLL
+        // Executar teste$this->transactionService
         $this->assertEquals($accountExpected, $accountResult);
     }
 
     public function testGetByTransactionIdNotFound(): void
     {
-        $accountRepo = $this->accountBLL->getRepository();
+        $accountRepo = $this->accountService->getRepository();
         $accountResult = $accountRepo->getByTransactionId(12345); // Dont exists
         $this->assertNull($accountResult);
     }
@@ -758,14 +758,14 @@ class AccountTransactionsTest extends TestCase
     public function testTransactionsByCode(): void
     {
         // Populate Data!
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $this->transactionBLL->addFunds(TransactionDTO::create($accountId, 400)->setCode('TEST'));
-        $this->transactionBLL->withdrawFunds(TransactionDTO::create($accountId, 300));
+        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $this->transactionService->addFunds(TransactionDTO::create($accountId, 400)->setCode('TEST'));
+        $this->transactionService->withdrawFunds(TransactionDTO::create($accountId, 300));
 
-        $ignore = $this->accountBLL->createAccount('BRLTEST', "___TESTUSER-999", 1000); // I dont want this account
-        $this->transactionBLL->addFunds(TransactionDTO::create($ignore, 200));
+        $ignore = $this->accountService->createAccount('BRLTEST', "___TESTUSER-999", 1000); // I dont want this account
+        $this->transactionService->addFunds(TransactionDTO::create($ignore, 200));
 
-        $transactionList = $this->transactionBLL->getRepository()->getByCode($accountId, 'TEST');
+        $transactionList = $this->transactionService->getRepository()->getByCode($accountId, 'TEST');
 
         // Executar teste
         $this->assertEquals(
@@ -799,7 +799,7 @@ class AccountTransactionsTest extends TestCase
         );
 
 
-        $transactionList = $this->transactionBLL->getRepository()->getByCode($accountId, 'NOTFOUND');
+        $transactionList = $this->transactionService->getRepository()->getByCode($accountId, 'NOTFOUND');
 
         $this->assertEquals([], $transactionList);
 
@@ -808,14 +808,14 @@ class AccountTransactionsTest extends TestCase
     public function testGetTransactionsByReferenceId(): void
     {
         // Populate Data!
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $this->transactionBLL->addFunds(TransactionDTO::create($accountId, 400)->setReferenceId('REFID')->setReferenceSource('REFSRC'));
-        $this->transactionBLL->withdrawFunds(TransactionDTO::create($accountId, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
+        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $this->transactionService->addFunds(TransactionDTO::create($accountId, 400)->setReferenceId('REFID')->setReferenceSource('REFSRC'));
+        $this->transactionService->withdrawFunds(TransactionDTO::create($accountId, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
 
-        $ignore = $this->accountBLL->createAccount('BRLTEST', "___TESTUSER-999", 1000); // I dont want this account
-        $this->transactionBLL->addFunds(TransactionDTO::create($ignore, 200));
+        $ignore = $this->accountService->createAccount('BRLTEST', "___TESTUSER-999", 1000); // I dont want this account
+        $this->transactionService->addFunds(TransactionDTO::create($ignore, 200));
 
-        $transactionList = $this->transactionBLL->getRepository()->getByReferenceId($accountId, 'REFSRC', 'REFID2');
+        $transactionList = $this->transactionService->getRepository()->getByReferenceId($accountId, 'REFSRC', 'REFID2');
 
         // Executar teste
         $this->assertEquals(
@@ -851,13 +851,13 @@ class AccountTransactionsTest extends TestCase
 
     public function testTransferFunds(): void
     {
-        $accountBrlId = $this->accountBLL->getByAccountTypeId('BRLTEST')[0]->getAccountId();
-        $accountUsdId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $accountBrlId = $this->accountService->getByAccountTypeId('BRLTEST')[0]->getAccountId();
+        $accountUsdId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
-        [$transactionSource, $transactionTarget] = $this->accountBLL->transferFunds($accountBrlId, $accountUsdId, 300);
+        [$transactionSource, $transactionTarget] = $this->accountService->transferFunds($accountBrlId, $accountUsdId, 300);
 
-        $accountSource = $this->accountBLL->getById($transactionSource->getAccountId());
-        $accountTarget = $this->accountBLL->getById($transactionTarget->getAccountId());
+        $accountSource = $this->accountService->getById($transactionSource->getAccountId());
+        $accountTarget = $this->accountService->getById($transactionTarget->getAccountId());
 
         $this->assertEquals(700, $accountSource->getAvailable());
         $this->assertEquals(1300, $accountTarget->getAvailable());
@@ -865,13 +865,13 @@ class AccountTransactionsTest extends TestCase
 
     public function testTransferFundsFail(): void
     {
-        $accountBrlId = $this->accountBLL->getByAccountTypeId('BRLTEST')[0]->getAccountId();
-        $accountUsdId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $accountBrlId = $this->accountService->getByAccountTypeId('BRLTEST')[0]->getAccountId();
+        $accountUsdId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
         $this->expectException(AmountException::class);
         $this->expectExceptionMessage('Cannot withdraw above the account balance');
 
-        $this->accountBLL->transferFunds($accountBrlId, $accountUsdId, 1100);
+        $this->accountService->transferFunds($accountBrlId, $accountUsdId, 1100);
     }
 
     public function testJoinTransactionAndCommit(): void
@@ -879,8 +879,8 @@ class AccountTransactionsTest extends TestCase
         // This transaction starts outside the Transaction Context
         $this->dbExecutor->beginTransaction(IsolationLevelEnum::SERIALIZABLE);
 
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $transaction = $this->transactionBLL->withdrawFunds(
+        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $transaction = $this->transactionService->withdrawFunds(
             TransactionDTO::create($accountId, 10)
                 ->setDescription('Test')
                 ->setReferenceId('Referencia')
@@ -891,7 +891,7 @@ class AccountTransactionsTest extends TestCase
         // Needs to commit inside the context
         $this->dbExecutor->commitTransaction();
 
-        $transaction = $this->transactionBLL->getById($transaction->getTransactionId());
+        $transaction = $this->transactionService->getById($transaction->getTransactionId());
         $this->assertNotNull($transaction);
     }
 
@@ -900,8 +900,8 @@ class AccountTransactionsTest extends TestCase
         // This transaction starts outside the Transaction Context
         $this->dbExecutor->beginTransaction(IsolationLevelEnum::SERIALIZABLE);
 
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $transaction = $this->transactionBLL->withdrawFunds(
+        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $transaction = $this->transactionService->withdrawFunds(
             TransactionDTO::create($accountId, 10)
                 ->setDescription('Test')
                 ->setReferenceId('Referencia')
@@ -912,7 +912,7 @@ class AccountTransactionsTest extends TestCase
         // Needs to commit inside the context
         $this->dbExecutor->rollbackTransaction();
 
-        $transaction = $this->transactionBLL->getById($transaction->getTransactionId());
+        $transaction = $this->transactionService->getById($transaction->getTransactionId());
         $this->assertNull($transaction);
     }
 
@@ -925,8 +925,8 @@ class AccountTransactionsTest extends TestCase
         $this->expectExceptionMessage('You cannot join a transaction with a different isolation level');
 
         try {
-            $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-            $this->transactionBLL->withdrawFunds(
+            $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
+            $this->transactionService->withdrawFunds(
                 TransactionDTO::create($accountId, 10)
                     ->setDescription('Test')
                     ->setReferenceId('Referencia')
@@ -944,13 +944,13 @@ class AccountTransactionsTest extends TestCase
         $this->prepareObjects(accountEntity: AccountEntity::class, accountTypeEntity: AccountTypeEntity::class, transactionEntity: TransactionExtended::class);
 
         // Populate Data!
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
         $dto = TransactionDTO::create($accountId, 250)
             ->setDescription('Test Add Funds')
             ->setReferenceId('Referencia Add Funds')
             ->setReferenceSource('Source Add Funds')
             ->setProperty('extraProperty', 'Extra');
-        $actual = $this->transactionBLL->addFunds($dto);
+        $actual = $this->transactionService->addFunds($dto);
 
         // Check
         $transaction = new TransactionExtended();
@@ -978,28 +978,28 @@ class AccountTransactionsTest extends TestCase
     {
         $this->expectException(AccountException::class);
         $this->expectExceptionMessage('Account not found');
-        $this->transactionBLL->addFunds(TransactionDTO::create(1023, 400)->setReferenceId('REFID')->setReferenceSource('REFSRC'));
+        $this->transactionService->addFunds(TransactionDTO::create(1023, 400)->setReferenceId('REFID')->setReferenceSource('REFSRC'));
     }
 
     public function testWithdrawFundAccountNotFound(): void
     {
         $this->expectException(AccountException::class);
         $this->expectExceptionMessage('Account not found');
-        $this->transactionBLL->withdrawFunds(TransactionDTO::create(1023, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
+        $this->transactionService->withdrawFunds(TransactionDTO::create(1023, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
     }
 
     public function testReserveWithdrawFundAccountNotFound(): void
     {
         $this->expectException(AccountException::class);
         $this->expectExceptionMessage('Account not found');
-        $this->transactionBLL->reserveFundsForWithdraw(TransactionDTO::create(1023, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
+        $this->transactionService->reserveFundsForWithdraw(TransactionDTO::create(1023, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
     }
 
     public function testReserveDepositFundAccountNotFound(): void
     {
         $this->expectException(AccountException::class);
         $this->expectExceptionMessage('Account not found');
-        $this->transactionBLL->reserveFundsForDeposit(TransactionDTO::create(1023, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
+        $this->transactionService->reserveFundsForDeposit(TransactionDTO::create(1023, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
     }
 
     public function testTransactionObserver(): void
@@ -1007,17 +1007,17 @@ class AccountTransactionsTest extends TestCase
         $accountRepository = new AccountRepositoryExtended($this->dbExecutor, AccountEntity::class);
         $transactionRepository = new TransactionRepositoryExtended($this->dbExecutor, TransactionEntity::class);
 
-        // Recreate BLL instances with the extended repositories that have observers
-        $accountTypeBLL = new AccountTypeBLL($this->accountTypeBLL->getRepository());
-        $this->transactionBLL = new TransactionBLL($transactionRepository, $accountRepository);
-        $accountBLL = new AccountBLL($accountRepository, $accountTypeBLL, $this->transactionBLL);
+        // Recreate Service instances with the extended repositories that have observers
+        $accountTypeService = new AccountTypeService($this->accountTypeService->getRepository());
+        $this->transactionService = new TransactionService($transactionRepository, $accountRepository);
+        $accountService = new AccountService($accountRepository, $accountTypeService, $this->transactionService);
 
         // Sanity Check
         $this->assertFalse($accountRepository->getReach());
         $this->assertFalse($transactionRepository->getReach());
 
-        $accountId = $accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $this->transactionBLL->addFunds(
+        $accountId = $accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $this->transactionService->addFunds(
             TransactionDTO::create($accountId, 250)
                 ->setDescription('Test Add Funds')
                 ->setReferenceId('Referencia Add Funds')
@@ -1036,8 +1036,8 @@ class AccountTransactionsTest extends TestCase
         $this->expectException(AmountException::class);
         $this->expectExceptionMessage('Cannot withdraw above the account balance');
 
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $this->transactionBLL->withdrawFunds(
+        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $this->transactionService->withdrawFunds(
             TransactionDTO::create($accountId, 1250)
                 ->setDescription('Test Add Funds')
                 ->setReferenceId('Referencia Add Funds')
@@ -1048,25 +1048,25 @@ class AccountTransactionsTest extends TestCase
 
     public function testCapAtZeroTrue(): void
     {
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
         $dto = TransactionDTO::create($accountId, 1100)
             ->setDescription('Test Add Funds')
             ->setReferenceId('Referencia Add Funds')
             ->setReferenceSource('Source Add Funds');
-        $transaction = $this->transactionBLL->withdrawFunds(
+        $transaction = $this->transactionService->withdrawFunds(
             $dto,
             capAtZero: true
         );
 
         // Should be zero, because allow cap at zero
-        $account = $this->accountBLL->getById($accountId);
+        $account = $this->accountService->getById($accountId);
         $this->assertEquals(0, $account->getBalance());
         $this->assertEquals(0, $account->getReserved());
         $this->assertEquals(0, $account->getAvailable());
 
         // Needs to be adjusted to the new balance - 750
-        $transaction = $this->transactionBLL->getById($transaction->getTransactionId());
+        $transaction = $this->transactionService->getById($transaction->getTransactionId());
         $this->assertEquals(1000, $transaction->getAmount());
 
         // The DTO should be the same
@@ -1075,25 +1075,25 @@ class AccountTransactionsTest extends TestCase
 
     public function testCapAtZeroTruePartial(): void
     {
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
         $dto = TransactionDTO::create($accountId, 800)
             ->setDescription('Test Add Funds')
             ->setReferenceId('Referencia Add Funds')
             ->setReferenceSource('Source Add Funds');
-        $transaction = $this->transactionBLL->withdrawFunds(
+        $transaction = $this->transactionService->withdrawFunds(
             $dto,
             capAtZero: true
         );
 
         // Should be zero, because allow cap at zero
-        $account = $this->accountBLL->getById($accountId);
+        $account = $this->accountService->getById($accountId);
         $this->assertEquals(200, $account->getBalance());
         $this->assertEquals(0, $account->getReserved());
         $this->assertEquals(200, $account->getAvailable());
 
         // Needs to be adjusted to the new balance - 750
-        $transaction = $this->transactionBLL->getById($transaction->getTransactionId());
+        $transaction = $this->transactionService->getById($transaction->getTransactionId());
         $this->assertEquals(800, $transaction->getAmount());
 
         // The DTO should be the same
@@ -1102,9 +1102,9 @@ class AccountTransactionsTest extends TestCase
 
     public function testCapAtZeroTrueReserved(): void
     {
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
-        $this->transactionBLL->reserveFundsForWithdraw(
+        $this->transactionService->reserveFundsForWithdraw(
             TransactionDTO::create($accountId, 250)
                 ->setDescription('Test Reserve Funds')
                 ->setReferenceId('Referencia Add Funds')
@@ -1115,19 +1115,19 @@ class AccountTransactionsTest extends TestCase
             ->setDescription('Test Add Funds')
             ->setReferenceId('Referencia Add Funds')
             ->setReferenceSource('Source Add Funds');
-        $withdraw = $this->transactionBLL->withdrawFunds(
+        $withdraw = $this->transactionService->withdrawFunds(
             $dto,
             capAtZero: true
         );
 
         // Should be zero, because allow cap at zero
-        $account = $this->accountBLL->getById($accountId);
+        $account = $this->accountService->getById($accountId);
         $this->assertEquals(250, $account->getBalance());
         $this->assertEquals(250, $account->getReserved());
         $this->assertEquals(0, $account->getAvailable());
 
         // Needs to be adjusted to the new balance - 750
-        $transaction = $this->transactionBLL->getById($withdraw->getTransactionId());
+        $transaction = $this->transactionService->getById($withdraw->getTransactionId());
         $this->assertEquals(750, $transaction->getAmount());
 
         // The DTO should be the same

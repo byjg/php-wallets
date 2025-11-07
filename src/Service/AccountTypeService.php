@@ -1,6 +1,6 @@
 <?php
 
-namespace ByJG\AccountTransactions\Bll;
+namespace ByJG\AccountTransactions\Service;
 
 use ByJG\AccountTransactions\Entity\AccountTypeEntity;
 use ByJG\AccountTransactions\Exception\AccountTypeException;
@@ -11,13 +11,13 @@ use ByJG\MicroOrm\Exception\RepositoryReadOnlyException;
 use ByJG\MicroOrm\Exception\UpdateConstraintException;
 use ByJG\Serializer\Exception\InvalidArgumentException;
 
-class AccountTypeBLL
+class AccountTypeService
 {
 
     protected AccountTypeRepository $accountTypeRepository;
 
     /**
-     * AccountTypeBLL constructor.
+     * AccountTypeService constructor.
      * @param AccountTypeRepository $accountTypeRepository
      */
     public function __construct(AccountTypeRepository $accountTypeRepository)

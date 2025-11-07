@@ -5,7 +5,7 @@
  * and open the template in the editor.
  */
 
-namespace ByJG\AccountTransactions\Bll;
+namespace ByJG\AccountTransactions\Service;
 
 use ByJG\AccountTransactions\DTO\TransactionDTO;
 use ByJG\AccountTransactions\Entity\AccountEntity;
@@ -22,7 +22,7 @@ use ByJG\MicroOrm\Exception\UpdateConstraintException;
 use ByJG\Serializer\Exception\InvalidArgumentException;
 use PDOException;
 
-class AccountBLL
+class AccountService
 {
     /**
      * @var AccountRepository
@@ -30,27 +30,27 @@ class AccountBLL
     protected AccountRepository $accountRepository;
 
     /**
-     * @var AccountTypeBLL
+     * @var AccountTypeService
      */
-    protected AccountTypeBLL $accountTypeBLL;
+    protected AccountTypeService $accountTypeService;
 
     /**
-     * @var TransactionBLL
+     * @var TransactionService
      */
-    protected TransactionBLL $transactionBLL;
+    protected TransactionService $transactionService;
 
     /**
-     * AccountBLL constructor.
+     * AccountService constructor.
      * @param AccountRepository $accountRepository
-     * @param AccountTypeBLL $accountTypeBLL
-     * @param TransactionBLL $transactionBLL
+     * @param AccountTypeService $accountTypeService
+     * @param TransactionService $transactionService
      */
-    public function __construct(AccountRepository $accountRepository, AccountTypeBLL $accountTypeBLL, TransactionBLL $transactionBLL)
+    public function __construct(AccountRepository $accountRepository, AccountTypeService $accountTypeService, TransactionService $transactionService)
     {
         $this->accountRepository = $accountRepository;
 
-        $this->accountTypeBLL = $accountTypeBLL;
-        $this->transactionBLL = $transactionBLL;
+        $this->accountTypeService = $accountTypeService;
+        $this->transactionService = $transactionService;
     }
 
 
@@ -120,7 +120,7 @@ class AccountBLL
     public function createAccount(string $accountTypeId, string $userId, int $balance, int $price = 1, int $minValue = 0, ?string $extra = null): int
     {
         // Faz as validações
-        if ($this->accountTypeBLL->getById($accountTypeId) == null) {
+        if ($this->accountTypeService->getById($accountTypeId) == null) {
             throw new AccountTypeException('AccountTypeId ' . $accountTypeId . ' não existe');
         }
 
@@ -149,9 +149,9 @@ class AccountBLL
         }
 
         if ($balance >= 0) {
-            $this->transactionBLL->addFunds(TransactionDTO::create($accountId, $balance)->setDescription("Opening Balance")->setCode('BAL'));
+            $this->transactionService->addFunds(TransactionDTO::create($accountId, $balance)->setDescription("Opening Balance")->setCode('BAL'));
         } else {
-            $this->transactionBLL->withdrawFunds(TransactionDTO::create($accountId, abs($balance))->setDescription("Opening Balance")->setCode('BAL'));
+            $this->transactionService->withdrawFunds(TransactionDTO::create($accountId, abs($balance))->setDescription("Opening Balance")->setCode('BAL'));
         }
 
         return $accountId;
@@ -197,7 +197,7 @@ class AccountBLL
             // Get total value reserved
             $reservedValues = 0;
             $qtd = 0;
-            $object = $this->transactionBLL->getReservedTransactions($account->getAccountId());
+            $object = $this->transactionService->getReservedTransactions($account->getAccountId());
             foreach ($object as $stmt) {
                 $qtd++;
                 $reservedValues += $stmt->getAmount();
@@ -231,7 +231,7 @@ class AccountBLL
             $transaction->setPrice($newPrice);
             $transaction->setAccountTypeId($account->getAccountTypeId());
             $transaction->setUuid($dto->getUuid());
-            $this->transactionBLL->getRepository()->save($transaction);
+            $this->transactionService->getRepository()->save($transaction);
             $this->accountRepository->getExecutor()->commitTransaction();
         } catch (\Exception $ex) {
             $this->accountRepository->getExecutor()->rollbackTransaction();
@@ -278,9 +278,9 @@ class AccountBLL
         $amount = $balance - $account->getAvailable();
 
         if ($amount >= 0) {
-            $transaction = $this->transactionBLL->addFunds(TransactionDTO::create($accountId, $amount)->setDescription($description));
+            $transaction = $this->transactionService->addFunds(TransactionDTO::create($accountId, $amount)->setDescription($description));
         } else {
-            $transaction = $this->transactionBLL->withdrawFunds(TransactionDTO::create($accountId, abs($amount))->setDescription($description));
+            $transaction = $this->transactionService->withdrawFunds(TransactionDTO::create($accountId, abs($amount))->setDescription($description));
         }
 
         return $transaction;
@@ -317,8 +317,8 @@ class AccountBLL
         $transactionTargetDTO->setReferenceId($refSource);
         $transactionTargetDTO->setDescription('Transfer from account id ' . $accountSource);
 
-        $transactionSource = $this->transactionBLL->withdrawFunds($transactionSourceDTO);
-        $transactionTarget = $this->transactionBLL->addFunds($transactionTargetDTO);
+        $transactionSource = $this->transactionService->withdrawFunds($transactionSourceDTO);
+        $transactionTarget = $this->transactionService->addFunds($transactionTargetDTO);
 
         return [ $transactionSource, $transactionTarget ];
     }

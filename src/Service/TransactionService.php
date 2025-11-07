@@ -1,6 +1,6 @@
 <?php
 
-namespace ByJG\AccountTransactions\Bll;
+namespace ByJG\AccountTransactions\Service;
 
 use ByJG\AccountTransactions\DTO\TransactionDTO;
 use ByJG\AccountTransactions\Entity\AccountEntity;
@@ -24,7 +24,7 @@ use ByJG\MicroOrm\UpdateQuery;
 use ByJG\Serializer\Exception\InvalidArgumentException;
 use Exception;
 
-class TransactionBLL
+class TransactionService
 {
     /**
      * @var TransactionRepository
@@ -37,7 +37,7 @@ class TransactionBLL
     protected AccountRepository $accountRepository;
 
     /**
-     * TransactionBLL constructor.
+     * TransactionService constructor.
      * @param TransactionRepository $transactionRepository
      * @param AccountRepository $accountRepository
      */

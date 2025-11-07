@@ -19,9 +19,9 @@ It supports the following features:
 ### Basic usage
 
 ```php
-use ByJG\AccountTransactions\Bll\AccountBLL;
-use ByJG\AccountTransactions\Bll\AccountTypeBLL;
-use ByJG\AccountTransactions\Bll\StatementBLL;
+use ByJG\AccountTransactions\Service\AccountService;
+use ByJG\AccountTransactions\Service\AccountTypeService;
+use ByJG\AccountTransactions\Service\StatementService;
 use ByJG\AccountTransactions\Entity\AccountTypeEntity;
 use ByJG\AccountTransactions\Repository\AccountRepository;
 use ByJG\AccountTransactions\Repository\AccountTypeRepository;
@@ -34,37 +34,37 @@ $accountTypeRepo = new AccountTypeRepository($this->dbDriver);
 $statementRepo = new StatementRepository($this->dbDriver);
 $accountRepo = new AccountRepository($this->dbDriver);
 
-// Initiate BLLs
-$accountTypeBLL = new AccountTypeBLL($accountTypeRepo);
-$statementBLL = new StatementBLL($statementRepo, $accountRepo);
-$accountBLL = new AccountBLL($accountRepo, $accountTypeBLL, $statementBLL);
+// Initiate Services
+$accountTypeService = new AccountTypeService($accountTypeRepo);
+$statementService = new StatementService($statementRepo, $accountRepo);
+$accountService = new AccountService($accountRepo, $accountTypeService, $statementService);
 
 // Create a new Account Type
 $accountType = new AccountTypeEntity();
 $accountType->setAccountTypeId('USD');
 $accountType->setName('Dollar Account');
 
-$accountTypeBLL = new AccountTypeBLL($accountTypeRepo);
-$accountTypeBLL->update($accountType);
+$accountTypeService = new AccountTypeService($accountTypeRepo);
+$accountTypeService->update($accountType);
 
 // Create a new Account
 $accountRepo = new AccountRepository($this->dbDriver);
-$accountId = $accountBLL->createAccount($accountType->getAccountTypeId(), '34', 0);
+$accountId = $accountService->createAccount($accountType->getAccountTypeId(), '34', 0);
 
 // Add 200 USD to the account
 $statement = new StatementDTO($accountId, 200);
-$statementBLL->addFunds($statement);
+$statementService->addFunds($statement);
 
 // Withdraw 100 USD from the account
 $statement = new StatementDTO($accountId, 100);
-$statementBLL->withdrawFunds($statement);
+$statementService->withdrawFunds($statement);
 
 // Add 50 USD hold to the account
 $statement = new StatementDTO($accountId, 50);
-$reserve = $statementBLL->reserveFundsForDeposit($statement);
+$reserve = $statementService->reserveFundsForDeposit($statement);
 
 // Accept the hold
-$statementBLL->acceptFundsById($reserve->getTransactionId());
+$statementService->acceptFundsById($reserve->getTransactionId());
 ```
 
 ## Installation
