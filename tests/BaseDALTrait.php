@@ -70,7 +70,7 @@ trait BaseDALTrait
      */
     protected $dbDriver;
 
-    public function dbSetUp()
+    public function dbSetUp(): void
     {
         $uriMySqlTest = getenv('MYSQL_TEST_URI') ? getenv('MYSQL_TEST_URI') : "mysql://root:password@127.0.0.1/accounttest";
         $this->uri = new Uri($uriMySqlTest);
@@ -122,7 +122,7 @@ trait BaseDALTrait
      * @throws UpdateConstraintException
      * @throws \ByJG\Serializer\Exception\InvalidArgumentException
      */
-    protected function createDummyData()
+    protected function createDummyData(): void
     {
         $dto1 = new AccountTypeEntity();
         $dto1->setAccountTypeId('USDTEST');

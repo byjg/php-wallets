@@ -19,6 +19,7 @@ class ReserveFundsDepositTest extends TestCase
      * Sets up the fixture, for example, opens a network connection.
      * This method is called before a test is executed.
      */
+    #[\Override]
     protected function setUp(): void
     {
         $this->dbSetUp();
@@ -30,12 +31,13 @@ class ReserveFundsDepositTest extends TestCase
      * Tears down the fixture, for example, closes a network connection.
      * This method is called after a test is executed.
      */
+    #[\Override]
     protected function tearDown(): void
     {
         $this->dbClear();
     }
 
-    public function testReserveForDepositFunds()
+    public function testReserveForDepositFunds(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
@@ -68,7 +70,7 @@ class ReserveFundsDepositTest extends TestCase
         $this->assertEquals($statement->toArray(), $actual->toArray());
     }
 
-    public function testReserveForDepositFunds_Invalid()
+    public function testReserveForDepositFunds_Invalid(): void
     {
         $this->expectException(AmountException::class);
         $this->expectExceptionMessage('Amount needs to be greater than zero');
@@ -78,7 +80,7 @@ class ReserveFundsDepositTest extends TestCase
         $this->statementBLL->reserveFundsForDeposit(StatementDTO::create($accountId, -50)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
     }
 
-    public function testReserveForDepositFunds_InvalidRound()
+    public function testReserveForDepositFunds_InvalidRound(): void
     {
         $this->expectException(AmountException::class);
         $this->expectExceptionMessage('Amount needs to have two decimal places');
@@ -88,7 +90,7 @@ class ReserveFundsDepositTest extends TestCase
         $this->statementBLL->reserveFundsForDeposit(StatementDTO::create($accountId, 10.031)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
     }
 
-    public function testReserveForDepositFunds_Allow_Negative()
+    public function testReserveForDepositFunds_Allow_Negative(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('NEGTEST', "___TESTUSER-1", -200, 1, -400);
@@ -132,7 +134,7 @@ class ReserveFundsDepositTest extends TestCase
 //    }
 //
 
-public function testAcceptFundsById_InvalidType()
+public function testAcceptFundsById_InvalidType(): void
     {
         $this->expectException(StatementException::class);
 
@@ -148,7 +150,7 @@ public function testAcceptFundsById_InvalidType()
         $this->statementBLL->acceptFundsById($statement->getStatementId());;
     }
 
-    public function testAcceptFundsById_HasParentTransation()
+    public function testAcceptFundsById_HasParentTransation(): void
     {
         $this->expectException(StatementException::class);
 
@@ -164,7 +166,7 @@ public function testAcceptFundsById_InvalidType()
         $this->statementBLL->acceptFundsById($statement->getStatementId());;
     }
 
-    public function testAcceptFundsById_OK()
+    public function testAcceptFundsById_OK(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
@@ -206,7 +208,7 @@ public function testAcceptFundsById_InvalidType()
         $this->assertEquals($statement->toArray(), $actual->toArray());
     }
 
-    public function testAcceptPartialFundsById_PartialAmountZero()
+    public function testAcceptPartialFundsById_PartialAmountZero(): void
     {
         $this->expectException(AmountException::class);
 
@@ -223,7 +225,7 @@ public function testAcceptFundsById_InvalidType()
         $this->statementBLL->acceptPartialFundsById($reserveStatement->getStatementId(), $statementDTO, $statementRefundDto);
     }
 
-    public function testAcceptPartialFundsById_AmountMoreThanWithdrawBlocked()
+    public function testAcceptPartialFundsById_AmountMoreThanWithdrawBlocked(): void
     {
         $this->expectException(AmountException::class);
         $this->expectExceptionMessage('Partial amount must be greater than zero and less than the original reserved amount.');
@@ -241,7 +243,7 @@ public function testAcceptFundsById_InvalidType()
         $this->statementBLL->acceptPartialFundsById($reserveStatement->getStatementId(), $statementDTO, $statementRefundDto);
     }
 
-    public function testAcceptPartialFundsById_OK()
+    public function testAcceptPartialFundsById_OK(): void
     {
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
         $reserveStatement = $this->statementBLL->reserveFundsForWithdraw(
@@ -280,7 +282,7 @@ public function testAcceptFundsById_InvalidType()
         $this->assertEquals("Deposit", $finalDebitStatement->getDescription());
     }
 
-    public function testRejectFundsById_InvalidType()
+    public function testRejectFundsById_InvalidType(): void
     {
         $this->expectException(StatementException::class);
 
@@ -291,7 +293,7 @@ public function testAcceptFundsById_InvalidType()
         $this->statementBLL->rejectFundsById($statement->getStatementId());
     }
 
-    public function testRejectFundsById_HasParentTransation()
+    public function testRejectFundsById_HasParentTransation(): void
     {
         $this->expectException(StatementException::class);
 
@@ -307,7 +309,7 @@ public function testAcceptFundsById_InvalidType()
         $this->statementBLL->rejectFundsById($reserveStatement->getStatementId());
     }
 
-    public function testRejectFundsById_OK()
+    public function testRejectFundsById_OK(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);

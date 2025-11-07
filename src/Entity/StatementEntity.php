@@ -333,7 +333,7 @@ class StatementEntity extends BaseModel
      */
     protected ?AccountEntity $account = null;
 
-    public function attachAccount(AccountEntity $account)
+    public function attachAccount(AccountEntity $account): void
     {
         $this->setAccountId($account->getAccountId());
         $this->setAccountTypeId($account->getAccountTypeId());
@@ -346,9 +346,10 @@ class StatementEntity extends BaseModel
     }
 
     /**
+     * @throws AmountException
+     * @throws AmountException
      *
-     * @throws AmountException
-     * @throws AmountException
+     * @return void
      */
     public function validate()
     {

@@ -19,6 +19,7 @@ class ReserveFundsWithdrawTest extends TestCase
      * Sets up the fixture, for example, opens a network connection.
      * This method is called before a test is executed.
      */
+    #[\Override]
     protected function setUp(): void
     {
         $this->dbSetUp();
@@ -30,12 +31,13 @@ class ReserveFundsWithdrawTest extends TestCase
      * Tears down the fixture, for example, closes a network connection.
      * This method is called after a test is executed.
      */
+    #[\Override]
     protected function tearDown(): void
     {
         $this->dbClear();
     }
 
-    public function testReserveForWithdrawFunds()
+    public function testReserveForWithdrawFunds(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
@@ -67,7 +69,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $this->assertEquals($statement->toArray(), $actual->toArray());
     }
 
-    public function testReserveForWithdrawFunds_Invalid()
+    public function testReserveForWithdrawFunds_Invalid(): void
     {
         $this->expectException(AmountException::class);
         $this->expectExceptionMessage('Amount needs to be greater than zero');
@@ -81,7 +83,7 @@ class ReserveFundsWithdrawTest extends TestCase
                 ->setReferenceSource('Source Withdraw'));
     }
 
-    public function testReserveForWithdrawFunds_InvalidRound()
+    public function testReserveForWithdrawFunds_InvalidRound(): void
     {
         $this->expectException(AmountException::class);
         $this->expectExceptionMessage('Amount needs to have two decimal places');
@@ -95,7 +97,7 @@ class ReserveFundsWithdrawTest extends TestCase
                 ->setReferenceSource('Source Withdraw'));
     }
 
-    public function testReserveForWithdrawFunds_Allow_Negative()
+    public function testReserveForWithdrawFunds_Allow_Negative(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('NEGTEST', "___TESTUSER-1", 1000, 1, -400);
@@ -127,7 +129,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $this->assertEquals($statement->toArray(), $actual->toArray());
     }
 
-    public function testReserveForWithdrawFunds_NegativeInvalid()
+    public function testReserveForWithdrawFunds_NegativeInvalid(): void
     {
         $this->expectException(AmountException::class);
 
@@ -141,7 +143,7 @@ class ReserveFundsWithdrawTest extends TestCase
             );
     }
 
-    public function testAcceptFundsById_InvalidId()
+    public function testAcceptFundsById_InvalidId(): void
     {
         $this->expectException(StatementException::class);
 
@@ -151,7 +153,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $this->statementBLL->acceptFundsById(2);
     }
 
-    public function testAcceptFundsById_InvalidType()
+    public function testAcceptFundsById_InvalidType(): void
     {
         $this->expectException(StatementException::class);
 
@@ -167,7 +169,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $this->statementBLL->acceptFundsById($statement->getStatementId());
     }
 
-    public function testAcceptFundsById_HasParentTransation()
+    public function testAcceptFundsById_HasParentTransation(): void
     {
         $this->expectException(StatementException::class);
 
@@ -183,7 +185,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $this->statementBLL->acceptFundsById($statement->getStatementId());
     }
 
-    public function testAcceptFundsById_OK()
+    public function testAcceptFundsById_OK(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
@@ -226,7 +228,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $this->assertEquals($statement->toArray(), $actual->toArray());
     }
 
-    public function testRejectFundsById_InvalidId()
+    public function testRejectFundsById_InvalidId(): void
     {
         $this->expectException(StatementException::class);
 
@@ -236,7 +238,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $this->statementBLL->rejectFundsById(5);
     }
 
-    public function testRejectFundsById_InvalidType()
+    public function testRejectFundsById_InvalidType(): void
     {
         $this->expectException(StatementException::class);
 
@@ -247,7 +249,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $this->statementBLL->rejectFundsById($statement->getStatementId());
     }
 
-    public function testRejectFundsById_HasParentTransation()
+    public function testRejectFundsById_HasParentTransation(): void
     {
         $this->expectException(StatementException::class);
 
@@ -273,7 +275,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $this->statementBLL->rejectFundsById($statement->getStatementId());
     }
 
-    public function testRejectFundsById_OK()
+    public function testRejectFundsById_OK(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);

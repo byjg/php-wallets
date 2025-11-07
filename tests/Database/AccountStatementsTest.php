@@ -32,6 +32,7 @@ class AccountStatementsTest extends TestCase
      * Sets up the fixture, for example, opens a network connection.
      * This method is called before a test is executed.
      */
+    #[\Override]
     protected function setUp(): void
     {
         $this->dbSetUp();
@@ -43,6 +44,7 @@ class AccountStatementsTest extends TestCase
      * Tears down the fixture, for example, closes a network connection.
      * This method is called after a test is executed.
      */
+    #[\Override]
     protected function tearDown(): void
     {
         $this->dbClear();
@@ -86,7 +88,7 @@ class AccountStatementsTest extends TestCase
         $this->assertEquals('USDTEST', $dto->getAccountTypeId());
     }
 
-    public function testGetById()
+    public function testGetById(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
@@ -120,7 +122,7 @@ class AccountStatementsTest extends TestCase
         $this->assertEquals($statement->toArray(), $actual->toArray());
     }
 
-    public function testGetById_Zero()
+    public function testGetById_Zero(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 0);
@@ -154,13 +156,13 @@ class AccountStatementsTest extends TestCase
         $this->assertEquals($statement->toArray(), $actual->toArray());
     }
 
-    public function testGetById_NotFound()
+    public function testGetById_NotFound(): void
     {
         // Executar teste
         $this->assertEquals($this->statementBLL->getById(2), null);
     }
 
-    public function testGetAll()
+    public function testGetAll(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
@@ -245,7 +247,7 @@ class AccountStatementsTest extends TestCase
         );
     }
 
-    public function testAddFunds()
+    public function testAddFunds(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
@@ -276,7 +278,12 @@ class AccountStatementsTest extends TestCase
         $this->assertEquals($statement->toArray(), $actual->toArray());
     }
 
-    public function amountDataProvider()
+    /**
+     * @return (float|int)[][]
+     *
+     * @psalm-return list{list{250}, list{float}, list{float}, list{float}, list{float}, list{float}, list{float}, list{float}, list{float}, list{float}}
+     */
+    public function amountDataProvider(): array
     {
 
         return [
@@ -296,7 +303,7 @@ class AccountStatementsTest extends TestCase
     /**
      * @dataProvider amountDataProvider
      */
-    public function testAddFundsDecimal($amount)
+    public function testAddFundsDecimal($amount): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
@@ -327,7 +334,7 @@ class AccountStatementsTest extends TestCase
         $this->assertEquals($statement->toArray(), $actual->toArray());
     }
 
-    public function testAddFunds_Invalid()
+    public function testAddFunds_Invalid(): void
     {
         $this->expectException(AmountException::class);
         $this->expectExceptionMessage('Amount needs to be greater than zero');
@@ -339,7 +346,7 @@ class AccountStatementsTest extends TestCase
         $this->statementBLL->addFunds(StatementDTO::create($accountId, -15));
     }
 
-    public function testAddFunds_InvalidRound()
+    public function testAddFunds_InvalidRound(): void
     {
         $this->expectException(AmountException::class);
         $this->expectExceptionMessage('Amount needs to have two decimal places');
@@ -351,7 +358,7 @@ class AccountStatementsTest extends TestCase
         $this->statementBLL->addFunds(StatementDTO::create($accountId, 0.105));
     }
 
-    public function testWithdrawFunds()
+    public function testWithdrawFunds(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
@@ -383,7 +390,7 @@ class AccountStatementsTest extends TestCase
         $this->assertEquals($statement->toArray(), $actual->toArray());
     }
 
-    public function testWithdrawFunds_Invalid()
+    public function testWithdrawFunds_Invalid(): void
     {
         $this->expectException(AmountException::class);
         $this->expectExceptionMessage('Amount needs to be greater than zero');
@@ -395,7 +402,7 @@ class AccountStatementsTest extends TestCase
         $this->statementBLL->withdrawFunds(StatementDTO::create($accountId, -15));
     }
 
-    public function testWithdrawFunds_InvalidRound()
+    public function testWithdrawFunds_InvalidRound(): void
     {
         $this->expectException(AmountException::class);
         $this->expectExceptionMessage('Amount needs to have two decimal places');
@@ -407,7 +414,7 @@ class AccountStatementsTest extends TestCase
         $this->statementBLL->withdrawFunds(StatementDTO::create($accountId, 10.001));
     }
 
-    public function testWithdrawFunds_Allow_Negative()
+    public function testWithdrawFunds_Allow_Negative(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('NEGTEST', "___TESTUSER-1", 1000, 1, -400);
@@ -439,7 +446,7 @@ class AccountStatementsTest extends TestCase
         $this->assertEquals($statement->toArray(), $actual->toArray());
     }
 
-    public function testWithdrawFunds_Allow_Negative2()
+    public function testWithdrawFunds_Allow_Negative2(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('NEGTEST', "___TESTUSER-1", 1000, 1, -400);
@@ -451,7 +458,7 @@ class AccountStatementsTest extends TestCase
     }
 
 
-    public function testWithdrawFunds_NegativeInvalid()
+    public function testWithdrawFunds_NegativeInvalid(): void
     {
         $this->expectException(AmountException::class);
 
@@ -517,7 +524,7 @@ class AccountStatementsTest extends TestCase
      * @throws TransactionException
      * @throws \ByJG\Serializer\Exception\InvalidArgumentException
      */
-    public function testGetAccountByAccountType()
+    public function testGetAccountByAccountType(): void
     {
         $accountId = $this->accountBLL->createAccount(
             'ABCTEST',
@@ -552,7 +559,7 @@ class AccountStatementsTest extends TestCase
         ], $account);
     }
 
-    public function testOverrideFunds()
+    public function testOverrideFunds(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
@@ -601,7 +608,7 @@ class AccountStatementsTest extends TestCase
         );
     }
 
-    public function testPartialFunds()
+    public function testPartialFunds(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
@@ -653,7 +660,7 @@ class AccountStatementsTest extends TestCase
 
     }
 
-    public function testCloseAccount()
+    public function testCloseAccount(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
@@ -709,7 +716,7 @@ class AccountStatementsTest extends TestCase
 
     }
 
-    public function testGetByDate()
+    public function testGetByDate(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
@@ -793,7 +800,7 @@ class AccountStatementsTest extends TestCase
 
     }
 
-    public function testGetByStatementId()
+    public function testGetByStatementId(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
@@ -812,14 +819,14 @@ class AccountStatementsTest extends TestCase
         $this->assertEquals($accountExpected, $accountResult);
     }
 
-    public function testGetByStatementIdNotFound()
+    public function testGetByStatementIdNotFound(): void
     {
         $accountRepo = $this->accountBLL->getRepository();
         $accountResult = $accountRepo->getByStatementId(12345); // Dont exists
         $this->assertNull($accountResult);
     }
 
-    public function testGetStatementsByCode()
+    public function testGetStatementsByCode(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
@@ -869,7 +876,7 @@ class AccountStatementsTest extends TestCase
 
     }
 
-    public function testGetStatementsByReferenceId()
+    public function testGetStatementsByReferenceId(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
@@ -913,7 +920,7 @@ class AccountStatementsTest extends TestCase
         );
     }
 
-    public function testTransferFunds()
+    public function testTransferFunds(): void
     {
         $accountBrlId = $this->accountBLL->getByAccountTypeId('BRLTEST')[0]->getAccountId();
         $accountUsdId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
@@ -927,7 +934,7 @@ class AccountStatementsTest extends TestCase
         $this->assertEquals(1300, $accountTarget->getNetBalance());
     }
 
-    public function testTransferFundsFail()
+    public function testTransferFundsFail(): void
     {
         $accountBrlId = $this->accountBLL->getByAccountTypeId('BRLTEST')[0]->getAccountId();
         $accountUsdId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
@@ -938,7 +945,7 @@ class AccountStatementsTest extends TestCase
         $this->accountBLL->transferFunds($accountBrlId, $accountUsdId, 1100);
     }
 
-    public function testJoinTransactionAndCommit()
+    public function testJoinTransactionAndCommit(): void
     {
         // This transaction starts outside the Statement Context
         $this->dbDriver->beginTransaction(IsolationLevelEnum::SERIALIZABLE);
@@ -959,7 +966,7 @@ class AccountStatementsTest extends TestCase
         $this->assertNotNull($statement);
     }
 
-    public function testJoinTransactionAndRollback()
+    public function testJoinTransactionAndRollback(): void
     {
         // This transaction starts outside the Statement Context
         $this->dbDriver->beginTransaction(IsolationLevelEnum::SERIALIZABLE);
@@ -980,7 +987,7 @@ class AccountStatementsTest extends TestCase
         $this->assertNull($statement);
     }
 
-    public function testJoinTransactionDifferentIsolationLevel()
+    public function testJoinTransactionDifferentIsolationLevel(): void
     {
         // This transaction starts outside the Statement Context
         $this->dbDriver->beginTransaction(IsolationLevelEnum::READ_UNCOMMITTED);
@@ -1003,7 +1010,7 @@ class AccountStatementsTest extends TestCase
 
     }
 
-    public function testAddFundsExtendedStatement()
+    public function testAddFundsExtendedStatement(): void
     {
         $this->prepareObjects(statementEntity: StatementExtended::class);
 
@@ -1038,35 +1045,35 @@ class AccountStatementsTest extends TestCase
         $this->assertEquals($statement, $actual);
     }
 
-    public function testAddFundAccountNotFound()
+    public function testAddFundAccountNotFound(): void
     {
         $this->expectException(AccountException::class);
         $this->expectExceptionMessage('Account not found');
         $this->statementBLL->addFunds(StatementDTO::create(1023, 400)->setReferenceId('REFID')->setReferenceSource('REFSRC'));
     }
 
-    public function testWithdrawFundAccountNotFound()
+    public function testWithdrawFundAccountNotFound(): void
     {
         $this->expectException(AccountException::class);
         $this->expectExceptionMessage('Account not found');
         $this->statementBLL->withdrawFunds(StatementDTO::create(1023, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
     }
 
-    public function testReserveWithdrawFundAccountNotFound()
+    public function testReserveWithdrawFundAccountNotFound(): void
     {
         $this->expectException(AccountException::class);
         $this->expectExceptionMessage('Account not found');
         $this->statementBLL->reserveFundsForWithdraw(StatementDTO::create(1023, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
     }
 
-    public function testReserveDepositFundAccountNotFound()
+    public function testReserveDepositFundAccountNotFound(): void
     {
         $this->expectException(AccountException::class);
         $this->expectExceptionMessage('Account not found');
         $this->statementBLL->reserveFundsForDeposit(StatementDTO::create(1023, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
     }
 
-    public function testStatementObserver()
+    public function testStatementObserver(): void
     {
         $accountRepository = new AccountRepositoryExtended($this->dbDriver, AccountEntity::class);
         $statementRepository = new StatementRepositoryExtended($this->dbDriver, StatementEntity::class);
@@ -1090,7 +1097,7 @@ class AccountStatementsTest extends TestCase
         $this->assertTrue($statementRepository->getReach());
     }
 
-    public function testCapAtZeroFalse()
+    public function testCapAtZeroFalse(): void
     {
         $this->expectException(AmountException::class);
         $this->expectExceptionMessage('Cannot withdraw above the account balance');
@@ -1105,7 +1112,7 @@ class AccountStatementsTest extends TestCase
         );
     }
 
-    public function testCapAtZeroTrue()
+    public function testCapAtZeroTrue(): void
     {
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
@@ -1132,7 +1139,7 @@ class AccountStatementsTest extends TestCase
         $this->assertEquals(1000, $dto->getAmount());;
     }
 
-    public function testCapAtZeroTruePartial()
+    public function testCapAtZeroTruePartial(): void
     {
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
@@ -1159,7 +1166,7 @@ class AccountStatementsTest extends TestCase
         $this->assertEquals(800, $dto->getAmount());;
     }
 
-    public function testCapAtZeroTrueUncleared()
+    public function testCapAtZeroTrueUncleared(): void
     {
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
 

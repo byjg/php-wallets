@@ -81,7 +81,7 @@ abstract class BaseRepository
             ->getByQuery($query);
     }
 
-    public function model()
+    public function model(): object
     {
         $class = $this->repository->getMapper()->getEntity();
 

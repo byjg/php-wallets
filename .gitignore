@@ -6,3 +6,6 @@ vendor
 node_modules
 .usdocker
 .phpunit.result.cache
+phpunit.coverage.xml
+phpunit.report.xml
+*.bak
