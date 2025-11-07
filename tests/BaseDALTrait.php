@@ -2,19 +2,19 @@
 
 namespace Tests;
 
-use ByJG\AccountStatements\Bll\AccountBLL;
-use ByJG\AccountStatements\Bll\AccountTypeBLL;
-use ByJG\AccountStatements\Bll\StatementBLL;
-use ByJG\AccountStatements\Entity\AccountEntity;
-use ByJG\AccountStatements\Entity\AccountTypeEntity;
-use ByJG\AccountStatements\Entity\StatementEntity;
-use ByJG\AccountStatements\Exception\AccountException;
-use ByJG\AccountStatements\Exception\AccountTypeException;
-use ByJG\AccountStatements\Exception\AmountException;
-use ByJG\AccountStatements\Exception\StatementException;
-use ByJG\AccountStatements\Repository\AccountRepository;
-use ByJG\AccountStatements\Repository\AccountTypeRepository;
-use ByJG\AccountStatements\Repository\StatementRepository;
+use ByJG\AccountTransactions\Bll\AccountBLL;
+use ByJG\AccountTransactions\Bll\AccountTypeBLL;
+use ByJG\AccountTransactions\Bll\TransactionBLL;
+use ByJG\AccountTransactions\Entity\AccountEntity;
+use ByJG\AccountTransactions\Entity\AccountTypeEntity;
+use ByJG\AccountTransactions\Entity\TransactionEntity;
+use ByJG\AccountTransactions\Exception\AccountException;
+use ByJG\AccountTransactions\Exception\AccountTypeException;
+use ByJG\AccountTransactions\Exception\AmountException;
+use ByJG\AccountTransactions\Exception\TransactionException;
+use ByJG\AccountTransactions\Repository\AccountRepository;
+use ByJG\AccountTransactions\Repository\AccountTypeRepository;
+use ByJG\AccountTransactions\Repository\TransactionRepository;
 use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\DbMigration\Database\MySqlDatabase;
 use ByJG\DbMigration\Migration;
@@ -41,23 +41,23 @@ trait BaseDALTrait
     protected AccountTypeBLL $accountTypeBLL;
 
     /**
-     * @var StatementBLL
+     * @var TransactionBLL
      */
-    protected StatementBLL $statementBLL;
+    protected TransactionBLL $transactionBLL;
 
     /**
      * @throws ReflectionException
      * @throws OrmModelInvalidException
      */
-    public function prepareObjects($accountEntity = AccountEntity::class, $accountTypeEntity = AccountTypeEntity::class, $statementEntity = StatementEntity::class): void
+    public function prepareObjects($accountEntity = AccountEntity::class, $accountTypeEntity = AccountTypeEntity::class, $transactionEntity = TransactionEntity::class): void
     {
         $accountRepository = new AccountRepository($this->dbExecutor, $accountEntity);
         $accountTypeRepository = new AccountTypeRepository($this->dbExecutor, $accountTypeEntity);
-        $statementRepository = new StatementRepository($this->dbExecutor, $statementEntity);
+        $transactionRepository = new TransactionRepository($this->dbExecutor, $transactionEntity);
 
         $this->accountTypeBLL = new AccountTypeBLL($accountTypeRepository);
-        $this->statementBLL = new StatementBLL($statementRepository, $accountRepository);
-        $this->accountBLL = new AccountBLL($accountRepository, $this->accountTypeBLL, $this->statementBLL);
+        $this->transactionBLL = new TransactionBLL($transactionRepository, $accountRepository);
+        $this->accountBLL = new AccountBLL($accountRepository, $this->accountTypeBLL, $this->transactionBLL);
     }
 
     /**
@@ -90,20 +90,20 @@ trait BaseDALTrait
         $dbDriver = $migration->getDbDriver();
         $this->dbExecutor = DatabaseExecutor::using($dbDriver);
 
-        $this->dbExecutor->execute("CREATE TABLE statement_extended LIKE statement");
-        $this->dbExecutor->execute("alter table statement_extended add extra_property varchar(100) null;");
+        $this->dbExecutor->execute("CREATE TABLE transaction_extended LIKE transaction");
+        $this->dbExecutor->execute("alter table transaction_extended add extra_property varchar(100) null;");
     }
 
     protected function dbClear(): void
     {
         $this->dbExecutor->execute(
-            'DELETE statement FROM `account` INNER JOIN statement ' .
-            "WHERE account.accountid = statement.accountid and account.userid like '___TESTUSER-%' and statementparentid is not null;"
+            'DELETE transaction FROM `account` INNER JOIN transaction ' .
+            "WHERE account.accountid = transaction.accountid and account.userid like '___TESTUSER-%' and transactionparentid is not null;"
         );
 
         $this->dbExecutor->execute(
-            'DELETE statement FROM `account` INNER JOIN statement ' .
-            "WHERE account.accountid = statement.accountid and account.userid like '___TESTUSER-%'"
+            'DELETE transaction FROM `account` INNER JOIN transaction ' .
+            "WHERE account.accountid = transaction.accountid and account.userid like '___TESTUSER-%'"
         );
 
         $this->dbExecutor->execute("DELETE FROM `account` where account.userid like '___TESTUSER-%'");
@@ -118,7 +118,7 @@ trait BaseDALTrait
      * @throws InvalidArgumentException
      * @throws OrmBeforeInvalidException
      * @throws OrmInvalidFieldsException
-     * @throws StatementException
+     * @throws TransactionException
      * @throws RepositoryReadOnlyException
      * @throws UpdateConstraintException
      * @throws \ByJG\Serializer\Exception\InvalidArgumentException

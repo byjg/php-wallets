@@ -5,16 +5,16 @@
  * and open the template in the editor.
  */
 
-namespace ByJG\AccountStatements\Bll;
+namespace ByJG\AccountTransactions\Bll;
 
-use ByJG\AccountStatements\DTO\StatementDTO;
-use ByJG\AccountStatements\Entity\AccountEntity;
-use ByJG\AccountStatements\Entity\StatementEntity;
-use ByJG\AccountStatements\Exception\AccountException;
-use ByJG\AccountStatements\Exception\AccountTypeException;
-use ByJG\AccountStatements\Exception\AmountException;
-use ByJG\AccountStatements\Exception\StatementException;
-use ByJG\AccountStatements\Repository\AccountRepository;
+use ByJG\AccountTransactions\DTO\TransactionDTO;
+use ByJG\AccountTransactions\Entity\AccountEntity;
+use ByJG\AccountTransactions\Entity\TransactionEntity;
+use ByJG\AccountTransactions\Exception\AccountException;
+use ByJG\AccountTransactions\Exception\AccountTypeException;
+use ByJG\AccountTransactions\Exception\AmountException;
+use ByJG\AccountTransactions\Exception\TransactionException;
+use ByJG\AccountTransactions\Repository\AccountRepository;
 use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
 use ByJG\MicroOrm\Exception\OrmInvalidFieldsException;
 use ByJG\MicroOrm\Exception\RepositoryReadOnlyException;
@@ -35,22 +35,22 @@ class AccountBLL
     protected AccountTypeBLL $accountTypeBLL;
 
     /**
-     * @var StatementBLL
+     * @var TransactionBLL
      */
-    protected StatementBLL $statementBLL;
+    protected TransactionBLL $transactionBLL;
 
     /**
      * AccountBLL constructor.
      * @param AccountRepository $accountRepository
      * @param AccountTypeBLL $accountTypeBLL
-     * @param StatementBLL $statementBLL
+     * @param TransactionBLL $transactionBLL
      */
-    public function __construct(AccountRepository $accountRepository, AccountTypeBLL $accountTypeBLL, StatementBLL $statementBLL)
+    public function __construct(AccountRepository $accountRepository, AccountTypeBLL $accountTypeBLL, TransactionBLL $transactionBLL)
     {
         $this->accountRepository = $accountRepository;
 
         $this->accountTypeBLL = $accountTypeBLL;
-        $this->statementBLL = $statementBLL;
+        $this->transactionBLL = $transactionBLL;
     }
 
 
@@ -113,7 +113,7 @@ class AccountBLL
      * @throws OrmBeforeInvalidException
      * @throws OrmInvalidFieldsException
      * @throws RepositoryReadOnlyException
-     * @throws StatementException
+     * @throws TransactionException
      * @throws UpdateConstraintException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
@@ -149,9 +149,9 @@ class AccountBLL
         }
 
         if ($balance >= 0) {
-            $this->statementBLL->addFunds(StatementDTO::create($accountId, $balance)->setDescription("Opening Balance")->setCode('BAL'));
+            $this->transactionBLL->addFunds(TransactionDTO::create($accountId, $balance)->setDescription("Opening Balance")->setCode('BAL'));
         } else {
-            $this->statementBLL->withdrawFunds(StatementDTO::create($accountId, abs($balance))->setDescription("Opening Balance")->setCode('BAL'));
+            $this->transactionBLL->withdrawFunds(TransactionDTO::create($accountId, abs($balance))->setDescription("Opening Balance")->setCode('BAL'));
         }
 
         return $accountId;
@@ -171,7 +171,7 @@ class AccountBLL
      * @throws OrmBeforeInvalidException
      * @throws OrmInvalidFieldsException
      * @throws RepositoryReadOnlyException
-     * @throws StatementException
+     * @throws TransactionException
      * @throws UpdateConstraintException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
@@ -189,7 +189,7 @@ class AccountBLL
             throw new AccountException('Account Id doesnt exists');
         }
 
-        $dto = StatementDTO::createEmpty();
+        $dto = TransactionDTO::createEmpty();
         $dto->setUuid($dto->calculateUuid($this->accountRepository->getExecutor()));;
 
         $this->accountRepository->getExecutor()->beginTransaction();
@@ -197,15 +197,15 @@ class AccountBLL
             // Get total value reserved
             $reservedValues = 0;
             $qtd = 0;
-            $object = $this->statementBLL->getReservedStatements($account->getAccountId());
+            $object = $this->transactionBLL->getReservedTransactions($account->getAccountId());
             foreach ($object as $stmt) {
                 $qtd++;
                 $reservedValues += $stmt->getAmount();
             }
 
             if ($newBalance - $reservedValues < $newMinValue) {
-                throw new StatementException(
-                    "Can't override balance because there is $qtd pending statements with the amount of $reservedValues"
+                throw new TransactionException(
+                    "Can't override balance because there is $qtd pending transactions with the amount of $reservedValues"
                 );
             }
 
@@ -218,27 +218,27 @@ class AccountBLL
             $account->setLastUuid($dto->getUuid());
             $this->accountRepository->save($account);
 
-            // Create new Statement
-            $statement = new StatementEntity();
-            $statement->setAmount($newBalance);
-            $statement->setAccountId($account->getAccountId());
-            $statement->setDescription(empty($description) ? "Reset Balance" : $description);
-            $statement->setTypeId(StatementEntity::BALANCE);
-            $statement->setCode('BAL');
-            $statement->setBalance($newBalance);
-            $statement->setAvailable($newBalance - $reservedValues);
-            $statement->setReserved($reservedValues);
-            $statement->setPrice($newPrice);
-            $statement->setAccountTypeId($account->getAccountTypeId());
-            $statement->setUuid($dto->getUuid());
-            $this->statementBLL->getRepository()->save($statement);
+            // Create new Transaction
+            $transaction = new TransactionEntity();
+            $transaction->setAmount($newBalance);
+            $transaction->setAccountId($account->getAccountId());
+            $transaction->setDescription(empty($description) ? "Reset Balance" : $description);
+            $transaction->setTypeId(TransactionEntity::BALANCE);
+            $transaction->setCode('BAL');
+            $transaction->setBalance($newBalance);
+            $transaction->setAvailable($newBalance - $reservedValues);
+            $transaction->setReserved($reservedValues);
+            $transaction->setPrice($newPrice);
+            $transaction->setAccountTypeId($account->getAccountTypeId());
+            $transaction->setUuid($dto->getUuid());
+            $this->transactionBLL->getRepository()->save($transaction);
             $this->accountRepository->getExecutor()->commitTransaction();
         } catch (\Exception $ex) {
             $this->accountRepository->getExecutor()->rollbackTransaction();
             throw $ex;
         }
 
-        return $statement->getStatementId();
+        return $transaction->getTransactionId();
     }
 
     /**
@@ -251,7 +251,7 @@ class AccountBLL
      * @throws OrmBeforeInvalidException
      * @throws OrmInvalidFieldsException
      * @throws RepositoryReadOnlyException
-     * @throws StatementException
+     * @throws TransactionException
      * @throws UpdateConstraintException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
@@ -264,26 +264,26 @@ class AccountBLL
      * @param int $accountId
      * @param int $balance
      * @param string $description
-     * @return StatementEntity
+     * @return TransactionEntity
      * @throws AccountException
      * @throws AmountException
      * @throws InvalidArgumentException
-     * @throws StatementException
+     * @throws TransactionException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function partialBalance(int $accountId, int $balance, string $description = "Partial Balance"): StatementEntity
+    public function partialBalance(int $accountId, int $balance, string $description = "Partial Balance"): TransactionEntity
     {
         $account = $this->getById($accountId);
 
         $amount = $balance - $account->getAvailable();
 
         if ($amount >= 0) {
-            $statement = $this->statementBLL->addFunds(StatementDTO::create($accountId, $amount)->setDescription($description));
+            $transaction = $this->transactionBLL->addFunds(TransactionDTO::create($accountId, $amount)->setDescription($description));
         } else {
-            $statement = $this->statementBLL->withdrawFunds(StatementDTO::create($accountId, abs($amount))->setDescription($description));
+            $transaction = $this->transactionBLL->withdrawFunds(TransactionDTO::create($accountId, abs($amount))->setDescription($description));
         }
 
-        return $statement;
+        return $transaction;
     }
 
     /**
@@ -294,33 +294,33 @@ class AccountBLL
      * @throws AccountException
      * @throws AmountException
      * @throws InvalidArgumentException
-     * @throws StatementException
+     * @throws TransactionException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
     public function transferFunds(int $accountSource, int $accountTarget, int $amount): array
     {
         $refSource = bin2hex(openssl_random_pseudo_bytes(16));
 
-        $statementSourceDTO = StatementDTO::createEmpty();
-        $statementSourceDTO->setAccountId($accountSource);
-        $statementSourceDTO->setAmount($amount);
-        $statementSourceDTO->setCode('T_TO');
-        $statementSourceDTO->setReferenceSource('transfer_to');
-        $statementSourceDTO->setReferenceId($refSource);
-        $statementSourceDTO->setDescription('Transfer to account id ' . $accountTarget);
+        $transactionSourceDTO = TransactionDTO::createEmpty();
+        $transactionSourceDTO->setAccountId($accountSource);
+        $transactionSourceDTO->setAmount($amount);
+        $transactionSourceDTO->setCode('T_TO');
+        $transactionSourceDTO->setReferenceSource('transfer_to');
+        $transactionSourceDTO->setReferenceId($refSource);
+        $transactionSourceDTO->setDescription('Transfer to account id ' . $accountTarget);
 
-        $statementTargetDTO = StatementDTO::createEmpty();
-        $statementTargetDTO->setAccountId($accountTarget);
-        $statementTargetDTO->setAmount($amount);
-        $statementTargetDTO->setCode('T_FROM');
-        $statementTargetDTO->setReferenceSource('transfer_from');
-        $statementTargetDTO->setReferenceId($refSource);
-        $statementTargetDTO->setDescription('Transfer from account id ' . $accountSource);
+        $transactionTargetDTO = TransactionDTO::createEmpty();
+        $transactionTargetDTO->setAccountId($accountTarget);
+        $transactionTargetDTO->setAmount($amount);
+        $transactionTargetDTO->setCode('T_FROM');
+        $transactionTargetDTO->setReferenceSource('transfer_from');
+        $transactionTargetDTO->setReferenceId($refSource);
+        $transactionTargetDTO->setDescription('Transfer from account id ' . $accountSource);
 
-        $statementSource = $this->statementBLL->withdrawFunds($statementSourceDTO);
-        $statementTarget = $this->statementBLL->addFunds($statementTargetDTO);
+        $transactionSource = $this->transactionBLL->withdrawFunds($transactionSourceDTO);
+        $transactionTarget = $this->transactionBLL->addFunds($transactionTargetDTO);
 
-        return [ $statementSource, $statementTarget ];
+        return [ $transactionSource, $transactionTarget ];
     }
 
     public function getRepository(): AccountRepository

@@ -2,10 +2,10 @@
 
 namespace Tests\Database;
 
-use ByJG\AccountStatements\DTO\StatementDTO;
-use ByJG\AccountStatements\Entity\StatementEntity;
-use ByJG\AccountStatements\Exception\AmountException;
-use ByJG\AccountStatements\Exception\StatementException;
+use ByJG\AccountTransactions\DTO\TransactionDTO;
+use ByJG\AccountTransactions\Entity\TransactionEntity;
+use ByJG\AccountTransactions\Exception\AmountException;
+use ByJG\AccountTransactions\Exception\TransactionException;
 use ByJG\MicroOrm\Literal\HexUuidLiteral;
 use PHPUnit\Framework\TestCase;
 use Tests\BaseDALTrait;
@@ -41,32 +41,32 @@ class ReserveFundsWithdrawTest extends TestCase
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $dto = StatementDTO::create($accountId, 350)
+        $dto = TransactionDTO::create($accountId, 350)
             ->setDescription('Test Withdraw')
             ->setReferenceId('Referencia Withdraw')
             ->setReferenceSource('Source Withdraw');
-        $actual = $this->statementBLL->reserveFundsForWithdraw($dto);
+        $actual = $this->transactionBLL->reserveFundsForWithdraw($dto);
 
         // Objeto que é esperado
-        $statement = new StatementEntity();
-        $statement->setAmount('350.00');
-        $statement->setDate('2015-01-24');
-        $statement->setDescription('Test Withdraw');
-        $statement->setBalance('1000.00');
-        $statement->setAccountId($accountId);
-        $statement->setStatementId($actual->getStatementId());;
-        $statement->setTypeId('WB');
-        $statement->setAvailable('650.00');
-        $statement->setPrice('1.00');
-        $statement->setReserved('350.00');
-        $statement->setReferenceId('Referencia Withdraw');
-        $statement->setReferenceSource('Source Withdraw');
-        $statement->setAccountTypeId('USDTEST');
-        $statement->setDate($actual->getDate());
-        $statement->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
+        $transaction = new TransactionEntity();
+        $transaction->setAmount('350.00');
+        $transaction->setDate('2015-01-24');
+        $transaction->setDescription('Test Withdraw');
+        $transaction->setBalance('1000.00');
+        $transaction->setAccountId($accountId);
+        $transaction->setTransactionId($actual->getTransactionId());;
+        $transaction->setTypeId('WB');
+        $transaction->setAvailable('650.00');
+        $transaction->setPrice('1.00');
+        $transaction->setReserved('350.00');
+        $transaction->setReferenceId('Referencia Withdraw');
+        $transaction->setReferenceSource('Source Withdraw');
+        $transaction->setAccountTypeId('USDTEST');
+        $transaction->setDate($actual->getDate());
+        $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
 
         // Executar teste
-        $this->assertEquals($statement->toArray(), $actual->toArray());
+        $this->assertEquals($transaction->toArray(), $actual->toArray());
     }
 
     public function testReserveForWithdrawFunds_Invalid(): void
@@ -76,8 +76,8 @@ class ReserveFundsWithdrawTest extends TestCase
 
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $this->statementBLL->reserveFundsForWithdraw(
-            StatementDTO::create($accountId, -50)
+        $this->transactionBLL->reserveFundsForWithdraw(
+            TransactionDTO::create($accountId, -50)
                 ->setDescription('Test Withdraw')
                 ->setReferenceId('Referencia Withdraw')
                 ->setReferenceSource('Source Withdraw'));
@@ -87,32 +87,32 @@ class ReserveFundsWithdrawTest extends TestCase
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('NEGTEST', "___TESTUSER-1", 1000, 1, -400);
-        $dto = StatementDTO::create($accountId, 1150)
+        $dto = TransactionDTO::create($accountId, 1150)
             ->setDescription('Test Withdraw')
             ->setReferenceId('Referencia Withdraw')
             ->setReferenceSource('Source Withdraw');
-        $actual = $this->statementBLL->reserveFundsForWithdraw($dto);
+        $actual = $this->transactionBLL->reserveFundsForWithdraw($dto);
 
         // Objeto que é esperado
-        $statement = new StatementEntity();
-        $statement->setAmount('1150.00');
-        $statement->setDate('2015-01-24');
-        $statement->setDescription('Test Withdraw');
-        $statement->setBalance('1000.00');
-        $statement->setAccountId($accountId);
-        $statement->setStatementId($actual->getStatementId());
-        $statement->setTypeId('WB');
-        $statement->setAvailable('-150.00');
-        $statement->setPrice('1.00');
-        $statement->setReserved('1150.00');
-        $statement->setReferenceId('Referencia Withdraw');
-        $statement->setReferenceSource('Source Withdraw');
-        $statement->setAccountTypeId('NEGTEST');
-        $statement->setDate($actual->getDate());
-        $statement->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
+        $transaction = new TransactionEntity();
+        $transaction->setAmount('1150.00');
+        $transaction->setDate('2015-01-24');
+        $transaction->setDescription('Test Withdraw');
+        $transaction->setBalance('1000.00');
+        $transaction->setAccountId($accountId);
+        $transaction->setTransactionId($actual->getTransactionId());
+        $transaction->setTypeId('WB');
+        $transaction->setAvailable('-150.00');
+        $transaction->setPrice('1.00');
+        $transaction->setReserved('1150.00');
+        $transaction->setReferenceId('Referencia Withdraw');
+        $transaction->setReferenceSource('Source Withdraw');
+        $transaction->setAccountTypeId('NEGTEST');
+        $transaction->setDate($actual->getDate());
+        $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
 
         // Executar teste
-        $this->assertEquals($statement->toArray(), $actual->toArray());
+        $this->assertEquals($transaction->toArray(), $actual->toArray());
     }
 
     public function testReserveForWithdrawFunds_NegativeInvalid(): void
@@ -121,8 +121,8 @@ class ReserveFundsWithdrawTest extends TestCase
 
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000, 1, -400);
-        $this->statementBLL->reserveFundsForWithdraw(
-            StatementDTO::create($accountId, 1401)
+        $this->transactionBLL->reserveFundsForWithdraw(
+            TransactionDTO::create($accountId, 1401)
                 ->setDescription('Test Withdraw')
                 ->setReferenceId('Referencia Withdraw')
                 ->setReferenceSource('Source Withdraw')
@@ -131,177 +131,177 @@ class ReserveFundsWithdrawTest extends TestCase
 
     public function testAcceptFundsById_InvalidId(): void
     {
-        $this->expectException(StatementException::class);
+        $this->expectException(TransactionException::class);
 
         // Populate Data!
         $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
-        $this->statementBLL->acceptFundsById(2);
+        $this->transactionBLL->acceptFundsById(2);
     }
 
     public function testAcceptFundsById_InvalidType(): void
     {
-        $this->expectException(StatementException::class);
+        $this->expectException(TransactionException::class);
 
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $statement = $this->statementBLL->withdrawFunds(
-            StatementDTO::create($accountId, 200)
+        $transaction = $this->transactionBLL->withdrawFunds(
+            TransactionDTO::create($accountId, 200)
                 ->setDescription('Test Withdraw')
                 ->setReferenceId('Referencia Withdraw')
                 ->setReferenceSource('Source Withdraw')
             );
 
-        $this->statementBLL->acceptFundsById($statement->getStatementId());
+        $this->transactionBLL->acceptFundsById($transaction->getTransactionId());
     }
 
     public function testAcceptFundsById_HasParentTransation(): void
     {
-        $this->expectException(StatementException::class);
+        $this->expectException(TransactionException::class);
 
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $this->statementBLL->withdrawFunds(StatementDTO::create($accountId, 150)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
-        $statement = $this->statementBLL->reserveFundsForWithdraw(StatementDTO::create($accountId, 350)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
+        $this->transactionBLL->withdrawFunds(TransactionDTO::create($accountId, 150)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
+        $transaction = $this->transactionBLL->reserveFundsForWithdraw(TransactionDTO::create($accountId, 350)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
 
         // Executar ação
-        $this->statementBLL->acceptFundsById($statement->getStatementId());
+        $this->transactionBLL->acceptFundsById($transaction->getTransactionId());
 
         // Provar o erro:
-        $this->statementBLL->acceptFundsById($statement->getStatementId());
+        $this->transactionBLL->acceptFundsById($transaction->getTransactionId());
     }
 
     public function testAcceptFundsById_OK(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $this->statementBLL->withdrawFunds(
-            StatementDTO::create($accountId, 150)
+        $this->transactionBLL->withdrawFunds(
+            TransactionDTO::create($accountId, 150)
                 ->setDescription( 'Test Withdraw')
                 ->setReferenceId('Referencia Withdraw')
                 ->setReferenceSource('Source Withdraw')
             );
-        $reserveStatement = $this->statementBLL->reserveFundsForWithdraw(
-            StatementDTO::create($accountId, 350)
+        $reserveTransaction = $this->transactionBLL->reserveFundsForWithdraw(
+            TransactionDTO::create($accountId, 350)
                 ->setDescription('Test Withdraw')
                 ->setReferenceId('Referencia Withdraw')
                 ->setReferenceSource('Source Withdraw')
             );
 
         // Executar ação
-        $actualId = $this->statementBLL->acceptFundsById($reserveStatement->getStatementId());
-        $actual = $this->statementBLL->getById($actualId);
+        $actualId = $this->transactionBLL->acceptFundsById($reserveTransaction->getTransactionId());
+        $actual = $this->transactionBLL->getById($actualId);
 
         // Objeto que é esperado
-        $statement = new StatementEntity();
-        $statement->setAmount('350.00');
-        $statement->setDescription('Test Withdraw');
-        $statement->setBalance('500.00');
-        $statement->setAccountId($accountId);
-        $statement->setStatementId($actualId);
-        $statement->setStatementParentId($reserveStatement->getStatementId());
-        $statement->setTypeId('W');
-        $statement->setAvailable('500.00');
-        $statement->setPrice('1.00');
-        $statement->setReserved('0.00');
-        $statement->setReferenceId('Referencia Withdraw');
-        $statement->setReferenceSource('Source Withdraw');
-        $statement->setDate($actual->getDate());
-        $statement->setAccountTypeId('USDTEST');
-        $statement->setUuid($actual->getUuid());
+        $transaction = new TransactionEntity();
+        $transaction->setAmount('350.00');
+        $transaction->setDescription('Test Withdraw');
+        $transaction->setBalance('500.00');
+        $transaction->setAccountId($accountId);
+        $transaction->setTransactionId($actualId);
+        $transaction->setTransactionParentId($reserveTransaction->getTransactionId());
+        $transaction->setTypeId('W');
+        $transaction->setAvailable('500.00');
+        $transaction->setPrice('1.00');
+        $transaction->setReserved('0.00');
+        $transaction->setReferenceId('Referencia Withdraw');
+        $transaction->setReferenceSource('Source Withdraw');
+        $transaction->setDate($actual->getDate());
+        $transaction->setAccountTypeId('USDTEST');
+        $transaction->setUuid($actual->getUuid());
 
         // Executar teste
-        $this->assertEquals($statement->toArray(), $actual->toArray());
+        $this->assertEquals($transaction->toArray(), $actual->toArray());
     }
 
     public function testRejectFundsById_InvalidId(): void
     {
-        $this->expectException(StatementException::class);
+        $this->expectException(TransactionException::class);
 
         // Populate Data!
         $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
-        $this->statementBLL->rejectFundsById(5);
+        $this->transactionBLL->rejectFundsById(5);
     }
 
     public function testRejectFundsById_InvalidType(): void
     {
-        $this->expectException(StatementException::class);
+        $this->expectException(TransactionException::class);
 
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $statement = $this->statementBLL->withdrawFunds(StatementDTO::create($accountId, 300));
+        $transaction = $this->transactionBLL->withdrawFunds(TransactionDTO::create($accountId, 300));
 
-        $this->statementBLL->rejectFundsById($statement->getStatementId());
+        $this->transactionBLL->rejectFundsById($transaction->getTransactionId());
     }
 
     public function testRejectFundsById_HasParentTransation(): void
     {
-        $this->expectException(StatementException::class);
+        $this->expectException(TransactionException::class);
 
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $this->statementBLL->withdrawFunds(
-            StatementDTO::create($accountId, 150)
+        $this->transactionBLL->withdrawFunds(
+            TransactionDTO::create($accountId, 150)
                 ->setDescription('Test Withdraw')
                 ->setReferenceId('Referencia Withdraw')
                 ->setReferenceSource('Source Withdraw')
             );
-        $statement = $this->statementBLL->reserveFundsForWithdraw(
-            StatementDTO::create($accountId, 350)
+        $transaction = $this->transactionBLL->reserveFundsForWithdraw(
+            TransactionDTO::create($accountId, 350)
                 ->setDescription('Test Withdraw')
                 ->setReferenceId('Referencia Withdraw')
                 ->setReferenceSource('Source Withdraw')
             );
 
         // Executar ação
-        $this->statementBLL->rejectFundsById($statement->getStatementId());
+        $this->transactionBLL->rejectFundsById($transaction->getTransactionId());
 
         // Provocar o erro:
-        $this->statementBLL->rejectFundsById($statement->getStatementId());
+        $this->transactionBLL->rejectFundsById($transaction->getTransactionId());
     }
 
     public function testRejectFundsById_OK(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $this->statementBLL->withdrawFunds(
-            StatementDTO::create($accountId, 150)
+        $this->transactionBLL->withdrawFunds(
+            TransactionDTO::create($accountId, 150)
                 ->setDescription('Test Withdraw')
                 ->setReferenceId('Referencia Withdraw')
                 ->setReferenceSource('Source Withdraw')
             );
-        $reserveStatement = $this->statementBLL->reserveFundsForWithdraw(
-            StatementDTO::create($accountId, 350)
+        $reserveTransaction = $this->transactionBLL->reserveFundsForWithdraw(
+            TransactionDTO::create($accountId, 350)
                 ->setDescription('Test Withdraw')
                 ->setReferenceId('Referencia Withdraw')
                 ->setReferenceSource('Source Withdraw')
             );
 
         // Executar ação
-        $actualId = $this->statementBLL->rejectFundsById($reserveStatement->getStatementId());
-        $actual = $this->statementBLL->getById($actualId);
+        $actualId = $this->transactionBLL->rejectFundsById($reserveTransaction->getTransactionId());
+        $actual = $this->transactionBLL->getById($actualId);
 
         // Objeto que é esperado
-        $statement = new StatementEntity();
-        $statement->setAmount('350.00');
-        $statement->setDescription('Test Withdraw');
-        $statement->setBalance('850.00');
-        $statement->setAccountId($accountId);
-        $statement->setStatementId($actualId);
-        $statement->setStatementParentId($reserveStatement->getStatementId());
-        $statement->setTypeId('R');
-        $statement->setAvailable('850.00');
-        $statement->setPrice('1.00');
-        $statement->setReserved('0.00');
-        $statement->setReferenceId('Referencia Withdraw');
-        $statement->setReferenceSource('Source Withdraw');
-        $statement->setDate($actual->getDate());
-        $statement->setAccountTypeId('USDTEST');
-        $statement->setUuid($actual->getUuid());
+        $transaction = new TransactionEntity();
+        $transaction->setAmount('350.00');
+        $transaction->setDescription('Test Withdraw');
+        $transaction->setBalance('850.00');
+        $transaction->setAccountId($accountId);
+        $transaction->setTransactionId($actualId);
+        $transaction->setTransactionParentId($reserveTransaction->getTransactionId());
+        $transaction->setTypeId('R');
+        $transaction->setAvailable('850.00');
+        $transaction->setPrice('1.00');
+        $transaction->setReserved('0.00');
+        $transaction->setReferenceId('Referencia Withdraw');
+        $transaction->setReferenceSource('Source Withdraw');
+        $transaction->setDate($actual->getDate());
+        $transaction->setAccountTypeId('USDTEST');
+        $transaction->setUuid($actual->getUuid());
 
         // Executar teste
-        $this->assertEquals($statement->toArray(), $actual->toArray());
+        $this->assertEquals($transaction->toArray(), $actual->toArray());
     }
 
 }

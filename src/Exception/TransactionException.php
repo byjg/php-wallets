@@ -6,7 +6,7 @@ namespace ByJG\AccountTransactions\Exception;
 
 use Exception;
 
-class AmountException extends Exception
+class TransactionException extends Exception
 {
 
 }

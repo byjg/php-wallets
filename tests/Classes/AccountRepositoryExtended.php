@@ -2,7 +2,7 @@
 
 namespace Tests\Classes;
 
-use ByJG\AccountStatements\Repository\AccountRepository;
+use ByJG\AccountTransactions\Repository\AccountRepository;
 use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\MicroOrm\Exception\InvalidArgumentException;
 use ByJG\MicroOrm\Exception\OrmModelInvalidException;

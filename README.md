@@ -19,14 +19,14 @@ It supports the following features:
 ### Basic usage
 
 ```php
-use ByJG\AccountStatements\Bll\AccountBLL;
-use ByJG\AccountStatements\Bll\AccountTypeBLL;
-use ByJG\AccountStatements\Bll\StatementBLL;
-use ByJG\AccountStatements\Entity\AccountTypeEntity;
-use ByJG\AccountStatements\Repository\AccountRepository;
-use ByJG\AccountStatements\Repository\AccountTypeRepository;
-use ByJG\AccountStatements\Repository\StatementRepository;
-use ByJG\AccountStatements\DTO\StatementDTO;
+use ByJG\AccountTransactions\Bll\AccountBLL;
+use ByJG\AccountTransactions\Bll\AccountTypeBLL;
+use ByJG\AccountTransactions\Bll\StatementBLL;
+use ByJG\AccountTransactions\Entity\AccountTypeEntity;
+use ByJG\AccountTransactions\Repository\AccountRepository;
+use ByJG\AccountTransactions\Repository\AccountTypeRepository;
+use ByJG\AccountTransactions\Repository\StatementRepository;
+use ByJG\AccountTransactions\DTO\StatementDTO;
 
 
 // Initiate Repositories
@@ -64,7 +64,7 @@ $statement = new StatementDTO($accountId, 50);
 $reserve = $statementBLL->reserveFundsForDeposit($statement);
 
 // Accept the hold
-$statementBLL->acceptFundsById($reserve->getStatementId());
+$statementBLL->acceptFundsById($reserve->getTransactionId());
 ```
 
 ## Installation

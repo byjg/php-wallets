@@ -1,6 +1,6 @@
 <?php
 
-namespace ByJG\AccountStatements\Entity;
+namespace ByJG\AccountTransactions\Entity;
 
 use ByJG\MicroOrm\Attributes\FieldAttribute;
 use ByJG\MicroOrm\Attributes\TableAttribute;

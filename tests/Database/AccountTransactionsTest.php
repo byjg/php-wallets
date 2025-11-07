@@ -2,15 +2,16 @@
 
 namespace Tests\Database;
 
-use ByJG\AccountStatements\Bll\AccountBLL;
-use ByJG\AccountStatements\Bll\AccountTypeBLL;
-use ByJG\AccountStatements\Bll\StatementBLL;
-use ByJG\AccountStatements\DTO\StatementDTO;
-use ByJG\AccountStatements\Entity\AccountEntity;
-use ByJG\AccountStatements\Entity\StatementEntity;
-use ByJG\AccountStatements\Exception\AccountException;
-use ByJG\AccountStatements\Exception\AccountTypeException;
-use ByJG\AccountStatements\Exception\AmountException;
+use ByJG\AccountTransactions\Bll\AccountBLL;
+use ByJG\AccountTransactions\Bll\AccountTypeBLL;
+use ByJG\AccountTransactions\Bll\TransactionBLL;
+use ByJG\AccountTransactions\DTO\TransactionDTO;
+use ByJG\AccountTransactions\Entity\AccountEntity;
+use ByJG\AccountTransactions\Entity\AccountTypeEntity;
+use ByJG\AccountTransactions\Entity\TransactionEntity;
+use ByJG\AccountTransactions\Exception\AccountException;
+use ByJG\AccountTransactions\Exception\AccountTypeException;
+use ByJG\AccountTransactions\Exception\AmountException;
 use ByJG\AnyDataset\Db\Exception\TransactionStartedException;
 use ByJG\AnyDataset\Db\IsolationLevelEnum;
 use ByJG\MicroOrm\Exception\InvalidArgumentException;
@@ -22,11 +23,11 @@ use ByJG\Serializer\Serialize;
 use PHPUnit\Framework\TestCase;
 use Tests\BaseDALTrait;
 use Tests\Classes\AccountRepositoryExtended;
-use Tests\Classes\StatementExtended;
-use Tests\Classes\StatementRepositoryExtended;
+use Tests\Classes\TransactionExtended;
+use Tests\Classes\TransactionRepositoryExtended;
 
 
-class AccountStatementsTest extends TestCase
+class AccountTransactionsTest extends TestCase
 {
     use BaseDALTrait;
 
@@ -95,157 +96,157 @@ class AccountStatementsTest extends TestCase
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $dto = StatementDTO::create($accountId, 10)
+        $dto = TransactionDTO::create($accountId, 10)
             ->setDescription('Test')
             ->setReferenceId('Referencia')
             ->setReferenceSource('Source')
             ->setCode('XYZ');
-        $actual = $this->statementBLL->withdrawFunds($dto);
+        $actual = $this->transactionBLL->withdrawFunds($dto);
 
         // Objeto que é esperado
-        $statement = new StatementEntity();
-        $statement->setAmount('10.00');
-        $statement->setDate('2015-01-24');
-        $statement->setDescription('Test');
-        $statement->setBalance('990.00');
-        $statement->setAccountId($accountId);
-        $statement->setStatementId($actual->getStatementId());
-        $statement->setTypeId('W');
-        $statement->setAvailable('990.00');
-        $statement->setPrice('1.00');
-        $statement->setReserved('0.00');
-        $statement->setReferenceId('Referencia');
-        $statement->setReferenceSource('Source');
-        $statement->setCode('XYZ');
-        $statement->setAccountTypeId('USDTEST');
-        $statement->setDate($actual->getDate());
-        $statement->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
+        $transaction = new TransactionEntity();
+        $transaction->setAmount('10.00');
+        $transaction->setDate('2015-01-24');
+        $transaction->setDescription('Test');
+        $transaction->setBalance('990.00');
+        $transaction->setAccountId($accountId);
+        $transaction->setTransactionId($actual->getTransactionId());
+        $transaction->setTypeId('W');
+        $transaction->setAvailable('990.00');
+        $transaction->setPrice('1.00');
+        $transaction->setReserved('0.00');
+        $transaction->setReferenceId('Referencia');
+        $transaction->setReferenceSource('Source');
+        $transaction->setCode('XYZ');
+        $transaction->setAccountTypeId('USDTEST');
+        $transaction->setDate($actual->getDate());
+        $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
 
         // Executar teste
-        $this->assertEquals($statement->toArray(), $actual->toArray());
+        $this->assertEquals($transaction->toArray(), $actual->toArray());
     }
 
     public function testGetById_Zero(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 0);
-        $dto = StatementDTO::create($accountId, 10)
+        $dto = TransactionDTO::create($accountId, 10)
             ->setDescription('Test')
             ->setReferenceId('Referencia')
             ->setReferenceSource('Source')
             ->setCode('XYZ');
-        $actual = $this->statementBLL->addFunds($dto);
+        $actual = $this->transactionBLL->addFunds($dto);
 
         // Objeto que é esperado
-        $statement = new StatementEntity();
-        $statement->setAmount('10.00');
-        $statement->setDate('2015-01-24');
-        $statement->setDescription('Test');
-        $statement->setBalance('10.00');
-        $statement->setAccountId($accountId);
-        $statement->setStatementId($actual->getStatementId());;
-        $statement->setTypeId('D');
-        $statement->setAvailable('10.00');
-        $statement->setPrice('1.00');
-        $statement->setReserved('0.00');
-        $statement->setReferenceId('Referencia');
-        $statement->setReferenceSource('Source');
-        $statement->setCode('XYZ');
-        $statement->setAccountTypeId('USDTEST');
-        $statement->setDate($actual->getDate());
-        $statement->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
+        $transaction = new TransactionEntity();
+        $transaction->setAmount('10.00');
+        $transaction->setDate('2015-01-24');
+        $transaction->setDescription('Test');
+        $transaction->setBalance('10.00');
+        $transaction->setAccountId($accountId);
+        $transaction->setTransactionId($actual->getTransactionId());;
+        $transaction->setTypeId('D');
+        $transaction->setAvailable('10.00');
+        $transaction->setPrice('1.00');
+        $transaction->setReserved('0.00');
+        $transaction->setReferenceId('Referencia');
+        $transaction->setReferenceSource('Source');
+        $transaction->setCode('XYZ');
+        $transaction->setAccountTypeId('USDTEST');
+        $transaction->setDate($actual->getDate());
+        $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
 
         // Executar teste
-        $this->assertEquals($statement->toArray(), $actual->toArray());
+        $this->assertEquals($transaction->toArray(), $actual->toArray());
     }
 
     public function testGetById_NotFound(): void
     {
         // Executar teste
-        $this->assertEquals($this->statementBLL->getById(2), null);
+        $this->assertEquals($this->transactionBLL->getById(2), null);
     }
 
     public function testGetAll(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $statementResult = $this->statementBLL->withdrawFunds(
-            StatementDTO::create($accountId, 10)
+        $transactionResult = $this->transactionBLL->withdrawFunds(
+            TransactionDTO::create($accountId, 10)
                 ->setDescription('Test')
                 ->setReferenceId('Referencia')
                 ->setReferenceSource('Source')
         );
-        $this->statementBLL->withdrawFunds(
-            StatementDTO::create($accountId, 50)
+        $this->transactionBLL->withdrawFunds(
+            TransactionDTO::create($accountId, 50)
                 ->setDescription('Test')
                 ->setReferenceId('Referencia')
                 ->setReferenceSource('Source')
         );
 
-        $statement = [];
+        $transaction = [];
 
         // Objetos que são esperados
-        $statement[] = new StatementEntity;
-        $statement[0]->setAmount('1000.00');
-        $statement[0]->setDate('2015-01-24');
-        $statement[0]->setDescription('Opening Balance');
-        $statement[0]->setCode('BAL');
-        $statement[0]->setBalance('1000.00');
-        $statement[0]->setAccountId($accountId);
-        $statement[0]->setStatementId(2);
-        $statement[0]->setTypeId('D');
-        $statement[0]->setAvailable('1000.00');
-        $statement[0]->setPrice('1.00');
-        $statement[0]->setReserved('0.00');
-        $statement[0]->setReferenceId('');
-        $statement[0]->setReferenceSource('');
-        $statement[0]->setAccountTypeId('USDTEST');
+        $transaction[] = new TransactionEntity;
+        $transaction[0]->setAmount('1000.00');
+        $transaction[0]->setDate('2015-01-24');
+        $transaction[0]->setDescription('Opening Balance');
+        $transaction[0]->setCode('BAL');
+        $transaction[0]->setBalance('1000.00');
+        $transaction[0]->setAccountId($accountId);
+        $transaction[0]->setTransactionId(2);
+        $transaction[0]->setTypeId('D');
+        $transaction[0]->setAvailable('1000.00');
+        $transaction[0]->setPrice('1.00');
+        $transaction[0]->setReserved('0.00');
+        $transaction[0]->setReferenceId('');
+        $transaction[0]->setReferenceSource('');
+        $transaction[0]->setAccountTypeId('USDTEST');
 
-        $statement[] = new StatementEntity;
-        $statement[1]->setAmount('10.00');
-        $statement[1]->setDate('2015-01-24');
-        $statement[1]->setDescription('Test');
-        $statement[1]->setBalance('990.00');
-        $statement[1]->setAccountId($accountId);
-        $statement[1]->setStatementId($statementResult->getStatementId());
-        $statement[1]->setTypeId('W');
-        $statement[1]->setAvailable('990.00');
-        $statement[1]->setPrice('1.00');
-        $statement[1]->setReserved('0.00');
-        $statement[1]->setReferenceId('Referencia');
-        $statement[1]->setReferenceSource('Source');
-        $statement[1]->setAccountTypeId('USDTEST');
+        $transaction[] = new TransactionEntity;
+        $transaction[1]->setAmount('10.00');
+        $transaction[1]->setDate('2015-01-24');
+        $transaction[1]->setDescription('Test');
+        $transaction[1]->setBalance('990.00');
+        $transaction[1]->setAccountId($accountId);
+        $transaction[1]->setTransactionId($transactionResult->getTransactionId());
+        $transaction[1]->setTypeId('W');
+        $transaction[1]->setAvailable('990.00');
+        $transaction[1]->setPrice('1.00');
+        $transaction[1]->setReserved('0.00');
+        $transaction[1]->setReferenceId('Referencia');
+        $transaction[1]->setReferenceSource('Source');
+        $transaction[1]->setAccountTypeId('USDTEST');
 
-        $statement[] = new StatementEntity;
-        $statement[2]->setAmount('50.00');
-        $statement[2]->setDate('2015-01-24');
-        $statement[2]->setDescription('Test');
-        $statement[2]->setBalance('940.00');
-        $statement[2]->setAccountId($accountId);
-        $statement[2]->setStatementId(4);
-        $statement[2]->setTypeId('W');
-        $statement[2]->setAvailable('940.00');
-        $statement[2]->setPrice('1.00');
-        $statement[2]->setReserved('0.00');
-        $statement[2]->setReferenceId('Referencia');
-        $statement[2]->setReferenceSource('Source');
-        $statement[2]->setAccountTypeId('USDTEST');
+        $transaction[] = new TransactionEntity;
+        $transaction[2]->setAmount('50.00');
+        $transaction[2]->setDate('2015-01-24');
+        $transaction[2]->setDescription('Test');
+        $transaction[2]->setBalance('940.00');
+        $transaction[2]->setAccountId($accountId);
+        $transaction[2]->setTransactionId(4);
+        $transaction[2]->setTypeId('W');
+        $transaction[2]->setAvailable('940.00');
+        $transaction[2]->setPrice('1.00');
+        $transaction[2]->setReserved('0.00');
+        $transaction[2]->setReferenceId('Referencia');
+        $transaction[2]->setReferenceSource('Source');
+        $transaction[2]->setAccountTypeId('USDTEST');
 
-        $listAll = $this->statementBLL->getRepository()->getAll(null, null, null, [["accounttypeid = :id", ["id" => 'USDTEST']]]);
+        $listAll = $this->transactionBLL->getRepository()->getAll(null, null, null, [["accounttypeid = :id", ["id" => 'USDTEST']]]);
 
         /** @psalm-suppress InvalidArrayOffset */
-        for ($i = 0; $i < count($statement); $i++) {
-            $statement[$i]->setDate(null);
-            $statement[$i]->setStatementId(null);
-            $statement[$i]->setUuid(null);
+        for ($i = 0; $i < count($transaction); $i++) {
+            $transaction[$i]->setDate(null);
+            $transaction[$i]->setTransactionId(null);
+            $transaction[$i]->setUuid(null);
             $listAll[$i]->setDate(null);
-            $listAll[$i]->setStatementId(null);
+            $listAll[$i]->setTransactionId(null);
             $listAll[$i]->setUuid(null);
         }
 
         // Testar método
         $this->assertEquals(
-            $statement,
+            $transaction,
             $listAll
         );
     }
@@ -254,31 +255,31 @@ class AccountStatementsTest extends TestCase
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $dto = StatementDTO::create($accountId, 250)
+        $dto = TransactionDTO::create($accountId, 250)
             ->setDescription('Test Add Funds')
             ->setReferenceId('Referencia Add Funds')
             ->setReferenceSource('Source Add Funds');
-        $actual = $this->statementBLL->addFunds($dto);
+        $actual = $this->transactionBLL->addFunds($dto);
 
         // Check
-        $statement = new StatementEntity;
-        $statement->setAmount('250.00');
-        $statement->setDate('2015-01-24');
-        $statement->setDescription('Test Add Funds');
-        $statement->setBalance('1250.00');
-        $statement->setAccountId($accountId);
-        $statement->setStatementId($actual->getStatementId());
-        $statement->setTypeId('D');
-        $statement->setAvailable('1250.00');
-        $statement->setPrice('1.00');
-        $statement->setReserved('0.00');
-        $statement->setReferenceId('Referencia Add Funds');
-        $statement->setReferenceSource('Source Add Funds');
-        $statement->setAccountTypeId('USDTEST');
-        $statement->setDate($actual->getDate());
-        $statement->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
+        $transaction = new TransactionEntity;
+        $transaction->setAmount('250.00');
+        $transaction->setDate('2015-01-24');
+        $transaction->setDescription('Test Add Funds');
+        $transaction->setBalance('1250.00');
+        $transaction->setAccountId($accountId);
+        $transaction->setTransactionId($actual->getTransactionId());
+        $transaction->setTypeId('D');
+        $transaction->setAvailable('1250.00');
+        $transaction->setPrice('1.00');
+        $transaction->setReserved('0.00');
+        $transaction->setReferenceId('Referencia Add Funds');
+        $transaction->setReferenceSource('Source Add Funds');
+        $transaction->setAccountTypeId('USDTEST');
+        $transaction->setDate($actual->getDate());
+        $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
 
-        $this->assertEquals($statement->toArray(), $actual->toArray());
+        $this->assertEquals($transaction->toArray(), $actual->toArray());
     }
 
     /**
@@ -296,39 +297,39 @@ class AccountStatementsTest extends TestCase
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
         // Check;
-        $this->statementBLL->addFunds(StatementDTO::create($accountId, -15));
+        $this->transactionBLL->addFunds(TransactionDTO::create($accountId, -15));
     }
 
     public function testWithdrawFunds(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $dto = StatementDTO::create($accountId, 350)
+        $dto = TransactionDTO::create($accountId, 350)
             ->setDescription('Test Withdraw')
             ->setReferenceId('Referencia Withdraw')
             ->setReferenceSource('Source Withdraw');
-        $actual = $this->statementBLL->withdrawFunds($dto);
+        $actual = $this->transactionBLL->withdrawFunds($dto);
 
         // Objeto que é esperado
-        $statement = new StatementEntity();
-        $statement->setAmount('350.00');
-        $statement->setDate('2015-01-24');
-        $statement->setDescription('Test Withdraw');
-        $statement->setBalance('650.00');
-        $statement->setAccountId($accountId);
-        $statement->setStatementId($actual->getStatementId());
-        $statement->setTypeId('W');
-        $statement->setAvailable('650.00');
-        $statement->setPrice('1.00');
-        $statement->setReserved('0.00');
-        $statement->setReferenceId('Referencia Withdraw');
-        $statement->setReferenceSource('Source Withdraw');
-        $statement->setAccountTypeId('USDTEST');
-        $statement->setDate($actual->getDate());
-        $statement->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
+        $transaction = new TransactionEntity();
+        $transaction->setAmount('350.00');
+        $transaction->setDate('2015-01-24');
+        $transaction->setDescription('Test Withdraw');
+        $transaction->setBalance('650.00');
+        $transaction->setAccountId($accountId);
+        $transaction->setTransactionId($actual->getTransactionId());
+        $transaction->setTypeId('W');
+        $transaction->setAvailable('650.00');
+        $transaction->setPrice('1.00');
+        $transaction->setReserved('0.00');
+        $transaction->setReferenceId('Referencia Withdraw');
+        $transaction->setReferenceSource('Source Withdraw');
+        $transaction->setAccountTypeId('USDTEST');
+        $transaction->setDate($actual->getDate());
+        $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
 
         // Executar teste
-        $this->assertEquals($statement->toArray(), $actual->toArray());
+        $this->assertEquals($transaction->toArray(), $actual->toArray());
     }
 
     public function testWithdrawFunds_Invalid(): void
@@ -340,50 +341,50 @@ class AccountStatementsTest extends TestCase
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
         // Check
-        $this->statementBLL->withdrawFunds(StatementDTO::create($accountId, -15));
+        $this->transactionBLL->withdrawFunds(TransactionDTO::create($accountId, -15));
     }
 
     public function testWithdrawFunds_Allow_Negative(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('NEGTEST', "___TESTUSER-1", 1000, 1, -400);
-        $dto = StatementDTO::create($accountId, 1150)
+        $dto = TransactionDTO::create($accountId, 1150)
             ->setDescription('Test Withdraw')
             ->setReferenceId('Referencia Withdraw')
             ->setReferenceSource('Source Withdraw');
-        $actual = $this->statementBLL->withdrawFunds($dto);
+        $actual = $this->transactionBLL->withdrawFunds($dto);
 
         // Objeto que é esperado
-        $statement = new StatementEntity();
-        $statement->setAmount('1150.00');
-        $statement->setDate('2015-01-24');
-        $statement->setDescription('Test Withdraw');
-        $statement->setBalance('-150.00');
-        $statement->setAccountId($accountId);
-        $statement->setStatementId($actual->getStatementId());
-        $statement->setTypeId('W');
-        $statement->setAvailable('-150.00');
-        $statement->setPrice('1.00');
-        $statement->setReserved('0.00');
-        $statement->setReferenceId('Referencia Withdraw');
-        $statement->setReferenceSource('Source Withdraw');
-        $statement->setAccountTypeId('NEGTEST');
-        $statement->setDate($actual->getDate());
-        $statement->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
+        $transaction = new TransactionEntity();
+        $transaction->setAmount('1150.00');
+        $transaction->setDate('2015-01-24');
+        $transaction->setDescription('Test Withdraw');
+        $transaction->setBalance('-150.00');
+        $transaction->setAccountId($accountId);
+        $transaction->setTransactionId($actual->getTransactionId());
+        $transaction->setTypeId('W');
+        $transaction->setAvailable('-150.00');
+        $transaction->setPrice('1.00');
+        $transaction->setReserved('0.00');
+        $transaction->setReferenceId('Referencia Withdraw');
+        $transaction->setReferenceSource('Source Withdraw');
+        $transaction->setAccountTypeId('NEGTEST');
+        $transaction->setDate($actual->getDate());
+        $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
 
         // Executar teste
-        $this->assertEquals($statement->toArray(), $actual->toArray());
+        $this->assertEquals($transaction->toArray(), $actual->toArray());
     }
 
     public function testWithdrawFunds_Allow_Negative2(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('NEGTEST', "___TESTUSER-1", 1000, 1, -400);
-        $statement = $this->statementBLL->withdrawFunds(StatementDTO::create($accountId, 1400)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
+        $transaction = $this->transactionBLL->withdrawFunds(TransactionDTO::create($accountId, 1400)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
 
-        $statement = $this->statementBLL->getById($statement->getStatementId());
-        $this->assertEquals(-400, $statement->getAvailable());
-        $this->assertEquals(1400, $statement->getAmount());
+        $transaction = $this->transactionBLL->getById($transaction->getTransactionId());
+        $this->assertEquals(-400, $transaction->getAvailable());
+        $this->assertEquals(1400, $transaction->getAmount());
     }
 
 
@@ -393,7 +394,7 @@ class AccountStatementsTest extends TestCase
 
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000, 1, -400);
-        $this->statementBLL->withdrawFunds(StatementDTO::create($accountId, 1401)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
+        $this->transactionBLL->withdrawFunds(TransactionDTO::create($accountId, 1401)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
     }
 
     /**
@@ -432,7 +433,6 @@ class AccountStatementsTest extends TestCase
             "extra" => "Extra Information",
             "entrydate" => null,
             "minvalue" => "0.00",
-            "laststatementid" => 2,
             "last_uuid" => $account[0]->getLastUuid(),
         ]);
 
@@ -493,12 +493,12 @@ class AccountStatementsTest extends TestCase
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
-        $statementId = $this->accountBLL->overrideBalance($accountId, 650);
+        $transactionId = $this->accountBLL->overrideBalance($accountId, 650);
         $account = $this->accountBLL->getById($accountId)->toArray();
         unset($account["entrydate"]);
 
-        $statement = $this->statementBLL->getById($statementId)->toArray();
-        unset($statement["date"]);
+        $transaction = $this->transactionBLL->getById($transactionId)->toArray();
+        unset($transaction["date"]);
 
         // Executar teste
         $this->assertEquals([
@@ -511,7 +511,7 @@ class AccountStatementsTest extends TestCase
             'price' => '1.00',
             'extra' => '',
             'minvalue' => '0.00',
-            "lastUuid" => $statement["uuid"],
+            "lastUuid" => $transaction["uuid"],
         ],
             $account
         );
@@ -523,17 +523,17 @@ class AccountStatementsTest extends TestCase
             'reserved' => '0.00',
             'available' => '650.00',
             'price' => '1.00',
-            'statementid' => $statementId,
+            'transactionid' => $transactionId,
             'typeid' => 'B',
             'amount' => '650.00',
             'description' => 'Reset Balance',
-            'statementparentid' => '',
+            'transactionparentid' => '',
             'code' => 'BAL',
             'referenceid' => '',
             'referencesource' => '',
-            'uuid' => $statement["uuid"],
+            'uuid' => $transaction["uuid"],
         ],
-            $statement
+            $transaction
         );
     }
 
@@ -542,7 +542,7 @@ class AccountStatementsTest extends TestCase
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
-        $statementPartial = $this->accountBLL->partialBalance($accountId, 650);
+        $transactionPartial = $this->accountBLL->partialBalance($accountId, 650);
         $account = $this->accountBLL->getById($accountId)->toArray();
         unset($account["entrydate"]);
 
@@ -558,14 +558,14 @@ class AccountStatementsTest extends TestCase
                 'price' => '1.00',
                 'extra' => '',
                 'minvalue' => '0.00',
-                "lastUuid" => $statementPartial->getUuid(),
+                "lastUuid" => $transactionPartial->getUuid(),
             ],
             $account
         );
 
-        $statement = Serialize::from($statementPartial)->toArray();
-        unset($statement["date"]);
-        unset($statement["uuid"]);
+        $transaction = Serialize::from($transactionPartial)->toArray();
+        unset($transaction["date"]);
+        unset($transaction["uuid"]);
 
         $this->assertEquals(
             [
@@ -575,16 +575,16 @@ class AccountStatementsTest extends TestCase
                 'reserved' => '0.00',
                 'available' => '650.00',
                 'price' => '1.00',
-                'statementid' => $statementPartial->getStatementId(),
+                'transactionid' => $transactionPartial->getTransactionId(),
                 'typeid' => 'W',
                 'amount' => '350.00',
                 'description' => 'Partial Balance',
-                'statementparentid' => '',
+                'transactionparentid' => '',
                 'referenceid' => '',
                 'referencesource' => '',
                 'code' => ''
             ],
-            $statement
+            $transaction
         );
 
     }
@@ -594,17 +594,17 @@ class AccountStatementsTest extends TestCase
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
-        $this->statementBLL->addFunds(StatementDTO::create($accountId, 400));
-        $this->statementBLL->addFunds(StatementDTO::create($accountId, 200));
-        $this->statementBLL->withdrawFunds(StatementDTO::create($accountId, 300));
+        $this->transactionBLL->addFunds(TransactionDTO::create($accountId, 400));
+        $this->transactionBLL->addFunds(TransactionDTO::create($accountId, 200));
+        $this->transactionBLL->withdrawFunds(TransactionDTO::create($accountId, 300));
 
-        $statementId = $this->accountBLL->closeAccount($accountId);
+        $transactionId = $this->accountBLL->closeAccount($accountId);
 
         $account = $this->accountBLL->getById($accountId)->toArray();
         unset($account["entrydate"]);
 
-        $statement = $this->statementBLL->getById($statementId)->toArray();
-        unset($statement["date"]);
+        $transaction = $this->transactionBLL->getById($transactionId)->toArray();
+        unset($transaction["date"]);
 
         // Executar teste
         $this->assertEquals([
@@ -617,7 +617,7 @@ class AccountStatementsTest extends TestCase
             'price' => '0.00',
             'extra' => '',
             'minvalue' => '0.00',
-            "lastUuid" => $statement["uuid"],
+            "lastUuid" => $transaction["uuid"],
         ],
             $account
         );
@@ -630,17 +630,17 @@ class AccountStatementsTest extends TestCase
                 'reserved' => '0.00',
                 'available' => '0.00',
                 'price' => '0.00',
-                'statementid' => $statementId,
+                'transactionid' => $transactionId,
                 'typeid' => 'B',
                 'amount' => '0.00',
                 'description' => 'Reset Balance',
-                'statementparentid' => '',
+                'transactionparentid' => '',
                 'referenceid' => '',
                 'referencesource' => '',
                 'code' => 'BAL',
-                "uuid" => $statement["uuid"],
+                "uuid" => $transaction["uuid"],
             ],
-            $statement
+            $transaction
         );
 
     }
@@ -649,16 +649,16 @@ class AccountStatementsTest extends TestCase
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $this->statementBLL->addFunds(StatementDTO::create($accountId, 400));
-        $this->statementBLL->withdrawFunds(StatementDTO::create($accountId, 300));
+        $this->transactionBLL->addFunds(TransactionDTO::create($accountId, 400));
+        $this->transactionBLL->withdrawFunds(TransactionDTO::create($accountId, 300));
 
         $ignore = $this->accountBLL->createAccount('BRLTEST', "___TESTUSER-999", 1000); // I dont want this account
-        $this->statementBLL->addFunds(StatementDTO::create($ignore, 200));
+        $this->transactionBLL->addFunds(TransactionDTO::create($ignore, 200));
 
         $startDate = date('Y') . "/" . date('m') . "/01";
         $endDate = (intval(date('Y')) + (date('m') == 12 ? 1 : 0)) . "/" . (date('m') == 12 ? 1 : intval(date('m')) + 1) . "/01";
 
-        $statementList = $this->statementBLL->getByDate($accountId, $startDate, $endDate);
+        $transactionList = $this->transactionBLL->getByDate($accountId, $startDate, $endDate);
 
         // Executar teste
         $this->assertEquals(
@@ -670,13 +670,13 @@ class AccountStatementsTest extends TestCase
                     'reserved' => '0.00',
                     'available' => '1000.00',
                     'price' => '1.00',
-                    'statementid' => '2',
+                    'transactionid' => '2',
                     'typeid' => 'D',
                     'amount' => '1000.00',
                     'description' => 'Opening Balance',
                     'referenceid' => '',
                     'referencesource' => '',
-                    'statementparentid' => '',
+                    'transactionparentid' => '',
                     'code' => 'BAL'
                 ],
                 [
@@ -686,13 +686,13 @@ class AccountStatementsTest extends TestCase
                     'reserved' => '0.00',
                     'available' => '1400.00',
                     'price' => '1.00',
-                    'statementid' => '3',
+                    'transactionid' => '3',
                     'typeid' => 'D',
                     'amount' => '400.00',
                     'description' => '',
                     'referenceid' => '',
                     'referencesource' => '',
-                    'statementparentid' => '',
+                    'transactionparentid' => '',
                     'code' => ''
                 ],
                 [
@@ -702,13 +702,13 @@ class AccountStatementsTest extends TestCase
                     'reserved' => '0.00',
                     'available' => '1100.00',
                     'price' => '1.00',
-                    'statementid' => '4',
+                    'transactionid' => '4',
                     'typeid' => 'W',
                     'amount' => '300.00',
                     'description' => '',
                     'referenceid' => '',
                     'referencesource' => '',
-                    'statementparentid' => '',
+                    'transactionparentid' => '',
                     'code' => ''
                 ],
             ],
@@ -719,53 +719,53 @@ class AccountStatementsTest extends TestCase
                     unset($value["uuid"]);
                     return $value;
                 },
-                $statementList
+                $transactionList
             )
         );
 
-        $statementList = $this->statementBLL->getByDate($accountId, '1900/01/01', '1900/02/01');
+        $transactionList = $this->transactionBLL->getByDate($accountId, '1900/01/01', '1900/02/01');
 
-        $this->assertEquals([], $statementList);
+        $this->assertEquals([], $transactionList);
 
     }
 
-    public function testGetByStatementId(): void
+    public function testGetByTransactionId(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $statement = $this->statementBLL->addFunds(StatementDTO::create($accountId, 400));
-        $this->statementBLL->withdrawFunds(StatementDTO::create($accountId, 300));
+        $transaction = $this->transactionBLL->addFunds(TransactionDTO::create($accountId, 400));
+        $this->transactionBLL->withdrawFunds(TransactionDTO::create($accountId, 300));
 
         $ignore = $this->accountBLL->createAccount('BRLTEST', "___TESTUSER-999", 1000); // I dont want this account
-        $this->statementBLL->addFunds(StatementDTO::create($ignore, 200));
+        $this->transactionBLL->addFunds(TransactionDTO::create($ignore, 200));
 
         $accountRepo = $this->accountBLL->getRepository();
 
-        $accountResult = $accountRepo->getByStatementId($statement->getStatementId());;
+        $accountResult = $accountRepo->getByTransactionId($transaction->getTransactionId());;
         $accountExpected = $accountRepo->getById($accountId);
 
-        // Executar testestatementBLL
+        // Executar teste$this->transactionBLL
         $this->assertEquals($accountExpected, $accountResult);
     }
 
-    public function testGetByStatementIdNotFound(): void
+    public function testGetByTransactionIdNotFound(): void
     {
         $accountRepo = $this->accountBLL->getRepository();
-        $accountResult = $accountRepo->getByStatementId(12345); // Dont exists
+        $accountResult = $accountRepo->getByTransactionId(12345); // Dont exists
         $this->assertNull($accountResult);
     }
 
-    public function testGetStatementsByCode(): void
+    public function testTransactionsByCode(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $this->statementBLL->addFunds(StatementDTO::create($accountId, 400)->setCode('TEST'));
-        $this->statementBLL->withdrawFunds(StatementDTO::create($accountId, 300));
+        $this->transactionBLL->addFunds(TransactionDTO::create($accountId, 400)->setCode('TEST'));
+        $this->transactionBLL->withdrawFunds(TransactionDTO::create($accountId, 300));
 
         $ignore = $this->accountBLL->createAccount('BRLTEST', "___TESTUSER-999", 1000); // I dont want this account
-        $this->statementBLL->addFunds(StatementDTO::create($ignore, 200));
+        $this->transactionBLL->addFunds(TransactionDTO::create($ignore, 200));
 
-        $statementList = $this->statementBLL->getRepository()->getByCode($accountId, 'TEST');
+        $transactionList = $this->transactionBLL->getRepository()->getByCode($accountId, 'TEST');
 
         // Executar teste
         $this->assertEquals(
@@ -777,13 +777,13 @@ class AccountStatementsTest extends TestCase
                     'reserved' => '0.00',
                     'available' => '1400.00',
                     'price' => '1.00',
-                    'statementid' => '3',
+                    'transactionid' => '3',
                     'typeid' => 'D',
                     'amount' => '400.00',
                     'description' => '',
                     'referenceid' => '',
                     'referencesource' => '',
-                    'statementparentid' => '',
+                    'transactionparentid' => '',
                     'code' => 'TEST'
                 ],
             ],
@@ -794,28 +794,28 @@ class AccountStatementsTest extends TestCase
                     unset($value["uuid"]);
                     return $value;
                 },
-                $statementList
+                $transactionList
             )
         );
 
 
-        $statementList = $this->statementBLL->getRepository()->getByCode($accountId, 'NOTFOUND');
+        $transactionList = $this->transactionBLL->getRepository()->getByCode($accountId, 'NOTFOUND');
 
-        $this->assertEquals([], $statementList);
+        $this->assertEquals([], $transactionList);
 
     }
 
-    public function testGetStatementsByReferenceId(): void
+    public function testGetTransactionsByReferenceId(): void
     {
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $this->statementBLL->addFunds(StatementDTO::create($accountId, 400)->setReferenceId('REFID')->setReferenceSource('REFSRC'));
-        $this->statementBLL->withdrawFunds(StatementDTO::create($accountId, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
+        $this->transactionBLL->addFunds(TransactionDTO::create($accountId, 400)->setReferenceId('REFID')->setReferenceSource('REFSRC'));
+        $this->transactionBLL->withdrawFunds(TransactionDTO::create($accountId, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
 
         $ignore = $this->accountBLL->createAccount('BRLTEST', "___TESTUSER-999", 1000); // I dont want this account
-        $this->statementBLL->addFunds(StatementDTO::create($ignore, 200));
+        $this->transactionBLL->addFunds(TransactionDTO::create($ignore, 200));
 
-        $statementList = $this->statementBLL->getRepository()->getByReferenceId($accountId, 'REFSRC', 'REFID2');
+        $transactionList = $this->transactionBLL->getRepository()->getByReferenceId($accountId, 'REFSRC', 'REFID2');
 
         // Executar teste
         $this->assertEquals(
@@ -827,13 +827,13 @@ class AccountStatementsTest extends TestCase
                     'reserved' => '0.00',
                     'available' => '1100.00',
                     'price' => '1.00',
-                    'statementid' => '4',
+                    'transactionid' => '4',
                     'typeid' => 'W',
                     'amount' => '300.00',
                     'description' => '',
                     'referenceid' => 'REFID2',
                     'referencesource' => 'REFSRC',
-                    'statementparentid' => '',
+                    'transactionparentid' => '',
                     'code' => ''
                 ],
             ],
@@ -844,7 +844,7 @@ class AccountStatementsTest extends TestCase
                     unset($value["uuid"]);
                     return $value;
                 },
-                $statementList
+                $transactionList
             )
         );
     }
@@ -854,10 +854,10 @@ class AccountStatementsTest extends TestCase
         $accountBrlId = $this->accountBLL->getByAccountTypeId('BRLTEST')[0]->getAccountId();
         $accountUsdId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
-        [$statementSource, $statementTarget] = $this->accountBLL->transferFunds($accountBrlId, $accountUsdId, 300);
+        [$transactionSource, $transactionTarget] = $this->accountBLL->transferFunds($accountBrlId, $accountUsdId, 300);
 
-        $accountSource = $this->accountBLL->getById($statementSource->getAccountId());
-        $accountTarget = $this->accountBLL->getById($statementTarget->getAccountId());
+        $accountSource = $this->accountBLL->getById($transactionSource->getAccountId());
+        $accountTarget = $this->accountBLL->getById($transactionTarget->getAccountId());
 
         $this->assertEquals(700, $accountSource->getAvailable());
         $this->assertEquals(1300, $accountTarget->getAvailable());
@@ -876,12 +876,12 @@ class AccountStatementsTest extends TestCase
 
     public function testJoinTransactionAndCommit(): void
     {
-        // This transaction starts outside the Statement Context
+        // This transaction starts outside the Transaction Context
         $this->dbExecutor->beginTransaction(IsolationLevelEnum::SERIALIZABLE);
 
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $statement = $this->statementBLL->withdrawFunds(
-            StatementDTO::create($accountId, 10)
+        $transaction = $this->transactionBLL->withdrawFunds(
+            TransactionDTO::create($accountId, 10)
                 ->setDescription('Test')
                 ->setReferenceId('Referencia')
                 ->setReferenceSource('Source')
@@ -891,18 +891,18 @@ class AccountStatementsTest extends TestCase
         // Needs to commit inside the context
         $this->dbExecutor->commitTransaction();
 
-        $statement = $this->statementBLL->getById($statement->getStatementId());
-        $this->assertNotNull($statement);
+        $transaction = $this->transactionBLL->getById($transaction->getTransactionId());
+        $this->assertNotNull($transaction);
     }
 
     public function testJoinTransactionAndRollback(): void
     {
-        // This transaction starts outside the Statement Context
+        // This transaction starts outside the Transaction Context
         $this->dbExecutor->beginTransaction(IsolationLevelEnum::SERIALIZABLE);
 
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $statement = $this->statementBLL->withdrawFunds(
-            StatementDTO::create($accountId, 10)
+        $transaction = $this->transactionBLL->withdrawFunds(
+            TransactionDTO::create($accountId, 10)
                 ->setDescription('Test')
                 ->setReferenceId('Referencia')
                 ->setReferenceSource('Source')
@@ -912,13 +912,13 @@ class AccountStatementsTest extends TestCase
         // Needs to commit inside the context
         $this->dbExecutor->rollbackTransaction();
 
-        $statement = $this->statementBLL->getById($statement->getStatementId());
-        $this->assertNull($statement);
+        $transaction = $this->transactionBLL->getById($transaction->getTransactionId());
+        $this->assertNull($transaction);
     }
 
     public function testJoinTransactionDifferentIsolationLevel(): void
     {
-        // This transaction starts outside the Statement Context
+        // This transaction starts outside the Transaction Context
         $this->dbExecutor->beginTransaction(IsolationLevelEnum::READ_UNCOMMITTED);
 
         $this->expectException(TransactionStartedException::class);
@@ -926,8 +926,8 @@ class AccountStatementsTest extends TestCase
 
         try {
             $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-            $this->statementBLL->withdrawFunds(
-                StatementDTO::create($accountId, 10)
+            $this->transactionBLL->withdrawFunds(
+                TransactionDTO::create($accountId, 10)
                     ->setDescription('Test')
                     ->setReferenceId('Referencia')
                     ->setReferenceSource('Source')
@@ -939,86 +939,86 @@ class AccountStatementsTest extends TestCase
 
     }
 
-    public function testAddFundsExtendedStatement(): void
+    public function testAddFundsExtendedTransaction(): void
     {
-        $this->prepareObjects(statementEntity: StatementExtended::class);
+        $this->prepareObjects(accountEntity: AccountEntity::class, accountTypeEntity: AccountTypeEntity::class, transactionEntity: TransactionExtended::class);
 
         // Populate Data!
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $dto = StatementDTO::create($accountId, 250)
+        $dto = TransactionDTO::create($accountId, 250)
             ->setDescription('Test Add Funds')
             ->setReferenceId('Referencia Add Funds')
             ->setReferenceSource('Source Add Funds')
             ->setProperty('extraProperty', 'Extra');
-        $actual = $this->statementBLL->addFunds($dto);
+        $actual = $this->transactionBLL->addFunds($dto);
 
         // Check
-        $statement = new StatementExtended();
-        $statement->setAmount('250.00');
-        $statement->setDate('2015-01-24');
-        $statement->setDescription('Test Add Funds');
-        $statement->setBalance('1250.00');
-        $statement->setAccountId($accountId);
-        $statement->setStatementId($actual->getStatementId());;
-        $statement->setTypeId('D');
-        $statement->setAvailable('1250.00');
-        $statement->setPrice('1.00');
-        $statement->setReserved('0.00');
-        $statement->setReferenceId('Referencia Add Funds');
-        $statement->setReferenceSource('Source Add Funds');
-        $statement->setAccountTypeId('USDTEST');
-        $statement->setExtraProperty('Extra');
-        $statement->setDate($actual->getDate());
-        $statement->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
+        $transaction = new TransactionExtended();
+        $transaction->setAmount('250.00');
+        $transaction->setDate('2015-01-24');
+        $transaction->setDescription('Test Add Funds');
+        $transaction->setBalance('1250.00');
+        $transaction->setAccountId($accountId);
+        $transaction->setTransactionId($actual->getTransactionId());;
+        $transaction->setTypeId('D');
+        $transaction->setAvailable('1250.00');
+        $transaction->setPrice('1.00');
+        $transaction->setReserved('0.00');
+        $transaction->setReferenceId('Referencia Add Funds');
+        $transaction->setReferenceSource('Source Add Funds');
+        $transaction->setAccountTypeId('USDTEST');
+        $transaction->setExtraProperty('Extra');
+        $transaction->setDate($actual->getDate());
+        $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
 
-        $this->assertEquals($statement, $actual);
+        $this->assertEquals($transaction, $actual);
     }
 
     public function testAddFundAccountNotFound(): void
     {
         $this->expectException(AccountException::class);
         $this->expectExceptionMessage('Account not found');
-        $this->statementBLL->addFunds(StatementDTO::create(1023, 400)->setReferenceId('REFID')->setReferenceSource('REFSRC'));
+        $this->transactionBLL->addFunds(TransactionDTO::create(1023, 400)->setReferenceId('REFID')->setReferenceSource('REFSRC'));
     }
 
     public function testWithdrawFundAccountNotFound(): void
     {
         $this->expectException(AccountException::class);
         $this->expectExceptionMessage('Account not found');
-        $this->statementBLL->withdrawFunds(StatementDTO::create(1023, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
+        $this->transactionBLL->withdrawFunds(TransactionDTO::create(1023, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
     }
 
     public function testReserveWithdrawFundAccountNotFound(): void
     {
         $this->expectException(AccountException::class);
         $this->expectExceptionMessage('Account not found');
-        $this->statementBLL->reserveFundsForWithdraw(StatementDTO::create(1023, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
+        $this->transactionBLL->reserveFundsForWithdraw(TransactionDTO::create(1023, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
     }
 
     public function testReserveDepositFundAccountNotFound(): void
     {
         $this->expectException(AccountException::class);
         $this->expectExceptionMessage('Account not found');
-        $this->statementBLL->reserveFundsForDeposit(StatementDTO::create(1023, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
+        $this->transactionBLL->reserveFundsForDeposit(TransactionDTO::create(1023, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
     }
 
-    public function testStatementObserver(): void
+    public function testTransactionObserver(): void
     {
         $accountRepository = new AccountRepositoryExtended($this->dbExecutor, AccountEntity::class);
-        $statementRepository = new StatementRepositoryExtended($this->dbExecutor, StatementEntity::class);
+        $transactionRepository = new TransactionRepositoryExtended($this->dbExecutor, TransactionEntity::class);
 
         // Recreate BLL instances with the extended repositories that have observers
         $accountTypeBLL = new AccountTypeBLL($this->accountTypeBLL->getRepository());
-        $statementBLL = new StatementBLL($statementRepository, $accountRepository);
-        $accountBLL = new AccountBLL($accountRepository, $accountTypeBLL, $statementBLL);
+        $this->transactionBLL = new TransactionBLL($transactionRepository, $accountRepository);
+        $accountBLL = new AccountBLL($accountRepository, $accountTypeBLL, $this->transactionBLL);
 
         // Sanity Check
         $this->assertFalse($accountRepository->getReach());
-        $this->assertFalse($statementRepository->getReach());
+        $this->assertFalse($transactionRepository->getReach());
 
         $accountId = $accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $statementBLL->addFunds(
-            StatementDTO::create($accountId, 250)
+        $this->transactionBLL->addFunds(
+            TransactionDTO::create($accountId, 250)
                 ->setDescription('Test Add Funds')
                 ->setReferenceId('Referencia Add Funds')
                 ->setReferenceSource('Source Add Funds')
@@ -1028,7 +1028,7 @@ class AccountStatementsTest extends TestCase
         // I just need to check if the observer was called.
         // And inside the observer, I will check the values.
         $this->assertTrue($accountRepository->getReach());
-        $this->assertTrue($statementRepository->getReach());
+        $this->assertTrue($transactionRepository->getReach());
     }
 
     public function testCapAtZeroFalse(): void
@@ -1037,8 +1037,8 @@ class AccountStatementsTest extends TestCase
         $this->expectExceptionMessage('Cannot withdraw above the account balance');
 
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $this->statementBLL->withdrawFunds(
-            StatementDTO::create($accountId, 1250)
+        $this->transactionBLL->withdrawFunds(
+            TransactionDTO::create($accountId, 1250)
                 ->setDescription('Test Add Funds')
                 ->setReferenceId('Referencia Add Funds')
                 ->setReferenceSource('Source Add Funds'),
@@ -1050,11 +1050,11 @@ class AccountStatementsTest extends TestCase
     {
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
-        $dto = StatementDTO::create($accountId, 1100)
+        $dto = TransactionDTO::create($accountId, 1100)
             ->setDescription('Test Add Funds')
             ->setReferenceId('Referencia Add Funds')
             ->setReferenceSource('Source Add Funds');
-        $statement = $this->statementBLL->withdrawFunds(
+        $transaction = $this->transactionBLL->withdrawFunds(
             $dto,
             capAtZero: true
         );
@@ -1066,8 +1066,8 @@ class AccountStatementsTest extends TestCase
         $this->assertEquals(0, $account->getAvailable());
 
         // Needs to be adjusted to the new balance - 750
-        $statement = $this->statementBLL->getById($statement->getStatementId());
-        $this->assertEquals(1000, $statement->getAmount());
+        $transaction = $this->transactionBLL->getById($transaction->getTransactionId());
+        $this->assertEquals(1000, $transaction->getAmount());
 
         // The DTO should be the same
         $this->assertEquals(1000, $dto->getAmount());;
@@ -1077,11 +1077,11 @@ class AccountStatementsTest extends TestCase
     {
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
-        $dto = StatementDTO::create($accountId, 800)
+        $dto = TransactionDTO::create($accountId, 800)
             ->setDescription('Test Add Funds')
             ->setReferenceId('Referencia Add Funds')
             ->setReferenceSource('Source Add Funds');
-        $statement = $this->statementBLL->withdrawFunds(
+        $transaction = $this->transactionBLL->withdrawFunds(
             $dto,
             capAtZero: true
         );
@@ -1093,29 +1093,29 @@ class AccountStatementsTest extends TestCase
         $this->assertEquals(200, $account->getAvailable());
 
         // Needs to be adjusted to the new balance - 750
-        $statement = $this->statementBLL->getById($statement->getStatementId());
-        $this->assertEquals(800, $statement->getAmount());
+        $transaction = $this->transactionBLL->getById($transaction->getTransactionId());
+        $this->assertEquals(800, $transaction->getAmount());
 
         // The DTO should be the same
         $this->assertEquals(800, $dto->getAmount());;
     }
 
-    public function testCapAtZeroTrueUncleared(): void
+    public function testCapAtZeroTrueReserved(): void
     {
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
 
-        $this->statementBLL->reserveFundsForWithdraw(
-            StatementDTO::create($accountId, 250)
+        $this->transactionBLL->reserveFundsForWithdraw(
+            TransactionDTO::create($accountId, 250)
                 ->setDescription('Test Reserve Funds')
                 ->setReferenceId('Referencia Add Funds')
                 ->setReferenceSource('Source Add Funds')
         );
 
-        $dto = StatementDTO::create($accountId, 800)
+        $dto = TransactionDTO::create($accountId, 800)
             ->setDescription('Test Add Funds')
             ->setReferenceId('Referencia Add Funds')
             ->setReferenceSource('Source Add Funds');
-        $withdraw = $this->statementBLL->withdrawFunds(
+        $withdraw = $this->transactionBLL->withdrawFunds(
             $dto,
             capAtZero: true
         );
@@ -1127,8 +1127,8 @@ class AccountStatementsTest extends TestCase
         $this->assertEquals(0, $account->getAvailable());
 
         // Needs to be adjusted to the new balance - 750
-        $statement = $this->statementBLL->getById($withdraw->getStatementId());
-        $this->assertEquals(750, $statement->getAmount());
+        $transaction = $this->transactionBLL->getById($withdraw->getTransactionId());
+        $this->assertEquals(750, $transaction->getAmount());
 
         // The DTO should be the same
         $this->assertEquals(750, $dto->getAmount());;

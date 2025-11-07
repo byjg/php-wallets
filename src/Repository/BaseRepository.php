@@ -1,6 +1,6 @@
 <?php
 
-namespace ByJG\AccountStatements\Repository;
+namespace ByJG\AccountTransactions\Repository;
 
 use ByJG\AnyDataset\Core\GenericIterator;
 use ByJG\AnyDataset\Core\IteratorFilter;

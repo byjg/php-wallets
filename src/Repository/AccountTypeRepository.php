@@ -1,6 +1,6 @@
 <?php
 
-namespace ByJG\AccountStatements\Repository;
+namespace ByJG\AccountTransactions\Repository;
 
 use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\MicroOrm\Exception\OrmModelInvalidException;

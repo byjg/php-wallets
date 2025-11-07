@@ -9,3 +9,4 @@ node_modules
 phpunit.coverage.xml
 phpunit.report.xml
 *.bak
+/.claude/settings.local.json

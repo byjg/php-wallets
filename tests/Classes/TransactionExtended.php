@@ -2,12 +2,12 @@
 
 namespace Tests\Classes;
 
-use ByJG\AccountStatements\Entity\StatementEntity;
+use ByJG\AccountTransactions\Entity\TransactionEntity;
 use ByJG\MicroOrm\Attributes\FieldAttribute;
 use ByJG\MicroOrm\Attributes\TableAttribute;
 
-#[TableAttribute('statement_extended')]
-class StatementExtended extends StatementEntity
+#[TableAttribute('transaction_extended')]
+class TransactionExtended extends TransactionEntity
 {
     #[FieldAttribute(fieldName: 'extra_property')]
     protected ?string $extraProperty = null;

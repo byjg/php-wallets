@@ -1,8 +1,8 @@
 <?php
 
-namespace ByJG\AccountStatements\Repository;
+namespace ByJG\AccountTransactions\Repository;
 
-use ByJG\AccountStatements\Entity\StatementEntity;
+use ByJG\AccountTransactions\Entity\TransactionEntity;
 use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\MicroOrm\Exception\OrmModelInvalidException;
 use ByJG\MicroOrm\FieldMapping;
@@ -14,20 +14,20 @@ use ByJG\MicroOrm\Repository;
 use ByJG\Serializer\Exception\InvalidArgumentException;
 use ReflectionException;
 
-class StatementRepository extends BaseRepository
+class TransactionRepository extends BaseRepository
 {
     /**
-     * StatementRepository constructor.
+     * TransactionRepository constructor.
      *
      * @param DatabaseExecutor $dbExecutor
-     * @param string $statementEntity
+     * @param string $transactionEntity
      * @param FieldMapping[] $fieldMappingList
      * @throws OrmModelInvalidException
      * @throws ReflectionException
      */
-    public function __construct(DatabaseExecutor $dbExecutor, string $statementEntity, array $fieldMappingList = [])
+    public function __construct(DatabaseExecutor $dbExecutor, string $transactionEntity, array $fieldMappingList = [])
     {
-        $this->repository = new Repository($dbExecutor, $statementEntity);
+        $this->repository = new Repository($dbExecutor, $transactionEntity);
 
         $mapper = $this->repository->getMapper();
         foreach ($fieldMappingList as $fieldMapping) {
@@ -46,17 +46,17 @@ class StatementRepository extends BaseRepository
     }
 
     /**
-     * Obtém um Statement pelo seu ID.
+     * get a Transaction by ID.
      *
      * @param int $parentId
      * @param bool $forUpdate
-     * @return StatementEntity|null
+     * @return TransactionEntity|null
      */
-    public function getByParentId(int $parentId, bool $forUpdate = false): ?StatementEntity
+    public function getByParentId(int $parentId, bool $forUpdate = false): ?TransactionEntity
     {
         $query = Query::getInstance()
             ->table($this->repository->getMapper()->getTable())
-            ->where('statementparentid = :id', ['id' => $parentId])
+            ->where('transactionparentid = :id', ['id' => $parentId])
         ;
 
         if ($forUpdate) {
@@ -73,12 +73,12 @@ class StatementRepository extends BaseRepository
     }
 
     /**
-     * Get a Statement by its UUID.
+     * Get a Transaction by its UUID.
      *
      * @param Literal|string $uuid
-     * @return StatementEntity|null
+     * @return TransactionEntity|null
      */
-    public function getByUuid(Literal|string $uuid): ?StatementEntity
+    public function getByUuid(Literal|string $uuid): ?TransactionEntity
     {
         if (is_string($uuid)) {
             $uuid = new HexUuidLiteral($uuid);
@@ -101,7 +101,7 @@ class StatementRepository extends BaseRepository
     /**
      * @param int $accountId
      * @param int $limit
-     * @return StatementEntity[]
+     * @return TransactionEntity[]
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
     public function getByAccountId(int $accountId, int $limit = 20): array
@@ -121,7 +121,7 @@ class StatementRepository extends BaseRepository
      * @throws InvalidArgumentException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function getReservedStatements(?int $accountId = null): array
+    public function getReservedTransactions(?int $accountId = null): array
     {
         $query = Query::getInstance()
             ->fields([
@@ -130,9 +130,9 @@ class StatementRepository extends BaseRepository
             ])
             ->table($this->repository->getMapper()->getTable() . " st1")
             ->join("account ac", "st1.accountid = ac.accountid")
-            ->leftJoin("statement st2", "st1.statementid = st2.statementparentid")
+            ->leftJoin("transaction st2", "st1.transactionid = st2.transactionparentid")
             ->where("st1.typeid in ('WB', 'DB')")
-            ->where("st2.statementid is null")
+            ->where("st2.transactionid is null")
             ->orderBy(["st1.date desc"])
         ;
 

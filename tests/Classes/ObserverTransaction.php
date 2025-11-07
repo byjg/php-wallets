@@ -6,9 +6,9 @@ use ByJG\MicroOrm\Interface\ObserverProcessorInterface;
 use ByJG\MicroOrm\ObserverData;
 use Throwable;
 
-class ObserverStatement implements ObserverProcessorInterface
+class ObserverTransaction implements ObserverProcessorInterface
 {
-    public function __construct(public StatementRepositoryExtended $repository)
+    public function __construct(public TransactionRepositoryExtended $repository)
     {
 
     }
@@ -16,14 +16,14 @@ class ObserverStatement implements ObserverProcessorInterface
     #[\Override]
     public function process(ObserverData $observerData): void
     {
-        // This is tied to the test AccountStatementTest::testStatementObserver()
-        $this->repository->setReach($observerData->getData()->getStatementId() == 3 && $observerData->getData()->getAmount() == 250);
+        // This is tied to the test AccountTransactionTest::testTransactionObserver()
+        $this->repository->setReach($observerData->getData()->getTransactionId() == 3 && $observerData->getData()->getAmount() == 250);
     }
 
     #[\Override]
     public function getObservedTable(): string
     {
-        return "statement";
+        return "transaction";
     }
 
     #[\Override]

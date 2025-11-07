@@ -1,8 +1,8 @@
 <?php
 
-namespace ByJG\AccountStatements\Entity;
+namespace ByJG\AccountTransactions\Entity;
 
-use ByJG\AccountStatements\Exception\AmountException;
+use ByJG\AccountTransactions\Exception\AmountException;
 use ByJG\MicroOrm\Attributes\FieldAttribute;
 use ByJG\MicroOrm\Attributes\FieldUuidAttribute;
 use ByJG\MicroOrm\Attributes\TableAttribute;

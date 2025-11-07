@@ -1,8 +1,8 @@
 <?php
 
-namespace ByJG\AccountStatements\Entity;
+namespace ByJG\AccountTransactions\Entity;
 
-use ByJG\AccountStatements\Exception\AmountException;
+use ByJG\AccountTransactions\Exception\AmountException;
 use ByJG\MicroOrm\Attributes\FieldAttribute;
 use ByJG\MicroOrm\Attributes\FieldUuidAttribute;
 use ByJG\MicroOrm\Attributes\TableAttribute;
@@ -11,13 +11,13 @@ use ByJG\Serializer\BaseModel;
 
 /**
  * @OA\Definition(
- *   description="Statement",
+ *   description="Transaction",
  * )
  *
- * @object:NodeName statement
+ * @object:NodeName transaction
  */
-#[TableAttribute('statement')]
-class StatementEntity extends BaseModel
+#[TableAttribute('transaction')]
+class TransactionEntity extends BaseModel
 {
 
     const BALANCE = "B"; // Inicia um novo valor desprezando os antigos
@@ -32,7 +32,7 @@ class StatementEntity extends BaseModel
      * @OA\Property()
      */
     #[FieldAttribute(primaryKey: true)]
-    protected ?int $statementid = null;
+    protected ?int $transactionid = null;
 
     /**
      * @var int|null
@@ -99,7 +99,7 @@ class StatementEntity extends BaseModel
      * @var int|null
      * @OA\Property()
      */
-    protected ?int $statementparentid = null;
+    protected ?int $transactionparentid = null;
 
     /**
      * @var string|null
@@ -126,9 +126,9 @@ class StatementEntity extends BaseModel
      */
     protected ?string $accounttypeid = null;
 
-    public function getStatementId(): ?int
+    public function getTransactionId(): ?int
     {
-        return $this->statementid;
+        return $this->transactionid;
     }
 
     /**
@@ -214,9 +214,9 @@ class StatementEntity extends BaseModel
     /**
      * @return int|null
      */
-    public function getStatementParentId(): ?int
+    public function getTransactionParentId(): ?int
     {
-        return $this->statementparentid;
+        return $this->transactionparentid;
     }
 
     /**
@@ -243,9 +243,9 @@ class StatementEntity extends BaseModel
         return $this->accounttypeid;
     }
 
-    public function setStatementId(?int $statementid): void
+    public function setTransactionId(?int $transactionid): void
     {
-        $this->statementid = $statementid;
+        $this->transactionid = $transactionid;
     }
 
     public function setAccountId(?int $accountid): void
@@ -298,9 +298,9 @@ class StatementEntity extends BaseModel
         $this->description = $description;
     }
 
-    public function setStatementParentId(?int $statementparentid): void
+    public function setTransactionParentId(?int $transactionparentid): void
     {
-        $this->statementparentid = $statementparentid;
+        $this->transactionparentid = $transactionparentid;
     }
 
     public function setAccountTypeId(?string $accounttypeid): void

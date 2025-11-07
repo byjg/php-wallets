@@ -1,14 +1,14 @@
 <?php
 
 
-namespace ByJG\AccountStatements\DTO;
+namespace ByJG\AccountTransactions\DTO;
 
 
-use ByJG\AccountStatements\Entity\StatementEntity;
+use ByJG\AccountTransactions\Entity\TransactionEntity;
 use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\MicroOrm\Literal\Literal;
 
-class StatementDTO
+class TransactionDTO
 {
     protected ?int $accountId = null;
     protected ?int $amount = null;
@@ -22,7 +22,7 @@ class StatementDTO
     protected array $properties = [];
 
     /**
-     * StatementDTO constructor.
+     * TransactionDTO constructor.
      * @param int|null $accountId
      * @param int|null $amount
      */
@@ -34,12 +34,12 @@ class StatementDTO
 
     public static function create(int $accountId, int $amount): static
     {
-        return new StatementDTO($accountId, $amount);
+        return new TransactionDTO($accountId, $amount);
     }
 
     public static function createEmpty(): static
     {
-        return new StatementDTO(null, null);
+        return new TransactionDTO(null, null);
     }
 
     public function hasAccount(): bool
@@ -47,37 +47,37 @@ class StatementDTO
         return !empty($this->accountId) && (!is_null($this->amount));
     }
 
-    public function setToStatement(StatementEntity $statement): void
+    public function setToTransaction(TransactionEntity $transaction): void
     {
         if (!empty($this->getAccountId())) {
-            $statement->setAccountId($this->getAccountId());
+            $transaction->setAccountId($this->getAccountId());
         }
         if (!empty($this->getAmount()) || $this->getAmount() === 0) {
-            $statement->setAmount($this->getAmount());
+            $transaction->setAmount($this->getAmount());
         }
         if (!empty($this->getDescription())) {
-            $statement->setDescription($this->getDescription());
+            $transaction->setDescription($this->getDescription());
         }
         if (!empty($this->getCode())) {
-            $statement->setCode($this->getCode());
+            $transaction->setCode($this->getCode());
         }
         if (!empty($this->getReferenceId())) {
-            $statement->setReferenceId($this->getReferenceId());
+            $transaction->setReferenceId($this->getReferenceId());
         }
         if (!empty($this->getReferenceSource())) {
-            $statement->setReferenceSource($this->getReferenceSource());
+            $transaction->setReferenceSource($this->getReferenceSource());
         }
         if (!empty($this->getUuid())) {
-            $statement->setUuid($this->getUuid());
+            $transaction->setUuid($this->getUuid());
         }
 
         foreach ($this->getProperties() as $name => $value) {
-            if (method_exists($statement, "set$name")) {
-                $statement->{"set$name"}($value);
-            } else if (property_exists($statement, $name)) {
-                $statement->{$name} = $value;
+            if (method_exists($transaction, "set$name")) {
+                $transaction->{"set$name"}($value);
+            } else if (property_exists($transaction, $name)) {
+                $transaction->{$name} = $value;
             } else {
-                throw new \InvalidArgumentException("Property $name not found in StatementEntity");
+                throw new \InvalidArgumentException("Property $name not found in TransactionEntity");
             }
         }
     }

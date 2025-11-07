@@ -1,15 +1,15 @@
 <?php
 
-namespace ByJG\AccountStatements\Bll;
+namespace ByJG\AccountTransactions\Bll;
 
-use ByJG\AccountStatements\DTO\StatementDTO;
-use ByJG\AccountStatements\Entity\AccountEntity;
-use ByJG\AccountStatements\Entity\StatementEntity;
-use ByJG\AccountStatements\Exception\AccountException;
-use ByJG\AccountStatements\Exception\AmountException;
-use ByJG\AccountStatements\Exception\StatementException;
-use ByJG\AccountStatements\Repository\AccountRepository;
-use ByJG\AccountStatements\Repository\StatementRepository;
+use ByJG\AccountTransactions\DTO\TransactionDTO;
+use ByJG\AccountTransactions\Entity\AccountEntity;
+use ByJG\AccountTransactions\Entity\TransactionEntity;
+use ByJG\AccountTransactions\Exception\AccountException;
+use ByJG\AccountTransactions\Exception\AmountException;
+use ByJG\AccountTransactions\Exception\TransactionException;
+use ByJG\AccountTransactions\Repository\AccountRepository;
+use ByJG\AccountTransactions\Repository\TransactionRepository;
 use ByJG\AnyDataset\Db\IsolationLevelEnum;
 use ByJG\MicroOrm\Enum\ObserverEvent;
 use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
@@ -24,12 +24,12 @@ use ByJG\MicroOrm\UpdateQuery;
 use ByJG\Serializer\Exception\InvalidArgumentException;
 use Exception;
 
-class StatementBLL
+class TransactionBLL
 {
     /**
-     * @var StatementRepository
+     * @var TransactionRepository
      */
-    protected StatementRepository $statementRepository;
+    protected TransactionRepository $transactionRepository;
 
     /**
      * @var AccountRepository
@@ -37,65 +37,65 @@ class StatementBLL
     protected AccountRepository $accountRepository;
 
     /**
-     * StatementBLL constructor.
-     * @param StatementRepository $statementRepository
+     * TransactionBLL constructor.
+     * @param TransactionRepository $transactionRepository
      * @param AccountRepository $accountRepository
      */
-    public function __construct(StatementRepository $statementRepository, AccountRepository $accountRepository)
+    public function __construct(TransactionRepository $transactionRepository, AccountRepository $accountRepository)
     {
-        $this->statementRepository = $statementRepository;
+        $this->transactionRepository = $transactionRepository;
         $this->accountRepository = $accountRepository;
     }
 
     /**
-     * Get a Statement By ID.
+     * Get a Transaction By ID.
      *
-     * @param int|string $statementId Optional. empty, return all ids.
+     * @param int|string $transactionId Optional. empty, return all ids.
      * @return mixed
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function getById(int|string $statementId): mixed
+    public function getById(int|string $transactionId): mixed
     {
-        return $this->statementRepository->getById($statementId);
+        return $this->transactionRepository->getById($transactionId);
     }
 
-    protected function validateStatementDto(StatementDTO $dto): void
+    protected function validateTransactionDto(TransactionDTO $dto): void
     {
         if (!$dto->hasAccount()) {
-            throw new StatementException('Account is required');
+            throw new TransactionException('Account is required');
         }
         if ($dto->getAmount() < 0) {
             throw new AmountException('Amount needs to be greater than zero');
         }
 
-        $dto->setUuid($dto->calculateUuid($this->statementRepository->getExecutor()));
+        $dto->setUuid($dto->calculateUuid($this->transactionRepository->getExecutor()));
     }
 
     /**
      * Central method to apply a balance-changing operation.
-     * - Creates a new statement row reflecting the post-operation balances
-     * - Updates the account with the same balances and the last statement id
+     * - Creates a new transaction row reflecting the post-operation balances
+     * - Updates the account with the same balances and the last transaction id
      *
-     * @param string $operation One of StatementEntity::DEPOSIT, WITHDRAW, DEPOSIT_BLOCKED, WITHDRAW_BLOCKED
-     * @param StatementDTO $dto Input data (account, amount, description, etc.)
+     * @param string $operation One of TransactionEntity::DEPOSIT, WITHDRAW, DEPOSIT_BLOCKED, WITHDRAW_BLOCKED
+     * @param TransactionDTO $dto Input data (account, amount, description, etc.)
      * @param bool $capAtZero When true and operation is WITHDRAW, caps the withdrawal so net balance never goes below zero
-     * @return StatementEntity
+     * @return TransactionEntity
      * @throws AccountException
      * @throws AmountException
      * @throws InvalidArgumentException
-     * @throws StatementException
+     * @throws TransactionException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    protected function updateFunds(string $operation, StatementDTO $dto, bool $capAtZero = false): StatementEntity
+    protected function updateFunds(string $operation, TransactionDTO $dto, bool $capAtZero = false): TransactionEntity
     {
-        $this->validateStatementDto($dto);
+        $this->validateTransactionDto($dto);
 
         // 1) Compute numeric deltas for balances (used for notifications) and the SQL expressions (used for insert/select)
         [$balanceDelta, $reservedDelta, $availableDelta] = $this->computeBalanceDeltas($operation, $dto->getAmount());
         [$exprAmount, $exprBalance, $exprAvailable] = $this->buildAmountAndExpressions($operation, $dto->getAmount(), $capAtZero);
 
-        // 2) Build the insert-select for the statement and the account update based on the new statement
-        $statementInsert = $this->getInsertStatementQuery(
+        // 2) Build the insert-select for the transaction and the account update based on the new transaction
+        $transactionInsert = $this->getInsertTransactionQuery(
             $operation,
             $dto,
             $exprBalance,
@@ -110,7 +110,7 @@ class StatementBLL
         $this->getRepository()->getExecutor()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, allowJoin: true);
         try {
             $this->getRepository()->bulkExecute([
-                $statementInsert,
+                $transactionInsert,
                 $accountUpdate,
             ]);
 
@@ -127,35 +127,35 @@ class StatementBLL
                 throw new AccountException('Transaction Failed: Account last_uuid does not match the DTO');
             }
 
-            // 5) Load the statement just created
-            $statement = $this->statementRepository->getByUuid($dto->getUuid());
-            if (empty($statement)) {
-                throw new StatementException('Transaction Failed: Statement not found');
+            // 5) Load the transaction just created
+            $transaction = $this->transactionRepository->getByUuid($dto->getUuid());
+            if (empty($transaction)) {
+                throw new TransactionException('Transaction Failed: Transaction not found');
             }
 
-            // Validate that the persisted statement matches the DTO intent (allowing capped withdraw amount)
+            // Validate that the persisted transaction matches the DTO intent (allowing capped withdraw amount)
             $mismatches = [];
-            if ((int)$statement->getAccountId() !== (int)$dto->getAccountId()) { $mismatches[] = 'accountId'; }
-            if ($statement->getDescription() !== $dto->getDescription()) { $mismatches[] = 'description'; }
-            if ($statement->getCode() !== $dto->getCode()) { $mismatches[] = 'code'; }
-            if ($statement->getReferenceId() !== $dto->getReferenceId()) { $mismatches[] = 'referenceId'; }
-            if ($statement->getReferenceSource() !== $dto->getReferenceSource()) { $mismatches[] = 'referenceSource'; }
-            if ($statement->getTypeId() !== $operation) { $mismatches[] = 'typeId'; }
+            if ((int)$transaction->getAccountId() !== (int)$dto->getAccountId()) { $mismatches[] = 'accountId'; }
+            if ($transaction->getDescription() !== $dto->getDescription()) { $mismatches[] = 'description'; }
+            if ($transaction->getCode() !== $dto->getCode()) { $mismatches[] = 'code'; }
+            if ($transaction->getReferenceId() !== $dto->getReferenceId()) { $mismatches[] = 'referenceId'; }
+            if ($transaction->getReferenceSource() !== $dto->getReferenceSource()) { $mismatches[] = 'referenceSource'; }
+            if ($transaction->getTypeId() !== $operation) { $mismatches[] = 'typeId'; }
             $amountMatches =
-                ($statement->getAmount() === $dto->getAmount()) ||
-                ($capAtZero && $operation === StatementEntity::WITHDRAW && $statement->getAmount() <= $dto->getAmount());
+                ($transaction->getAmount() === $dto->getAmount()) ||
+                ($capAtZero && $operation === TransactionEntity::WITHDRAW && $transaction->getAmount() <= $dto->getAmount());
             if (!$amountMatches) { $mismatches[] = 'amount'; }
             foreach ($dto->getProperties() as $propertyName => $propertyValue) {
-                $fieldMap = $this->statementRepository->getMapper()->getFieldMap($propertyName);
+                $fieldMap = $this->transactionRepository->getMapper()->getFieldMap($propertyName);
                 if ($fieldMap && $fieldMap->isSyncWithDb()) {
                     $fieldName = "get" . $fieldMap->getPropertyName();
-                    if ($statement->$fieldName() !== $propertyValue) {
+                    if ($transaction->$fieldName() !== $propertyValue) {
                         $mismatches[] = $fieldName;
                     }
                 }
             }
             if (!empty($mismatches)) {
-                throw new StatementException('Persisted statement does not match the DTO fields: ' . implode(', ', $mismatches));
+                throw new TransactionException('Persisted transaction does not match the DTO fields: ' . implode(', ', $mismatches));
             }
 
             $this->getRepository()->getExecutor()->commitTransaction();
@@ -182,18 +182,18 @@ class StatementBLL
             $oldAccount
         );
 
-        // 7) Notify observers of statement insert
+        // 7) Notify observers of transaction insert
         ORMSubject::getInstance()->notify(
-            $this->statementRepository->getMapper()->getTable(),
+            $this->transactionRepository->getMapper()->getTable(),
             ObserverEvent::Insert,
-            $statement,
+            $transaction,
             null
         );
 
         // If capping occurred on withdraw, the actual amount may differ from the DTO amount
-        $dto->setAmount(intval($statement->getAmount()));
+        $dto->setAmount(intval($transaction->getAmount()));
 
-        return $statement;
+        return $transaction;
     }
 
     // ---- Helpers: computations and query building ---------------------------------------------------------------
@@ -205,20 +205,20 @@ class StatementBLL
     private function computeBalanceDeltas(string $operation, int $amount): array
     {
         $balanceDelta = $amount * match ($operation) {
-            StatementEntity::DEPOSIT => 1,
-            StatementEntity::WITHDRAW => -1,
+            TransactionEntity::DEPOSIT => 1,
+            TransactionEntity::WITHDRAW => -1,
             default => 0,
         };
 
         $reservedDelta = $amount * match ($operation) {
-            StatementEntity::DEPOSIT_BLOCKED => -1,
-            StatementEntity::WITHDRAW_BLOCKED => 1,
+            TransactionEntity::DEPOSIT_BLOCKED => -1,
+            TransactionEntity::WITHDRAW_BLOCKED => 1,
             default => 0,
         };
 
         $availableDelta = $amount * match ($operation) {
-            StatementEntity::DEPOSIT, StatementEntity::DEPOSIT_BLOCKED => 1,
-            StatementEntity::WITHDRAW, StatementEntity::WITHDRAW_BLOCKED => -1,
+            TransactionEntity::DEPOSIT, TransactionEntity::DEPOSIT_BLOCKED => 1,
+            TransactionEntity::WITHDRAW, TransactionEntity::WITHDRAW_BLOCKED => -1,
             default => 0,
         };
 
@@ -233,18 +233,18 @@ class StatementBLL
     private function buildAmountAndExpressions(string $operation, int $amount, bool $capAtZero): array
     {
         $exprBalance = "balance + " . ($amount * match ($operation) {
-            StatementEntity::DEPOSIT => 1,
-            StatementEntity::WITHDRAW => -1,
+            TransactionEntity::DEPOSIT => 1,
+            TransactionEntity::WITHDRAW => -1,
             default => 0,
         });
         $exprAvailable = "available + " . ($amount * match ($operation) {
-            StatementEntity::DEPOSIT, StatementEntity::DEPOSIT_BLOCKED => 1,
-            StatementEntity::WITHDRAW, StatementEntity::WITHDRAW_BLOCKED => -1,
+            TransactionEntity::DEPOSIT, TransactionEntity::DEPOSIT_BLOCKED => 1,
+            TransactionEntity::WITHDRAW, TransactionEntity::WITHDRAW_BLOCKED => -1,
             default => 0,
         });
         $exprAmount = (string)$amount;
 
-        if ($capAtZero && $operation === StatementEntity::WITHDRAW) {
+        if ($capAtZero && $operation === TransactionEntity::WITHDRAW) {
             // Cap withdraw so available never goes below zero
             $exprAmount = "case when available - {$amount} < 0 then {$amount} + (available - {$amount}) else {$amount} end";
             $exprBalance = "balance - $exprAmount";
@@ -257,9 +257,9 @@ class StatementBLL
     /**
      * Append extra mapped fields from the DTO properties (extended entities) into the target/select lists.
      */
-    private function appendExtraMappedFields(StatementDTO $dto, array &$targetColumns, array &$selectFields): void
+    private function appendExtraMappedFields(TransactionDTO $dto, array &$targetColumns, array &$selectFields): void
     {
-        $mapper = $this->statementRepository->getMapper();
+        $mapper = $this->transactionRepository->getMapper();
         foreach ($dto->getProperties() as $propertyName => $propertyValue) {
             $fieldMap = $mapper->getFieldMap($propertyName);
             if ($fieldMap && $fieldMap->isSyncWithDb()) {
@@ -272,9 +272,9 @@ class StatementBLL
         }
     }
 
-    protected function getInsertStatementQuery(
+    protected function getInsertTransactionQuery(
         string $operation,
-        StatementDTO $dto,
+        TransactionDTO $dto,
         string $expressionSumBalance,
         string $expressionSumAvailable,
         string $expressionAmount,
@@ -296,7 +296,7 @@ class StatementBLL
             'referencesource',
             'typeid',
             'date',
-            'statementparentid',
+            'transactionparentid',
             'uuid'
         ];
 
@@ -313,7 +313,7 @@ class StatementBLL
             ':referenceid',
             ':referencesource',
             ':operation',
-            $this->statementRepository->getExecutor()->getHelper()->sqlDate('Y-m-d H:i:s'),
+            $this->transactionRepository->getExecutor()->getHelper()->sqlDate('Y-m-d H:i:s'),
             'null',
             ':uuid'
         ];
@@ -321,7 +321,7 @@ class StatementBLL
         // Append any extra mapped fields provided via DTO properties (for extended entities)
         $this->appendExtraMappedFields($dto, $targetColumns, $selectFields);
 
-        $statementQuery = Query::getInstance()
+        $transactionQuery = Query::getInstance()
             ->table('account')
             ->fields($selectFields)
             ->where('accountid = :accid2', [
@@ -336,12 +336,12 @@ class StatementBLL
             ->forUpdate();
 
         return InsertSelectQuery::getInstance(
-            $this->statementRepository->getMapper()->getTable(),
+            $this->transactionRepository->getMapper()->getTable(),
             $targetColumns
-        )->fromQuery($statementQuery);
+        )->fromQuery($transactionQuery);
     }
 
-    public function getAccountUpdateQuery(StatementDTO $dto): UpdateQuery
+    public function getAccountUpdateQuery(TransactionDTO $dto): UpdateQuery
     {
         $uuid = new HexUuidLiteral($dto->getUuid());
 
@@ -352,138 +352,138 @@ class StatementBLL
             ->setLiteral('account.available', 'st.available')
             ->setLiteral('account.last_uuid', $uuid)
             ->where('account.accountid = :accid', ['accid' => $dto->getAccountId()])
-            ->join($this->statementRepository->getMapper()->getTable(), 'st.accountid = account.accountid and st.uuid = ' . $uuid, 'st');
+            ->join($this->transactionRepository->getMapper()->getTable(), 'st.accountid = account.accountid and st.uuid = ' . $uuid, 'st');
     }
 
     /**
      * Add funds to an account
      *
-     * @param StatementDTO $dto
-     * @return StatementEntity Newly created statement entity
+     * @param TransactionDTO $dto
+     * @return TransactionEntity Newly created transaction entity
      * @throws AccountException
      * @throws AmountException
      * @throws InvalidArgumentException
-     * @throws StatementException
+     * @throws TransactionException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function addFunds(StatementDTO $dto): StatementEntity
+    public function addFunds(TransactionDTO $dto): TransactionEntity
     {
-        return $this->updateFunds(StatementEntity::DEPOSIT, $dto);
+        return $this->updateFunds(TransactionEntity::DEPOSIT, $dto);
     }
 
     /**
      * Withdraw funds from an account
      *
-     * @param StatementDTO $dto
+     * @param TransactionDTO $dto
      * @param bool $capAtZero
-     * @return StatementEntity Statement ID
+     * @return TransactionEntity Transaction ID
      * @throws AccountException
      * @throws AmountException
      * @throws InvalidArgumentException
-     * @throws StatementException
+     * @throws TransactionException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function withdrawFunds(StatementDTO $dto, bool $capAtZero = false): StatementEntity
+    public function withdrawFunds(TransactionDTO $dto, bool $capAtZero = false): TransactionEntity
     {
-        return $this->updateFunds(StatementEntity::WITHDRAW, $dto, $capAtZero);
+        return $this->updateFunds(TransactionEntity::WITHDRAW, $dto, $capAtZero);
     }
 
     /**
      * Reserve funds to future withdrawn. It affects the net balance but not the gross balance
      *
-     * @param StatementDTO $dto
-     * @return StatementEntity Statement ID
+     * @param TransactionDTO $dto
+     * @return TransactionEntity Transaction ID
      * @throws AccountException
      * @throws AmountException
      * @throws InvalidArgumentException
-     * @throws StatementException
+     * @throws TransactionException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function reserveFundsForWithdraw(StatementDTO $dto): StatementEntity
+    public function reserveFundsForWithdraw(TransactionDTO $dto): TransactionEntity
     {
-        return $this->updateFunds(StatementEntity::WITHDRAW_BLOCKED, $dto);
+        return $this->updateFunds(TransactionEntity::WITHDRAW_BLOCKED, $dto);
     }
 
     /**
      * Reserve funds to future deposit. Update net balance but not gross balance.
      *
-     * @param StatementDTO $dto
-     * @return StatementEntity Statement ID
+     * @param TransactionDTO $dto
+     * @return TransactionEntity Transaction ID
      * @throws AccountException
      * @throws AmountException
      * @throws InvalidArgumentException
-     * @throws StatementException
+     * @throws TransactionException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function reserveFundsForDeposit(StatementDTO $dto): StatementEntity
+    public function reserveFundsForDeposit(TransactionDTO $dto): TransactionEntity
     {
-        return $this->updateFunds(StatementEntity::DEPOSIT_BLOCKED, $dto);
+        return $this->updateFunds(TransactionEntity::DEPOSIT_BLOCKED, $dto);
     }
 
     /**
      * Accept a reserved fund and update gross balance
      *
-     * @param int $statementId
-     * @param StatementDTO|null $statementDto
-     * @return int Statement ID
+     * @param int $transactionId
+     * @param TransactionDTO|null $transactionDto
+     * @return int Transaction ID
      * @throws InvalidArgumentException
      * @throws OrmBeforeInvalidException
      * @throws OrmInvalidFieldsException
      * @throws RepositoryReadOnlyException
-     * @throws StatementException
+     * @throws TransactionException
      * @throws UpdateConstraintException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function acceptFundsById(int $statementId, ?StatementDTO $statementDto = null): int
+    public function acceptFundsById(int $transactionId, ?TransactionDTO $transactionDto = null): int
     {
-        if (is_null($statementDto)) {
-            $statementDto = StatementDTO::createEmpty();
+        if (is_null($transactionDto)) {
+            $transactionDto = TransactionDTO::createEmpty();
         }
 
         $this->getRepository()->getExecutor()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, true);
         try {
-            /** @var StatementEntity $statement */
-            $statement = $this->statementRepository->getById($statementId);
-            if (is_null($statement)) {
-                throw new StatementException('acceptFundsById: Statement not found');
+            /** @var TransactionEntity $transaction */
+            $transaction = $this->transactionRepository->getById($transactionId);
+            if (is_null($transaction)) {
+                throw new TransactionException('acceptFundsById: Transaction not found');
             }
 
-            // Validate if statement can be accepted.
-            if ($statement->getTypeId() != StatementEntity::WITHDRAW_BLOCKED && $statement->getTypeId() != StatementEntity::DEPOSIT_BLOCKED) {
-                throw new StatementException("The statement id doesn't belongs to a reserved fund.");
+            // Validate if transaction can be accepted.
+            if ($transaction->getTypeId() != TransactionEntity::WITHDRAW_BLOCKED && $transaction->getTypeId() != TransactionEntity::DEPOSIT_BLOCKED) {
+                throw new TransactionException("The transaction id doesn't belongs to a reserved fund.");
             }
 
-            // Validate if the statement has been already accepted.
-            if ($this->statementRepository->getByParentId($statementId) != null) {
-                throw new StatementException('The statement has been accepted already');
+            // Validate if the transaction has been already accepted.
+            if ($this->transactionRepository->getByParentId($transactionId) != null) {
+                throw new TransactionException('The transaction has been accepted already');
             }
 
-            if ($statementDto->hasAccount() && $statementDto->getAccountId() != $statement->getAccountId()) {
-                throw new StatementException('The statement account is different from the informed account in the DTO. Try createEmpty().');
+            if ($transactionDto->hasAccount() && $transactionDto->getAccountId() != $transaction->getAccountId()) {
+                throw new TransactionException('The transaction account is different from the informed account in the DTO. Try createEmpty().');
             }
 
             // Get values and apply the updates
-            $signal = $statement->getTypeId() == StatementEntity::DEPOSIT_BLOCKED ? 1 : -1;
+            $signal = $transaction->getTypeId() == TransactionEntity::DEPOSIT_BLOCKED ? 1 : -1;
 
-            $account = $this->accountRepository->getById($statement->getAccountId());
-            $account->setReserved($account->getReserved() + ($statement->getAmount() * $signal));
-            $account->setBalance($account->getBalance() + ($statement->getAmount() * $signal));
+            $account = $this->accountRepository->getById($transaction->getAccountId());
+            $account->setReserved($account->getReserved() + ($transaction->getAmount() * $signal));
+            $account->setBalance($account->getBalance() + ($transaction->getAmount() * $signal));
             $account->setEntryDate(null);
             $this->accountRepository->save($account);
 
             // Update data
-            $statement->setStatementParentId($statement->getStatementId());
-            $statement->setStatementId(null); // Poder criar um novo registro
-            $statement->setDate(null);
-            $statement->setTypeId($statement->getTypeId() == StatementEntity::WITHDRAW_BLOCKED ? StatementEntity::WITHDRAW : StatementEntity::DEPOSIT);
-            $statement->attachAccount($account);
-            $statementDto->setUuid($statementDto->calculateUuid($this->statementRepository->getExecutor()));
-            $statementDto->setToStatement($statement);
-            $result = $this->statementRepository->save($statement);
+            $transaction->setTransactionParentId($transaction->getTransactionId());
+            $transaction->setTransactionId(null); // Poder criar um novo registro
+            $transaction->setDate(null);
+            $transaction->setTypeId($transaction->getTypeId() == TransactionEntity::WITHDRAW_BLOCKED ? TransactionEntity::WITHDRAW : TransactionEntity::DEPOSIT);
+            $transaction->attachAccount($account);
+            $transactionDto->setUuid($transactionDto->calculateUuid($this->transactionRepository->getExecutor()));
+            $transactionDto->setToTransaction($transaction);
+            $result = $this->transactionRepository->save($transaction);
 
             $this->getRepository()->getExecutor()->commitTransaction();
 
-            return $result->getStatementId();
+            return $result->getTransactionId();
         } catch (Exception $ex) {
             $this->getRepository()->getExecutor()->rollbackTransaction();
 
@@ -492,23 +492,23 @@ class StatementBLL
     }
 
     /**
-     * @param int $statementId
-     * @param StatementDTO $statementDtoWithdraw
-     * @param StatementDTO $statementDtoRefund
-     * @return StatementEntity
+     * @param int $transactionId
+     * @param TransactionDTO $transactionDtoWithdraw
+     * @param TransactionDTO $transactionDtoRefund
+     * @return TransactionEntity
      * @throws AccountException
      * @throws AmountException
      * @throws InvalidArgumentException
      * @throws OrmBeforeInvalidException
      * @throws OrmInvalidFieldsException
      * @throws RepositoryReadOnlyException
-     * @throws StatementException
+     * @throws TransactionException
      * @throws UpdateConstraintException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function acceptPartialFundsById(int $statementId, StatementDTO $statementDtoWithdraw, StatementDTO $statementDtoRefund): StatementEntity
+    public function acceptPartialFundsById(int $transactionId, TransactionDTO $transactionDtoWithdraw, TransactionDTO $transactionDtoRefund): TransactionEntity
     {
-        $partialAmount = $statementDtoWithdraw->getAmount();
+        $partialAmount = $transactionDtoWithdraw->getAmount();
 
         if ($partialAmount <= 0) {
             throw new AmountException('Partial amount must be greater than zero.');
@@ -516,33 +516,33 @@ class StatementBLL
 
         $this->getRepository()->getExecutor()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, true);
         try {
-            $statement = $this->statementRepository->getById($statementId);
-            if (is_null($statement)) {
-                throw new StatementException('acceptPartialFundsById: Statement not found');
+            $transaction = $this->transactionRepository->getById($transactionId);
+            if (is_null($transaction)) {
+                throw new TransactionException('acceptPartialFundsById: Transaction not found');
             }
-            if ($statement->getTypeId() != StatementEntity::WITHDRAW_BLOCKED) {
-                throw new StatementException("The statement id doesn't belong to a reserved withdraw fund.");
+            if ($transaction->getTypeId() != TransactionEntity::WITHDRAW_BLOCKED) {
+                throw new TransactionException("The transaction id doesn't belong to a reserved withdraw fund.");
             }
-            if ($this->statementRepository->getByParentId($statementId) != null) {
-                throw new StatementException('The statement has been processed already');
+            if ($this->transactionRepository->getByParentId($transactionId) != null) {
+                throw new TransactionException('The transaction has been processed already');
             }
 
-            $originalAmount = $statement->getAmount();
+            $originalAmount = $transaction->getAmount();
             if ($partialAmount <= 0 || $partialAmount >= $originalAmount) {
                 throw new AmountException(
                     'Partial amount must be greater than zero and less than the original reserved amount.'
                 );
             }
 
-            $this->rejectFundsById($statementId, $statementDtoRefund);
+            $this->rejectFundsById($transactionId, $transactionDtoRefund);
 
-            $statementDtoWithdraw->setAccountId($statement->getAccountId());
+            $transactionDtoWithdraw->setAccountId($transaction->getAccountId());
 
-            $finalDebitStatement = $this->withdrawFunds($statementDtoWithdraw);
+            $finalDebitTransaction = $this->withdrawFunds($transactionDtoWithdraw);
 
             $this->getRepository()->getExecutor()->commitTransaction();
 
-            return $finalDebitStatement;
+            return $finalDebitTransaction;
 
         } catch (Exception $ex) {
             $this->getRepository()->getExecutor()->rollbackTransaction();
@@ -553,66 +553,66 @@ class StatementBLL
     /**
      * Reject a reserved fund and return the net balance
      *
-     * @param int $statementId
-     * @param StatementDTO|null $statementDto
-     * @return int Statement ID
+     * @param int $transactionId
+     * @param TransactionDTO|null $transactionDto
+     * @return int Transaction ID
      * @throws InvalidArgumentException
      * @throws OrmBeforeInvalidException
      * @throws OrmInvalidFieldsException
      * @throws RepositoryReadOnlyException
-     * @throws StatementException
+     * @throws TransactionException
      * @throws UpdateConstraintException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function rejectFundsById(int $statementId, ?StatementDTO $statementDto = null): int
+    public function rejectFundsById(int $transactionId, ?TransactionDTO $transactionDto = null): int
     {
-        if (is_null($statementDto)) {
-            $statementDto = StatementDTO::createEmpty();
+        if (is_null($transactionDto)) {
+            $transactionDto = TransactionDTO::createEmpty();
         }
 
         $this->getRepository()->getExecutor()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, true);
         try {
-            $statement = $this->statementRepository->getById($statementId);
-            if (is_null($statement)) {
-                throw new StatementException('rejectFundsById: Statement not found');
+            $transaction = $this->transactionRepository->getById($transactionId);
+            if (is_null($transaction)) {
+                throw new TransactionException('rejectFundsById: Transaction not found');
             }
 
-            // Validate if statement can be accepted.
-            if ($statement->getTypeId() != StatementEntity::WITHDRAW_BLOCKED && $statement->getTypeId() != StatementEntity::DEPOSIT_BLOCKED) {
-                throw new StatementException("The statement id doesn't belongs to a reserved fund.");
+            // Validate if transaction can be accepted.
+            if ($transaction->getTypeId() != TransactionEntity::WITHDRAW_BLOCKED && $transaction->getTypeId() != TransactionEntity::DEPOSIT_BLOCKED) {
+                throw new TransactionException("The transaction id doesn't belongs to a reserved fund.");
             }
 
-            // Validate if the statement has been already accepted.
-            if ($this->statementRepository->getByParentId($statementId) != null) {
-                throw new StatementException('The statement has been accepted already');
+            // Validate if the transaction has been already accepted.
+            if ($this->transactionRepository->getByParentId($transactionId) != null) {
+                throw new TransactionException('The transaction has been accepted already');
             }
 
-            if ($statementDto->hasAccount() && $statementDto->getAccountId() != $statement->getAccountId()) {
-                throw new StatementException('The statement account is different from the informed account in the DTO. Try createEmpty().');
+            if ($transactionDto->hasAccount() && $transactionDto->getAccountId() != $transaction->getAccountId()) {
+                throw new TransactionException('The transaction account is different from the informed account in the DTO. Try createEmpty().');
             }
 
             // Update Account
-            $signal = $statement->getTypeId() == StatementEntity::DEPOSIT_BLOCKED ? -1 : +1;
+            $signal = $transaction->getTypeId() == TransactionEntity::DEPOSIT_BLOCKED ? -1 : +1;
 
-            $account = $this->accountRepository->getById($statement->getAccountId());
-            $account->setReserved($account->getReserved() - ($statement->getAmount() * $signal));
-            $account->setAvailable($account->getAvailable() + ($statement->getAmount() * $signal));
+            $account = $this->accountRepository->getById($transaction->getAccountId());
+            $account->setReserved($account->getReserved() - ($transaction->getAmount() * $signal));
+            $account->setAvailable($account->getAvailable() + ($transaction->getAmount() * $signal));
             $account->setEntryDate(null);
             $this->accountRepository->save($account);
 
-            // Update Statement
-            $statement->setStatementParentId($statement->getStatementId());
-            $statement->setStatementId(null); // Poder criar um novo registro
-            $statement->setDate(null);
-            $statement->setTypeId(StatementEntity::REJECT);
-            $statement->attachAccount($account);
-            $statementDto->setUuid($statementDto->calculateUuid($this->statementRepository->getExecutor()));
-            $statementDto->setToStatement($statement);
-            $result = $this->statementRepository->save($statement);
+            // Update Transaction
+            $transaction->setTransactionParentId($transaction->getTransactionId());
+            $transaction->setTransactionId(null); // Poder criar um novo registro
+            $transaction->setDate(null);
+            $transaction->setTypeId(TransactionEntity::REJECT);
+            $transaction->attachAccount($account);
+            $transactionDto->setUuid($transactionDto->calculateUuid($this->transactionRepository->getExecutor()));
+            $transactionDto->setToTransaction($transaction);
+            $result = $this->transactionRepository->save($transaction);
 
             $this->getRepository()->getExecutor()->commitTransaction();
 
-            return $result->getStatementId();
+            return $result->getTransactionId();
         } catch (Exception $ex) {
             $this->getRepository()->getExecutor()->rollbackTransaction();
 
@@ -624,13 +624,13 @@ class StatementBLL
      * Update all blocked (reserved) transactions
      *
      * @param int|null $accountId
-     * @return StatementEntity[]
+     * @return TransactionEntity[]
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      * @throws InvalidArgumentException
      */
-    public function getReservedStatements(?int $accountId = null): array
+    public function getReservedTransactions(?int $accountId = null): array
     {
-        return $this->statementRepository->getReservedStatements($accountId);
+        return $this->transactionRepository->getReservedTransactions($accountId);
     }
 
     /**
@@ -641,25 +641,25 @@ class StatementBLL
      */
     public function getByDate(int $accountId, string $startDate, string $endDate): array
     {
-        return $this->statementRepository->getByDate($accountId, $startDate, $endDate);
+        return $this->transactionRepository->getByDate($accountId, $startDate, $endDate);
     }
 
     /**
-     * This statement is blocked (reserved)
+     * This transaction is blocked (reserved)
      *
-     * @param int|null $statementId
+     * @param int|null $transactionId
      * @return bool
      */
-    public function isStatementUncleared(?int $statementId = null): bool
+    public function isTransactionReserved(?int $transactionId = null): bool
     {
-        return null === $this->statementRepository->getByParentId($statementId, true);
+        return null === $this->transactionRepository->getByParentId($transactionId, true);
     }
 
     /**
-     * @return StatementRepository
+     * @return TransactionRepository
      */
-    public function getRepository(): StatementRepository
+    public function getRepository(): TransactionRepository
     {
-        return $this->statementRepository;
+        return $this->transactionRepository;
     }
 }

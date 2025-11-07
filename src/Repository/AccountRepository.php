@@ -1,8 +1,8 @@
 <?php
 
-namespace ByJG\AccountStatements\Repository;
+namespace ByJG\AccountTransactions\Repository;
 
-use ByJG\AccountStatements\Entity\AccountEntity;
+use ByJG\AccountTransactions\Entity\AccountEntity;
 use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\MicroOrm\Exception\OrmModelInvalidException;
 use ByJG\MicroOrm\FieldMapping;
@@ -80,18 +80,18 @@ class AccountRepository extends BaseRepository
     }
 
     /**
-     * @param int $statementId
+     * @param int $transactionid
      * @return AccountEntity|null
      * @throws InvalidArgumentException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function getByStatementId(int $statementId): ?AccountEntity
+    public function getByTransactionId(int $transactionid): ?AccountEntity
     {
         $query = Query::getInstance()
             ->fields(['account.*'])
             ->table($this->repository->getMapper()->getTable())
-            ->join('statement', 'statement.accountid = account.accountid')
-            ->where('statementid = :statementid', ['statementid' => $statementId])
+            ->join('transaction', 'transaction.accountid = account.accountid')
+            ->where('transactionid = :transactionid', ['transactionid' => $transactionid])
         ;
 
         $result = $this->repository

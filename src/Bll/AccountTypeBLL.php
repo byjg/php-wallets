@@ -1,10 +1,10 @@
 <?php
 
-namespace ByJG\AccountStatements\Bll;
+namespace ByJG\AccountTransactions\Bll;
 
-use ByJG\AccountStatements\Entity\AccountTypeEntity;
-use ByJG\AccountStatements\Exception\AccountTypeException;
-use ByJG\AccountStatements\Repository\AccountTypeRepository;
+use ByJG\AccountTransactions\Entity\AccountTypeEntity;
+use ByJG\AccountTransactions\Exception\AccountTypeException;
+use ByJG\AccountTransactions\Repository\AccountTypeRepository;
 use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
 use ByJG\MicroOrm\Exception\OrmInvalidFieldsException;
 use ByJG\MicroOrm\Exception\RepositoryReadOnlyException;
