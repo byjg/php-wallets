@@ -3,6 +3,8 @@
 -- Host: 127.0.0.1    Database: accounts
 -- ------------------------------------------------------
 -- Server version	5.6.30-0ubuntu0.14.04.1-log
+--
+-- This schema includes all migrations up to 00005-decimal-to-int.sql
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -25,13 +27,14 @@ DROP TABLE IF EXISTS `account`;
 CREATE TABLE `account` (
   `accountid` int(11) NOT NULL AUTO_INCREMENT,
   `accounttypeid` varchar(20) COLLATE utf8_bin NOT NULL,
-  `userid` varchar(100) NOT NULL,
-  `grossbalance` decimal(15,2) DEFAULT '0.00000',
-  `uncleared` decimal(15,2) DEFAULT '0.00000',
-  `netbalance` decimal(15,2) DEFAULT '0.00000',
-  `price` decimal(15,2) NOT NULL DEFAULT '1.00000',
+  `userid` varchar(50) DEFAULT NULL,
+  `grossbalance` BIGINT DEFAULT 0,
+  `uncleared` BIGINT DEFAULT 0,
+  `netbalance` BIGINT DEFAULT 0,
+  `price` BIGINT NOT NULL DEFAULT 1,
   `extra` text COLLATE utf8_bin,
-  `minvalue` decimal(15,2) NOT NULL DEFAULT '0.00000',
+  `minvalue` BIGINT NOT NULL DEFAULT 0,
+  `last_uuid` binary(16) DEFAULT NULL,
   `entrydate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`accountid`),
   UNIQUE KEY `unique_userid_type` (`userid`,`accounttypeid`),
@@ -66,20 +69,26 @@ CREATE TABLE `statement` (
   `accountid` int(11) NOT NULL,
   `accounttypeid` varchar(20) COLLATE utf8_bin NOT NULL,
   `typeid` enum('B','D','W','DB','WB','R') COLLATE utf8_bin NOT NULL COMMENT 'B: Balance - Inicia um novo valor desprezando os antigos\nD: Deposit: Adiciona um valor imediatamente ao banco\nW: Withdrawal\nR: Reject\nWD: Withdrawal (blocked, uncleared)\n',
-  `amount` decimal(15,2) NOT NULL,
-  `price` decimal(15,2) DEFAULT '1.00000',
+  `amount` BIGINT NOT NULL,
+  `price` BIGINT DEFAULT 100,
   `date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `grossbalance` decimal(15,2) DEFAULT NULL,
-  `uncleared` decimal(15,2) DEFAULT NULL,
-  `netbalance` decimal(15,2) DEFAULT NULL,
+  `grossbalance` BIGINT DEFAULT NULL,
+  `uncleared` BIGINT DEFAULT NULL,
+  `netbalance` BIGINT DEFAULT NULL,
+  `code` CHAR(10) DEFAULT NULL,
   `description` varchar(255) COLLATE utf8_bin DEFAULT NULL,
   `statementparentid` int(11) DEFAULT NULL,
-  `reference` varchar(100) COLLATE utf8_bin DEFAULT NULL,
+  `referenceid` varchar(100) COLLATE utf8_bin DEFAULT NULL,
+  `referencesource` VARCHAR(50) DEFAULT NULL,
+  `uuid` binary(16) DEFAULT NULL,
   PRIMARY KEY (`statementid`),
+  UNIQUE KEY `idx_statement_uuid` (`uuid`),
   KEY `fk_statement_account1_idx` (`accountid`),
   KEY `fk_statement_statement1_idx` (`statementparentid`),
   KEY `idx_statement_typeid_date` (`typeid`,`date`) USING BTREE COMMENT 'Índice para filtros com tipo e ordenação por data decrescente',
   KEY `fk_statement_accounttype_idx` (`accounttypeid`),
+  KEY `fk_statement_referenceid_idx` (`referenceid`),
+  KEY `fk_statement_referencesource_idx` (`referencesource`),
   CONSTRAINT `fk_statement_accounttype` FOREIGN KEY (`accounttypeid`) REFERENCES `accounttype` (`accounttypeid`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `fk_statement_account1` FOREIGN KEY (`accountid`) REFERENCES `account` (`accountid`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `fk_statement_statement1` FOREIGN KEY (`statementparentid`) REFERENCES `statement` (`statementid`) ON DELETE NO ACTION ON UPDATE NO ACTION
@@ -103,4 +112,6 @@ CREATE TABLE `statement` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2016-06-07 21:13:14
+-- Schema updated to include all migrations through 00005-decimal-to-int
+-- Financial columns now use BIGINT to store values in smallest unit (cents)
+-- Default price is 100 (representing 1.00)

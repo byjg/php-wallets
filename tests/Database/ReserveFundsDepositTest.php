@@ -80,16 +80,6 @@ class ReserveFundsDepositTest extends TestCase
         $this->statementBLL->reserveFundsForDeposit(StatementDTO::create($accountId, -50)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
     }
 
-    public function testReserveForDepositFunds_InvalidRound(): void
-    {
-        $this->expectException(AmountException::class);
-        $this->expectExceptionMessage('Amount needs to have two decimal places');
-
-        // Populate Data!
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $this->statementBLL->reserveFundsForDeposit(StatementDTO::create($accountId, 10.031)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
-    }
-
     public function testReserveForDepositFunds_Allow_Negative(): void
     {
         // Populate Data!
@@ -239,7 +229,7 @@ public function testAcceptFundsById_InvalidType(): void
             ->setDescription("Refund")
             ->setReferenceSource("test-source");
 
-        $statementDTO = StatementDTO::createEmpty()->setAmount(100.01);
+        $statementDTO = StatementDTO::createEmpty()->setAmount(101);
         $this->statementBLL->acceptPartialFundsById($reserveStatement->getStatementId(), $statementDTO, $statementRefundDto);
     }
 

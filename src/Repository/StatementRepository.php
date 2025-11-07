@@ -161,7 +161,7 @@ class StatementRepository extends BaseRepository
         return $this->repository->getByQuery($query);
     }
 
-    public function getByCode(int $accountId, string $code, string $startDate = null, string $endDate = null): array
+    public function getByCode(int $accountId, string $code, ?string $startDate = null, ?string $endDate = null): array
     {
         $query = Query::getInstance()
             ->table($this->repository->getMapper()->getTable())

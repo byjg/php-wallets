@@ -286,56 +286,6 @@ class AccountStatementsTest extends TestCase
      *
      * @psalm-return list{list{250}, list{float}, list{float}, list{float}, list{float}, list{float}, list{float}, list{float}, list{float}, list{float}}
      */
-    public function amountDataProvider(): array
-    {
-
-        return [
-            [250],
-            [250.00],
-            [250.01],
-            [250.12],
-            [250.18],
-            [250.19],
-            [250.32],
-            [250.41],
-            [2055.49],
-            [10.23456789 - 1.21456789]
-        ];
-    }
-
-    /**
-     * @dataProvider amountDataProvider
-     */
-    public function testAddFundsDecimal($amount): void
-    {
-        // Populate Data!
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $dto = StatementDTO::create($accountId, $amount)
-            ->setDescription('Test Add Funds')
-            ->setReferenceId('Referencia Add Funds')
-            ->setReferenceSource('Source Add Funds');
-        $actual = $this->statementBLL->addFunds($dto);
-
-        // Check
-        $statement = new StatementEntity;
-        $statement->setAmount($amount);
-        $statement->setDate('2015-01-24');
-        $statement->setDescription('Test Add Funds');
-        $statement->setGrossBalance(1000 + $amount);
-        $statement->setAccountId($accountId);
-        $statement->setStatementId($actual->getStatementId());;
-        $statement->setTypeId('D');
-        $statement->setNetBalance(1000 + $amount);
-        $statement->setPrice('1.00');
-        $statement->setUnCleared('0.00');
-        $statement->setReferenceId('Referencia Add Funds');
-        $statement->setReferenceSource('Source Add Funds');
-        $statement->setAccountTypeId('USDTEST');
-        $statement->setDate($actual->getDate());
-        $statement->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
-
-        $this->assertEquals($statement->toArray(), $actual->toArray());
-    }
 
     public function testAddFunds_Invalid(): void
     {
@@ -347,18 +297,6 @@ class AccountStatementsTest extends TestCase
 
         // Check;
         $this->statementBLL->addFunds(StatementDTO::create($accountId, -15));
-    }
-
-    public function testAddFunds_InvalidRound(): void
-    {
-        $this->expectException(AmountException::class);
-        $this->expectExceptionMessage('Amount needs to have two decimal places');
-
-        // Populate Data!
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-
-        // Check;
-        $this->statementBLL->addFunds(StatementDTO::create($accountId, 0.105));
     }
 
     public function testWithdrawFunds(): void
@@ -403,18 +341,6 @@ class AccountStatementsTest extends TestCase
 
         // Check
         $this->statementBLL->withdrawFunds(StatementDTO::create($accountId, -15));
-    }
-
-    public function testWithdrawFunds_InvalidRound(): void
-    {
-        $this->expectException(AmountException::class);
-        $this->expectExceptionMessage('Amount needs to have two decimal places');
-
-        // Populate Data!
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-
-        // Check
-        $this->statementBLL->withdrawFunds(StatementDTO::create($accountId, 10.001));
     }
 
     public function testWithdrawFunds_Allow_Negative(): void

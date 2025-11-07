@@ -82,8 +82,8 @@ trait BaseDALTrait
         // This will delete the constraint to validate the negative amount
         $maxVersion = null;
         /** @psalm-suppress InternalMethod */
-        if (strpos($this->name(), "Allow_Negativ") !== false) {
-            $maxVersion = 3;
+        if (str_contains($this->name(), "Allow_Negativ")) {
+            $maxVersion = 0;
         }
         $migration->reset($maxVersion);
 

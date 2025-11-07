@@ -117,7 +117,7 @@ class AccountBLL
      * @throws UpdateConstraintException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function createAccount(string $accountTypeId, string $userId, int $balance, int $price = 100, int $minValue = 0, string $extra = null): int
+    public function createAccount(string $accountTypeId, string $userId, int $balance, int $price = 1, int $minValue = 0, ?string $extra = null): int
     {
         // Faz as validações
         if ($this->accountTypeBLL->getById($accountTypeId) == null) {
@@ -178,7 +178,7 @@ class AccountBLL
     public function overrideBalance(
         int       $accountId,
         int     $newBalance,
-        int $newPrice = 100,
+        int $newPrice = 1,
         int $newMinValue = 0,
         string $description = "Reset Balance"
     ): ?int

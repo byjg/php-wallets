@@ -68,10 +68,6 @@ class StatementBLL
             throw new AmountException('Amount needs to be greater than zero');
         }
 
-        if (round($dto->getAmount()*100)/100 != $dto->getAmount()) {
-            throw new AmountException('Amount needs to have two decimal places');
-        }
-
         $dto->setUuid($dto->calculateUuid($this->statementRepository->getExecutor()));
     }
 
@@ -632,7 +628,7 @@ class StatementBLL
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      * @throws InvalidArgumentException
      */
-    public function getUnclearedStatements(int $accountId = null): array
+    public function getUnclearedStatements(?int $accountId = null): array
     {
         return $this->statementRepository->getUnclearedStatements($accountId);
     }
@@ -654,7 +650,7 @@ class StatementBLL
      * @param int|null $statementId
      * @return bool
      */
-    public function isStatementUncleared(int $statementId = null): bool
+    public function isStatementUncleared(?int $statementId = null): bool
     {
         return null === $this->statementRepository->getByParentId($statementId, true);
     }

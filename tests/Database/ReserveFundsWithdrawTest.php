@@ -83,20 +83,6 @@ class ReserveFundsWithdrawTest extends TestCase
                 ->setReferenceSource('Source Withdraw'));
     }
 
-    public function testReserveForWithdrawFunds_InvalidRound(): void
-    {
-        $this->expectException(AmountException::class);
-        $this->expectExceptionMessage('Amount needs to have two decimal places');
-
-        // Populate Data!
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $this->statementBLL->reserveFundsForWithdraw(
-            StatementDTO::create($accountId, 45.009)
-                ->setDescription('Test Withdraw')
-                ->setReferenceId('Referencia Withdraw')
-                ->setReferenceSource('Source Withdraw'));
-    }
-
     public function testReserveForWithdrawFunds_Allow_Negative(): void
     {
         // Populate Data!
