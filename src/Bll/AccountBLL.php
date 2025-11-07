@@ -128,8 +128,8 @@ class AccountBLL
         $model = new AccountEntity();
         $model->setAccountTypeId($accountTypeId);
         $model->setUserId($userId);
-        $model->setGrossBalance(0);
-        $model->setNetBalance(0);
+        $model->setBalance(0);
+        $model->setAvailable(0);
         $model->setReserved(0);
         $model->setPrice($price);
         $model->setExtra($extra);
@@ -210,8 +210,8 @@ class AccountBLL
             }
 
             // Update object Account
-            $account->setGrossBalance($newBalance);
-            $account->setNetBalance($newBalance - $reservedValues);
+            $account->setBalance($newBalance);
+            $account->setAvailable($newBalance - $reservedValues);
             $account->setReserved($reservedValues);
             $account->setPrice($newPrice);
             $account->setMinValue($newMinValue);
@@ -225,8 +225,8 @@ class AccountBLL
             $statement->setDescription(empty($description) ? "Reset Balance" : $description);
             $statement->setTypeId(StatementEntity::BALANCE);
             $statement->setCode('BAL');
-            $statement->setGrossBalance($newBalance);
-            $statement->setNetBalance($newBalance - $reservedValues);
+            $statement->setBalance($newBalance);
+            $statement->setAvailable($newBalance - $reservedValues);
             $statement->setReserved($reservedValues);
             $statement->setPrice($newPrice);
             $statement->setAccountTypeId($account->getAccountTypeId());
@@ -275,7 +275,7 @@ class AccountBLL
     {
         $account = $this->getById($accountId);
 
-        $amount = $balance - $account->getNetBalance();
+        $amount = $balance - $account->getAvailable();
 
         if ($amount >= 0) {
             $statement = $this->statementBLL->addFunds(StatementDTO::create($accountId, $amount)->setDescription($description));

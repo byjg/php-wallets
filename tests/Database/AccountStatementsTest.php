@@ -107,11 +107,11 @@ class AccountStatementsTest extends TestCase
         $statement->setAmount('10.00');
         $statement->setDate('2015-01-24');
         $statement->setDescription('Test');
-        $statement->setGrossBalance('990.00');
+        $statement->setBalance('990.00');
         $statement->setAccountId($accountId);
         $statement->setStatementId($actual->getStatementId());
         $statement->setTypeId('W');
-        $statement->setNetBalance('990.00');
+        $statement->setAvailable('990.00');
         $statement->setPrice('1.00');
         $statement->setReserved('0.00');
         $statement->setReferenceId('Referencia');
@@ -141,11 +141,11 @@ class AccountStatementsTest extends TestCase
         $statement->setAmount('10.00');
         $statement->setDate('2015-01-24');
         $statement->setDescription('Test');
-        $statement->setGrossBalance('10.00');
+        $statement->setBalance('10.00');
         $statement->setAccountId($accountId);
         $statement->setStatementId($actual->getStatementId());;
         $statement->setTypeId('D');
-        $statement->setNetBalance('10.00');
+        $statement->setAvailable('10.00');
         $statement->setPrice('1.00');
         $statement->setReserved('0.00');
         $statement->setReferenceId('Referencia');
@@ -190,11 +190,11 @@ class AccountStatementsTest extends TestCase
         $statement[0]->setDate('2015-01-24');
         $statement[0]->setDescription('Opening Balance');
         $statement[0]->setCode('BAL');
-        $statement[0]->setGrossBalance('1000.00');
+        $statement[0]->setBalance('1000.00');
         $statement[0]->setAccountId($accountId);
         $statement[0]->setStatementId(2);
         $statement[0]->setTypeId('D');
-        $statement[0]->setNetBalance('1000.00');
+        $statement[0]->setAvailable('1000.00');
         $statement[0]->setPrice('1.00');
         $statement[0]->setReserved('0.00');
         $statement[0]->setReferenceId('');
@@ -205,11 +205,11 @@ class AccountStatementsTest extends TestCase
         $statement[1]->setAmount('10.00');
         $statement[1]->setDate('2015-01-24');
         $statement[1]->setDescription('Test');
-        $statement[1]->setGrossBalance('990.00');
+        $statement[1]->setBalance('990.00');
         $statement[1]->setAccountId($accountId);
         $statement[1]->setStatementId($statementResult->getStatementId());
         $statement[1]->setTypeId('W');
-        $statement[1]->setNetBalance('990.00');
+        $statement[1]->setAvailable('990.00');
         $statement[1]->setPrice('1.00');
         $statement[1]->setReserved('0.00');
         $statement[1]->setReferenceId('Referencia');
@@ -220,11 +220,11 @@ class AccountStatementsTest extends TestCase
         $statement[2]->setAmount('50.00');
         $statement[2]->setDate('2015-01-24');
         $statement[2]->setDescription('Test');
-        $statement[2]->setGrossBalance('940.00');
+        $statement[2]->setBalance('940.00');
         $statement[2]->setAccountId($accountId);
         $statement[2]->setStatementId(4);
         $statement[2]->setTypeId('W');
-        $statement[2]->setNetBalance('940.00');
+        $statement[2]->setAvailable('940.00');
         $statement[2]->setPrice('1.00');
         $statement[2]->setReserved('0.00');
         $statement[2]->setReferenceId('Referencia');
@@ -265,11 +265,11 @@ class AccountStatementsTest extends TestCase
         $statement->setAmount('250.00');
         $statement->setDate('2015-01-24');
         $statement->setDescription('Test Add Funds');
-        $statement->setGrossBalance('1250.00');
+        $statement->setBalance('1250.00');
         $statement->setAccountId($accountId);
         $statement->setStatementId($actual->getStatementId());
         $statement->setTypeId('D');
-        $statement->setNetBalance('1250.00');
+        $statement->setAvailable('1250.00');
         $statement->setPrice('1.00');
         $statement->setReserved('0.00');
         $statement->setReferenceId('Referencia Add Funds');
@@ -314,11 +314,11 @@ class AccountStatementsTest extends TestCase
         $statement->setAmount('350.00');
         $statement->setDate('2015-01-24');
         $statement->setDescription('Test Withdraw');
-        $statement->setGrossBalance('650.00');
+        $statement->setBalance('650.00');
         $statement->setAccountId($accountId);
         $statement->setStatementId($actual->getStatementId());
         $statement->setTypeId('W');
-        $statement->setNetBalance('650.00');
+        $statement->setAvailable('650.00');
         $statement->setPrice('1.00');
         $statement->setReserved('0.00');
         $statement->setReferenceId('Referencia Withdraw');
@@ -358,11 +358,11 @@ class AccountStatementsTest extends TestCase
         $statement->setAmount('1150.00');
         $statement->setDate('2015-01-24');
         $statement->setDescription('Test Withdraw');
-        $statement->setGrossBalance('-150.00');
+        $statement->setBalance('-150.00');
         $statement->setAccountId($accountId);
         $statement->setStatementId($actual->getStatementId());
         $statement->setTypeId('W');
-        $statement->setNetBalance('-150.00');
+        $statement->setAvailable('-150.00');
         $statement->setPrice('1.00');
         $statement->setReserved('0.00');
         $statement->setReferenceId('Referencia Withdraw');
@@ -382,7 +382,7 @@ class AccountStatementsTest extends TestCase
         $statement = $this->statementBLL->withdrawFunds(StatementDTO::create($accountId, 1400)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
 
         $statement = $this->statementBLL->getById($statement->getStatementId());
-        $this->assertEquals(-400, $statement->getNetBalance());
+        $this->assertEquals(-400, $statement->getAvailable());
         $this->assertEquals(1400, $statement->getAmount());
     }
 
@@ -425,9 +425,9 @@ class AccountStatementsTest extends TestCase
             "accountid" => $accountId,
             "accounttypeid" => "USDTEST",
             "userid" => "___TESTUSER-10",
-            "grossbalance" => 1000,
+            "balance" => 1000,
             "reserved" => 0,
-            "netbalance" => 1000,
+            "available" => 1000,
             "price" => 1,
             "extra" => "Extra Information",
             "entrydate" => null,
@@ -471,9 +471,9 @@ class AccountStatementsTest extends TestCase
             "accountid" => $accountId,
             "accounttypeid" => "ABCTEST",
             "userid" => "___TESTUSER-10",
-            "grossbalance" => 1000,
+            "balance" => 1000,
             "reserved" => 0,
-            "netbalance" => 1000,
+            "available" => 1000,
             "price" => 1,
             "extra" => "Extra Information",
             "entrydate" => null,
@@ -505,9 +505,9 @@ class AccountStatementsTest extends TestCase
             'accountid' => $accountId,
             'accounttypeid' => 'USDTEST',
             'userid' => "___TESTUSER-1",
-            'grossbalance' => '650.00',
+            'balance' => '650.00',
             'reserved' => '0.00',
-            'netbalance' => '650.00',
+            'available' => '650.00',
             'price' => '1.00',
             'extra' => '',
             'minvalue' => '0.00',
@@ -519,9 +519,9 @@ class AccountStatementsTest extends TestCase
         $this->assertEquals([
             'accountid' => $accountId,
             'accounttypeid' => 'USDTEST',
-            'grossbalance' => '650.00',
+            'balance' => '650.00',
             'reserved' => '0.00',
-            'netbalance' => '650.00',
+            'available' => '650.00',
             'price' => '1.00',
             'statementid' => $statementId,
             'typeid' => 'B',
@@ -552,9 +552,9 @@ class AccountStatementsTest extends TestCase
                 'accountid' => $accountId,
                 'accounttypeid' => 'USDTEST',
                 'userid' => "___TESTUSER-1",
-                'grossbalance' => '650.00',
+                'balance' => '650.00',
                 'reserved' => '0.00',
-                'netbalance' => '650.00',
+                'available' => '650.00',
                 'price' => '1.00',
                 'extra' => '',
                 'minvalue' => '0.00',
@@ -571,9 +571,9 @@ class AccountStatementsTest extends TestCase
             [
                 'accountid' => $accountId,
                 'accounttypeid' => 'USDTEST',
-                'grossbalance' => '650.00',
+                'balance' => '650.00',
                 'reserved' => '0.00',
-                'netbalance' => '650.00',
+                'available' => '650.00',
                 'price' => '1.00',
                 'statementid' => $statementPartial->getStatementId(),
                 'typeid' => 'W',
@@ -611,9 +611,9 @@ class AccountStatementsTest extends TestCase
             'accountid' => $accountId,
             'accounttypeid' => 'USDTEST',
             'userid' => "___TESTUSER-1",
-            'grossbalance' => '0.00',
+            'balance' => '0.00',
             'reserved' => '0.00',
-            'netbalance' => '0.00',
+            'available' => '0.00',
             'price' => '0.00',
             'extra' => '',
             'minvalue' => '0.00',
@@ -626,9 +626,9 @@ class AccountStatementsTest extends TestCase
             [
                 'accountid' => $accountId,
                 'accounttypeid' => 'USDTEST',
-                'grossbalance' => '0.00',
+                'balance' => '0.00',
                 'reserved' => '0.00',
-                'netbalance' => '0.00',
+                'available' => '0.00',
                 'price' => '0.00',
                 'statementid' => $statementId,
                 'typeid' => 'B',
@@ -666,9 +666,9 @@ class AccountStatementsTest extends TestCase
                 [
                     'accountid' => $accountId,
                     'accounttypeid' => 'USDTEST',
-                    'grossbalance' => '1000.00',
+                    'balance' => '1000.00',
                     'reserved' => '0.00',
-                    'netbalance' => '1000.00',
+                    'available' => '1000.00',
                     'price' => '1.00',
                     'statementid' => '2',
                     'typeid' => 'D',
@@ -682,9 +682,9 @@ class AccountStatementsTest extends TestCase
                 [
                     'accountid' => $accountId,
                     'accounttypeid' => 'USDTEST',
-                    'grossbalance' => '1400.00',
+                    'balance' => '1400.00',
                     'reserved' => '0.00',
-                    'netbalance' => '1400.00',
+                    'available' => '1400.00',
                     'price' => '1.00',
                     'statementid' => '3',
                     'typeid' => 'D',
@@ -698,9 +698,9 @@ class AccountStatementsTest extends TestCase
                 [
                     'accountid' => $accountId,
                     'accounttypeid' => 'USDTEST',
-                    'grossbalance' => '1100.00',
+                    'balance' => '1100.00',
                     'reserved' => '0.00',
-                    'netbalance' => '1100.00',
+                    'available' => '1100.00',
                     'price' => '1.00',
                     'statementid' => '4',
                     'typeid' => 'W',
@@ -773,9 +773,9 @@ class AccountStatementsTest extends TestCase
                 [
                     'accountid' => $accountId,
                     'accounttypeid' => 'USDTEST',
-                    'grossbalance' => '1400.00',
+                    'balance' => '1400.00',
                     'reserved' => '0.00',
-                    'netbalance' => '1400.00',
+                    'available' => '1400.00',
                     'price' => '1.00',
                     'statementid' => '3',
                     'typeid' => 'D',
@@ -823,9 +823,9 @@ class AccountStatementsTest extends TestCase
                 [
                     'accountid' => $accountId,
                     'accounttypeid' => 'USDTEST',
-                    'grossbalance' => '1100.00',
+                    'balance' => '1100.00',
                     'reserved' => '0.00',
-                    'netbalance' => '1100.00',
+                    'available' => '1100.00',
                     'price' => '1.00',
                     'statementid' => '4',
                     'typeid' => 'W',
@@ -859,8 +859,8 @@ class AccountStatementsTest extends TestCase
         $accountSource = $this->accountBLL->getById($statementSource->getAccountId());
         $accountTarget = $this->accountBLL->getById($statementTarget->getAccountId());
 
-        $this->assertEquals(700, $accountSource->getNetBalance());
-        $this->assertEquals(1300, $accountTarget->getNetBalance());
+        $this->assertEquals(700, $accountSource->getAvailable());
+        $this->assertEquals(1300, $accountTarget->getAvailable());
     }
 
     public function testTransferFundsFail(): void
@@ -957,11 +957,11 @@ class AccountStatementsTest extends TestCase
         $statement->setAmount('250.00');
         $statement->setDate('2015-01-24');
         $statement->setDescription('Test Add Funds');
-        $statement->setGrossBalance('1250.00');
+        $statement->setBalance('1250.00');
         $statement->setAccountId($accountId);
         $statement->setStatementId($actual->getStatementId());;
         $statement->setTypeId('D');
-        $statement->setNetBalance('1250.00');
+        $statement->setAvailable('1250.00');
         $statement->setPrice('1.00');
         $statement->setReserved('0.00');
         $statement->setReferenceId('Referencia Add Funds');
@@ -1061,9 +1061,9 @@ class AccountStatementsTest extends TestCase
 
         // Should be zero, because allow cap at zero
         $account = $this->accountBLL->getById($accountId);
-        $this->assertEquals(0, $account->getGrossBalance());
+        $this->assertEquals(0, $account->getBalance());
         $this->assertEquals(0, $account->getReserved());
-        $this->assertEquals(0, $account->getNetBalance());
+        $this->assertEquals(0, $account->getAvailable());
 
         // Needs to be adjusted to the new balance - 750
         $statement = $this->statementBLL->getById($statement->getStatementId());
@@ -1088,9 +1088,9 @@ class AccountStatementsTest extends TestCase
 
         // Should be zero, because allow cap at zero
         $account = $this->accountBLL->getById($accountId);
-        $this->assertEquals(200, $account->getGrossBalance());
+        $this->assertEquals(200, $account->getBalance());
         $this->assertEquals(0, $account->getReserved());
-        $this->assertEquals(200, $account->getNetBalance());
+        $this->assertEquals(200, $account->getAvailable());
 
         // Needs to be adjusted to the new balance - 750
         $statement = $this->statementBLL->getById($statement->getStatementId());
@@ -1122,9 +1122,9 @@ class AccountStatementsTest extends TestCase
 
         // Should be zero, because allow cap at zero
         $account = $this->accountBLL->getById($accountId);
-        $this->assertEquals(250, $account->getGrossBalance());
+        $this->assertEquals(250, $account->getBalance());
         $this->assertEquals(250, $account->getReserved());
-        $this->assertEquals(0, $account->getNetBalance());
+        $this->assertEquals(0, $account->getAvailable());
 
         // Needs to be adjusted to the new balance - 750
         $statement = $this->statementBLL->getById($withdraw->getStatementId());

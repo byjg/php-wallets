@@ -2,6 +2,7 @@
 
 namespace Tests\Classes;
 
+use ByJG\MicroOrm\Enum\ObserverEvent;
 use ByJG\MicroOrm\Interface\ObserverProcessorInterface;
 use ByJG\MicroOrm\ObserverData;
 use Throwable;
@@ -17,7 +18,7 @@ class ObserverAccount implements ObserverProcessorInterface
     public function process(ObserverData $observerData): void
     {
         // This is tied to the test AccountStatementTest::testStatementObserver()
-        $this->repository->setReach($observerData->getEvent() == \ByJG\MicroOrm\Enum\ObserverEvent::Update && $observerData->getData()->getNetbalance() == 1250);
+        $this->repository->setReach($observerData->getEvent() == ObserverEvent::Update && $observerData->getData()->getAvailable() == 1250);
     }
 
     #[\Override]

@@ -28,9 +28,9 @@ CREATE TABLE `account` (
   `accountid` int(11) NOT NULL AUTO_INCREMENT,
   `accounttypeid` varchar(20) COLLATE utf8_bin NOT NULL,
   `userid` varchar(50) DEFAULT NULL,
-  `grossbalance` BIGINT DEFAULT 0,
+  `balance` BIGINT DEFAULT 0,
   `reserved` BIGINT DEFAULT 0,
-  `netbalance` BIGINT DEFAULT 0,
+  `available` BIGINT DEFAULT 0,
   `price` BIGINT NOT NULL DEFAULT 1,
   `extra` text COLLATE utf8_bin,
   `minvalue` BIGINT NOT NULL DEFAULT 0,
@@ -72,9 +72,9 @@ CREATE TABLE `statement` (
   `amount` BIGINT NOT NULL,
   `price` BIGINT DEFAULT 100,
   `date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `grossbalance` BIGINT DEFAULT NULL,
+  `balance` BIGINT DEFAULT NULL,
   `reserved` BIGINT DEFAULT NULL,
-  `netbalance` BIGINT DEFAULT NULL,
+  `available` BIGINT DEFAULT NULL,
   `code` CHAR(10) DEFAULT NULL,
   `description` varchar(255) COLLATE utf8_bin DEFAULT NULL,
   `statementparentid` int(11) DEFAULT NULL,
@@ -114,4 +114,5 @@ CREATE TABLE `statement` (
 
 -- Schema updated to include all migrations through 00005-decimal-to-int
 -- Financial columns now use BIGINT to store values in smallest unit (cents)
--- Default price is 100 (representing 1.00)
+-- Default price is 1
+-- Column naming: balance (total), reserved (blocked), available (balance - reserved)

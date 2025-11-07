@@ -42,7 +42,7 @@ class AccountEntity extends BaseModel
      * @var int|null
      * @OA\Property()
      */
-    protected ?int $grossbalance = null;
+    protected ?int $balance = null;
 
     /**
      * @var int|null
@@ -54,7 +54,7 @@ class AccountEntity extends BaseModel
      * @var int|null
      * @OA\Property()
      */
-    protected ?int $netbalance = null;
+    protected ?int $available = null;
 
     /**
      * @var int|null
@@ -99,9 +99,9 @@ class AccountEntity extends BaseModel
         return $this->userid;
     }
 
-    public function getGrossBalance(): ?int
+    public function getBalance(): ?int
     {
-        return $this->grossbalance;
+        return $this->balance;
     }
 
     public function getReserved(): ?int
@@ -109,9 +109,9 @@ class AccountEntity extends BaseModel
         return $this->reserved;
     }
 
-    public function getNetBalance(): ?int
+    public function getAvailable(): ?int
     {
-        return $this->netbalance;
+        return $this->available;
     }
 
     public function getPrice(): ?int
@@ -149,9 +149,9 @@ class AccountEntity extends BaseModel
         $this->userid = $userid;
     }
 
-    public function setGrossBalance(?int $grossbalance): void
+    public function setBalance(?int $balance): void
     {
-        $this->grossbalance = $grossbalance;
+        $this->balance = $balance;
     }
 
     public function setReserved(?int $reserved): void
@@ -159,9 +159,9 @@ class AccountEntity extends BaseModel
         $this->reserved = $reserved;
     }
 
-    public function setNetBalance(?int $netbalance): void
+    public function setAvailable(?int $available): void
     {
-        $this->netbalance = $netbalance;
+        $this->available = $available;
     }
 
     public function setPrice(?int $price): void
@@ -202,8 +202,8 @@ class AccountEntity extends BaseModel
     {
         $minValue = $this->getMinValue();
 
-        if ($this->getNetBalance() < $minValue
-            || $this->getGrossBalance() < $minValue
+        if ($this->getAvailable() < $minValue
+            || $this->getBalance() < $minValue
             || $this->getReserved() < $minValue
         ) {
             throw new AmountException('Valor não pode ser menor que ' . $minValue);

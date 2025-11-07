@@ -52,11 +52,11 @@ class ReserveFundsDepositTest extends TestCase
         $statement->setAmount('350.00');
         $statement->setDate('2015-01-24');
         $statement->setDescription('Test Deposit');
-        $statement->setGrossBalance('1000.00');
+        $statement->setBalance('1000.00');
         $statement->setAccountId($accountId);
         $statement->setStatementId($actual->getStatementId());
         $statement->setTypeId('DB');
-        $statement->setNetBalance('1350.00');
+        $statement->setAvailable('1350.00');
         $statement->setPrice('1.00');
         $statement->setReserved('-350.00');
         $statement->setReferenceId('Referencia Deposit');
@@ -95,11 +95,11 @@ class ReserveFundsDepositTest extends TestCase
         $statement->setAmount('300.00');
         $statement->setDate('2015-01-24');
         $statement->setDescription('Test Deposit');
-        $statement->setGrossBalance('-200.00');
+        $statement->setBalance('-200.00');
         $statement->setAccountId($accountId);
         $statement->setStatementId($actual->getStatementId());
         $statement->setTypeId('DB');
-        $statement->setNetBalance('100.00');
+        $statement->setAvailable('100.00');
         $statement->setPrice('1.00');
         $statement->setReserved('-300.00');
         $statement->setReferenceId('Referencia Deposit');
@@ -180,12 +180,12 @@ public function testAcceptFundsById_InvalidType(): void
         $statement = new StatementEntity();
         $statement->setAmount('350.00');
         $statement->setDescription('Test Deposit');
-        $statement->setGrossBalance('1500.00');
+        $statement->setBalance('1500.00');
         $statement->setAccountId($accountId);
         $statement->setStatementId($actualId);
         $statement->setStatementParentId($reserveStatement->getStatementId());
         $statement->setTypeId('D');
-        $statement->setNetBalance('1500.00');
+        $statement->setAvailable('1500.00');
         $statement->setPrice('1.00');
         $statement->setReserved('0.00');
         $statement->setReferenceId('Referencia Deposit');
@@ -256,8 +256,8 @@ public function testAcceptFundsById_InvalidType(): void
         );
 
         $accountAfter = $this->accountBLL->getById($accountId);
-        $this->assertEquals('920.00', $accountAfter->getGrossBalance());
-        $this->assertEquals('920.00', $accountAfter->getNetBalance());
+        $this->assertEquals('920.00', $accountAfter->getBalance());
+        $this->assertEquals('920.00', $accountAfter->getAvailable());
         $this->assertEquals('0.00', $accountAfter->getReserved());
 
         $rejectedStatement = $this->statementBLL->getRepository()->getByParentId($reserveStatement->getStatementId());
@@ -323,12 +323,12 @@ public function testAcceptFundsById_InvalidType(): void
         $statement = new StatementEntity();
         $statement->setAmount('350.00');
         $statement->setDescription('Test Reserve Deposit');
-        $statement->setGrossBalance('1150.00');
+        $statement->setBalance('1150.00');
         $statement->setAccountId($accountId);
         $statement->setStatementId($actualId);
         $statement->setStatementParentId($reserveStatement->getStatementId());
         $statement->setTypeId('R');
-        $statement->setNetBalance('1150.00');
+        $statement->setAvailable('1150.00');
         $statement->setPrice('1.00');
         $statement->setReserved('0.00');
         $statement->setReferenceId('Referencia Reserve');

@@ -69,7 +69,7 @@ class StatementEntity extends BaseModel
      * @var int|null
      * @OA\Property()
      */
-    protected ?int $grossbalance = null;
+    protected ?int $balance = null;
 
     /**
      * @var int|null
@@ -81,7 +81,7 @@ class StatementEntity extends BaseModel
      * @var int|null
      * @OA\Property()
      */
-    protected ?int $netbalance = null;
+    protected ?int $available = null;
 
     /**
      * @var string|null
@@ -174,9 +174,9 @@ class StatementEntity extends BaseModel
     /**
      * @return int|null
      */
-    public function getGrossBalance(): ?int
+    public function getBalance(): ?int
     {
-        return $this->grossbalance;
+        return $this->balance;
     }
 
     /**
@@ -190,9 +190,9 @@ class StatementEntity extends BaseModel
     /**
      * @return int|null
      */
-    public function getNetBalance(): ?int
+    public function getAvailable(): ?int
     {
-        return $this->netbalance;
+        return $this->available;
     }
 
     /**
@@ -273,9 +273,9 @@ class StatementEntity extends BaseModel
         $this->date = $date;
     }
 
-    public function setGrossBalance(?int $grossbalance): void
+    public function setBalance(?int $balance): void
     {
-        $this->grossbalance = $grossbalance;
+        $this->balance = $balance;
     }
 
     public function setReserved(?int $reserved): void
@@ -283,9 +283,9 @@ class StatementEntity extends BaseModel
         $this->reserved = $reserved;
     }
 
-    public function setNetBalance(?int $netbalance): void
+    public function setAvailable(?int $available): void
     {
-        $this->netbalance = $netbalance;
+        $this->available = $available;
     }
 
     public function setCode(?string $code): void
@@ -337,8 +337,8 @@ class StatementEntity extends BaseModel
     {
         $this->setAccountId($account->getAccountId());
         $this->setAccountTypeId($account->getAccountTypeId());
-        $this->setGrossBalance($account->getGrossBalance());
-        $this->setNetBalance($account->getNetBalance());
+        $this->setBalance($account->getBalance());
+        $this->setAvailable($account->getAvailable());
         $this->setReserved($account->getReserved());
         $this->setPrice($account->getPrice());
 
@@ -361,8 +361,8 @@ class StatementEntity extends BaseModel
             return;
         }
 
-        if ($this->getNetBalance() < $this->account->getMinValue()
-            || $this->getGrossBalance() < $this->account->getMinValue()
+        if ($this->getAvailable() < $this->account->getMinValue()
+            || $this->getBalance() < $this->account->getMinValue()
             || $this->getReserved() < $this->account->getMinValue()
         ) {
             throw new AmountException('Valor não pode ser menor que ' . $this->account->getMinValue());

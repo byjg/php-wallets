@@ -91,15 +91,15 @@ class StatementBLL
         $this->validateStatementDto($dto);
 
         // 1) Compute numeric deltas for balances (used for notifications) and the SQL expressions (used for insert/select)
-        [$grossDelta, $reservedDelta, $netDelta] = $this->computeBalanceDeltas($operation, $dto->getAmount());
-        [$exprAmount, $exprGross, $exprNet] = $this->buildAmountAndExpressions($operation, $dto->getAmount(), $capAtZero);
+        [$balanceDelta, $reservedDelta, $availableDelta] = $this->computeBalanceDeltas($operation, $dto->getAmount());
+        [$exprAmount, $exprBalance, $exprAvailable] = $this->buildAmountAndExpressions($operation, $dto->getAmount(), $capAtZero);
 
         // 2) Build the insert-select for the statement and the account update based on the new statement
         $statementInsert = $this->getInsertStatementQuery(
             $operation,
             $dto,
-            $exprGross,
-            $exprNet,
+            $exprBalance,
+            $exprAvailable,
             $exprAmount,
             (string)$reservedDelta
         );
@@ -171,9 +171,9 @@ class StatementBLL
 
         // 6) Notify observers of account change, providing an oldAccount with pre-change balances
         $oldAccount = clone $account;
-        $oldAccount->setGrossbalance($oldAccount->getGrossbalance() - $grossDelta);
+        $oldAccount->setBalance($oldAccount->getBalance() - $balanceDelta);
         $oldAccount->setReserved($oldAccount->getReserved() - $reservedDelta);
-        $oldAccount->setNetbalance($oldAccount->getNetbalance() - $netDelta);
+        $oldAccount->setAvailable($oldAccount->getAvailable() - $availableDelta);
 
         ORMSubject::getInstance()->notify(
             $this->accountRepository->getMapper()->getTable(),
@@ -204,7 +204,7 @@ class StatementBLL
      */
     private function computeBalanceDeltas(string $operation, int $amount): array
     {
-        $grossDelta = $amount * match ($operation) {
+        $balanceDelta = $amount * match ($operation) {
             StatementEntity::DEPOSIT => 1,
             StatementEntity::WITHDRAW => -1,
             default => 0,
@@ -216,13 +216,13 @@ class StatementBLL
             default => 0,
         };
 
-        $netDelta = $amount * match ($operation) {
+        $availableDelta = $amount * match ($operation) {
             StatementEntity::DEPOSIT, StatementEntity::DEPOSIT_BLOCKED => 1,
             StatementEntity::WITHDRAW, StatementEntity::WITHDRAW_BLOCKED => -1,
             default => 0,
         };
 
-        return [$grossDelta, $reservedDelta, $netDelta];
+        return [$balanceDelta, $reservedDelta, $availableDelta];
     }
 
     /**
@@ -232,12 +232,12 @@ class StatementBLL
      */
     private function buildAmountAndExpressions(string $operation, int $amount, bool $capAtZero): array
     {
-        $exprGross = "grossbalance + " . ($amount * match ($operation) {
+        $exprBalance = "balance + " . ($amount * match ($operation) {
             StatementEntity::DEPOSIT => 1,
             StatementEntity::WITHDRAW => -1,
             default => 0,
         });
-        $exprNet = "netbalance + " . ($amount * match ($operation) {
+        $exprAvailable = "available + " . ($amount * match ($operation) {
             StatementEntity::DEPOSIT, StatementEntity::DEPOSIT_BLOCKED => 1,
             StatementEntity::WITHDRAW, StatementEntity::WITHDRAW_BLOCKED => -1,
             default => 0,
@@ -245,13 +245,13 @@ class StatementBLL
         $exprAmount = (string)$amount;
 
         if ($capAtZero && $operation === StatementEntity::WITHDRAW) {
-            // Cap withdraw so netbalance never goes below zero
-            $exprAmount = "case when netbalance - {$amount} < 0 then {$amount} + (netbalance - {$amount}) else {$amount} end";
-            $exprGross = "grossbalance - $exprAmount";
-            $exprNet = "netbalance - $exprAmount";
+            // Cap withdraw so available never goes below zero
+            $exprAmount = "case when available - {$amount} < 0 then {$amount} + (available - {$amount}) else {$amount} end";
+            $exprBalance = "balance - $exprAmount";
+            $exprAvailable = "available - $exprAmount";
         }
 
-        return [$exprAmount, $exprGross, $exprNet];
+        return [$exprAmount, $exprBalance, $exprAvailable];
     }
 
     /**
@@ -275,8 +275,8 @@ class StatementBLL
     protected function getInsertStatementQuery(
         string $operation,
         StatementDTO $dto,
-        string $expressionSumGrossBalance,
-        string $expressionSumNetBalance,
+        string $expressionSumBalance,
+        string $expressionSumAvailable,
         string $expressionAmount,
         string $sumReserved
     ): InsertSelectQuery
@@ -285,8 +285,8 @@ class StatementBLL
         $targetColumns = [
             'accountid',
             'accounttypeid',
-            'grossbalance',
-            'netbalance',
+            'balance',
+            'available',
             'reserved',
             'price',
             'amount',
@@ -303,8 +303,8 @@ class StatementBLL
         $selectFields = [
             'accountid',
             'accounttypeid',
-            $expressionSumGrossBalance,
-            $expressionSumNetBalance,
+            $expressionSumBalance,
+            $expressionSumAvailable,
             "reserved + $sumReserved",
             'price',
             $expressionAmount,
@@ -347,9 +347,9 @@ class StatementBLL
 
         return UpdateQuery::getInstance()
             ->table('account')
-            ->setLiteral('account.grossbalance', 'st.grossbalance')
+            ->setLiteral('account.balance', 'st.balance')
             ->setLiteral('account.reserved', 'st.reserved')
-            ->setLiteral('account.netbalance', 'st.netbalance')
+            ->setLiteral('account.available', 'st.available')
             ->setLiteral('account.last_uuid', $uuid)
             ->where('account.accountid = :accid', ['accid' => $dto->getAccountId()])
             ->join($this->statementRepository->getMapper()->getTable(), 'st.accountid = account.accountid and st.uuid = ' . $uuid, 'st');
@@ -467,7 +467,7 @@ class StatementBLL
 
             $account = $this->accountRepository->getById($statement->getAccountId());
             $account->setReserved($account->getReserved() + ($statement->getAmount() * $signal));
-            $account->setGrossBalance($account->getGrossBalance() + ($statement->getAmount() * $signal));
+            $account->setBalance($account->getBalance() + ($statement->getAmount() * $signal));
             $account->setEntryDate(null);
             $this->accountRepository->save($account);
 
@@ -596,7 +596,7 @@ class StatementBLL
 
             $account = $this->accountRepository->getById($statement->getAccountId());
             $account->setReserved($account->getReserved() - ($statement->getAmount() * $signal));
-            $account->setNetBalance($account->getNetBalance() + ($statement->getAmount() * $signal));
+            $account->setAvailable($account->getAvailable() + ($statement->getAmount() * $signal));
             $account->setEntryDate(null);
             $this->accountRepository->save($account);
 
