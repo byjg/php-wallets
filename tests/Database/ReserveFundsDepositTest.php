@@ -40,8 +40,8 @@ class ReserveFundsDepositTest extends TestCase
     public function testReserveForDepositFunds(): void
     {
         // Populate Data!
-        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $dto = TransactionDTO::create($accountId, 350)
+        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $dto = TransactionDTO::create($walletId, 350)
             ->setDescription('Test Deposit')
             ->setReferenceId('Referencia Deposit')
             ->setReferenceSource('Source Deposit');
@@ -53,7 +53,7 @@ class ReserveFundsDepositTest extends TestCase
         $expectedTransaction->setDate('2015-01-24');
         $expectedTransaction->setDescription('Test Deposit');
         $expectedTransaction->setBalance('1000.00');
-        $expectedTransaction->setAccountId($accountId);
+        $expectedTransaction->setWalletId($walletId);
         $expectedTransaction->setTransactionId($actual->getTransactionId());
         $expectedTransaction->setTypeId('DB');
         $expectedTransaction->setAvailable('1350.00');
@@ -61,7 +61,7 @@ class ReserveFundsDepositTest extends TestCase
         $expectedTransaction->setReserved('-350.00');
         $expectedTransaction->setReferenceId('Referencia Deposit');
         $expectedTransaction->setReferenceSource('Source Deposit');
-        $expectedTransaction->setAccountTypeId('USDTEST');
+        $expectedTransaction->setWalletTypeId('USDTEST');
         $expectedTransaction->setTransactionParentId(null);
         $expectedTransaction->setDate($actual->getDate());
         $expectedTransaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
@@ -76,15 +76,15 @@ class ReserveFundsDepositTest extends TestCase
         $this->expectExceptionMessage('Amount needs to be greater than zero');
 
         // Populate Data!
-        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $this->transactionService->reserveFundsForDeposit(TransactionDTO::create($accountId, -50)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
+        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $this->transactionService->reserveFundsForDeposit(TransactionDTO::create($walletId, -50)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
     }
 
     public function testReserveForDepositFunds_Allow_Negative(): void
     {
         // Populate Data!
-        $accountId = $this->accountService->createAccount('NEGTEST', "___TESTUSER-1", -200, 1, -400);
-        $dto = TransactionDTO::create($accountId, 300)
+        $walletId = $this->accountService->createWallet('NEGTEST', "___TESTUSER-1", -200, 1, -400);
+        $dto = TransactionDTO::create($walletId, 300)
             ->setDescription('Test Deposit')
             ->setReferenceId('Referencia Deposit')
             ->setReferenceSource('Source Deposit');
@@ -96,7 +96,7 @@ class ReserveFundsDepositTest extends TestCase
         $transaction->setDate('2015-01-24');
         $transaction->setDescription('Test Deposit');
         $transaction->setBalance('-200.00');
-        $transaction->setAccountId($accountId);
+        $transaction->setWalletId($walletId);
         $transaction->setTransactionId($actual->getTransactionId());
         $transaction->setTypeId('DB');
         $transaction->setAvailable('100.00');
@@ -104,7 +104,7 @@ class ReserveFundsDepositTest extends TestCase
         $transaction->setReserved('-300.00');
         $transaction->setReferenceId('Referencia Deposit');
         $transaction->setReferenceSource('Source Deposit');
-        $transaction->setAccountTypeId('NEGTEST');
+        $transaction->setWalletTypeId('NEGTEST');
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
 
@@ -129,9 +129,9 @@ public function testAcceptFundsById_InvalidType(): void
         $this->expectException(TransactionException::class);
 
         // Populate Data!
-        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $transaction = $this->transactionService->addFunds(
-            TransactionDTO::create($accountId, 200)
+            TransactionDTO::create($walletId, 200)
                 ->setDescription('Test Deposit')
                 ->setReferenceId('Referencia Deposit')
                 ->setReferenceSource('Source Deposit')
@@ -145,9 +145,9 @@ public function testAcceptFundsById_InvalidType(): void
         $this->expectException(TransactionException::class);
 
         // Populate Data!
-        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $this->transactionService->addFunds(TransactionDTO::create($accountId, 150)->setDescription('Test Deposit')->setReferenceId('Referencia Deposit'));
-        $transaction = $this->transactionService->reserveFundsForDeposit(TransactionDTO::create($accountId, 350)->setDescription('Test Deposit')->setReferenceId('Referencia Deposit'));
+        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $this->transactionService->addFunds(TransactionDTO::create($walletId, 150)->setDescription('Test Deposit')->setReferenceId('Referencia Deposit'));
+        $transaction = $this->transactionService->reserveFundsForDeposit(TransactionDTO::create($walletId, 350)->setDescription('Test Deposit')->setReferenceId('Referencia Deposit'));
 
         // Executar ação
         $this->transactionService->acceptFundsById($transaction->getTransactionId());;
@@ -159,14 +159,14 @@ public function testAcceptFundsById_InvalidType(): void
     public function testAcceptFundsById_OK(): void
     {
         // Populate Data!
-        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $this->transactionService->addFunds(
-            TransactionDTO::create($accountId, 150)
+            TransactionDTO::create($walletId, 150)
                 ->setDescription('Test Deposit')
                 ->setReferenceId('Referencia Deposit')
                 ->setReferenceSource('Source Deposit')
             );
-        $reserveDto = TransactionDTO::create($accountId, 350)
+        $reserveDto = TransactionDTO::create($walletId, 350)
             ->setDescription('Test Deposit')
             ->setReferenceId('Referencia Deposit')
             ->setReferenceSource('Source Deposit');
@@ -181,7 +181,7 @@ public function testAcceptFundsById_InvalidType(): void
         $transaction->setAmount('350.00');
         $transaction->setDescription('Test Deposit');
         $transaction->setBalance('1500.00');
-        $transaction->setAccountId($accountId);
+        $transaction->setWalletId($walletId);
         $transaction->setTransactionId($actualId);
         $transaction->setTransactionParentId($reserveTransaction->getTransactionId());
         $transaction->setTypeId('D');
@@ -191,7 +191,7 @@ public function testAcceptFundsById_InvalidType(): void
         $transaction->setReferenceId('Referencia Deposit');
         $transaction->setReferenceSource('Source Deposit');
         $transaction->setDate($actual->getDate());
-        $transaction->setAccountTypeId('USDTEST');
+        $transaction->setWalletTypeId('USDTEST');
         $transaction->setUuid($actual->getUuid());
 
         // Executar teste
@@ -202,9 +202,9 @@ public function testAcceptFundsById_InvalidType(): void
     {
         $this->expectException(AmountException::class);
 
-        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $reserveTransaction = $this->transactionService->reserveFundsForWithdraw(
-            TransactionDTO::create($accountId, 100)
+            TransactionDTO::create($walletId, 100)
         );
 
         $transactionRefundDto = TransactionDTO::createEmpty()
@@ -220,9 +220,9 @@ public function testAcceptFundsById_InvalidType(): void
         $this->expectException(AmountException::class);
         $this->expectExceptionMessage('Partial amount must be greater than zero and less than the original reserved amount.');
 
-        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $reserveTransaction = $this->transactionService->reserveFundsForWithdraw(
-            TransactionDTO::create($accountId, 100)
+            TransactionDTO::create($walletId, 100)
         );
 
         $transactionRefundDto = TransactionDTO::createEmpty()
@@ -235,9 +235,9 @@ public function testAcceptFundsById_InvalidType(): void
 
     public function testAcceptPartialFundsById_OK(): void
     {
-        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $reserveTransaction = $this->transactionService->reserveFundsForWithdraw(
-            TransactionDTO::create($accountId, 100)->setDescription('Reserva para Aposta')
+            TransactionDTO::create($walletId, 100)->setDescription('Reserva para Aposta')
         );
 
         $transactionWithdrawDto = TransactionDTO::createEmpty()
@@ -255,10 +255,10 @@ public function testAcceptFundsById_InvalidType(): void
             $transactionRefundDto
         );
 
-        $accountAfter = $this->accountService->getById($accountId);
-        $this->assertEquals('920.00', $accountAfter->getBalance());
-        $this->assertEquals('920.00', $accountAfter->getAvailable());
-        $this->assertEquals('0.00', $accountAfter->getReserved());
+        $walletAfter = $this->accountService->getById($walletId);
+        $this->assertEquals('920.00', $walletAfter->getBalance());
+        $this->assertEquals('920.00', $walletAfter->getAvailable());
+        $this->assertEquals('0.00', $walletAfter->getReserved());
 
         $rejectedTransaction = $this->transactionService->getRepository()->getByParentId($reserveTransaction->getTransactionId());
         $this->assertNotNull($rejectedTransaction);
@@ -277,8 +277,8 @@ public function testAcceptFundsById_InvalidType(): void
         $this->expectException(TransactionException::class);
 
         // Populate Data!
-        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $transaction = $this->transactionService->addFunds(TransactionDTO::create($accountId, 300));
+        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $transaction = $this->transactionService->addFunds(TransactionDTO::create($walletId, 300));
 
         $this->transactionService->rejectFundsById($transaction->getTransactionId());
     }
@@ -288,9 +288,9 @@ public function testAcceptFundsById_InvalidType(): void
         $this->expectException(TransactionException::class);
 
         // Populate Data!
-        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $this->transactionService->addFunds(TransactionDTO::create($accountId, 150)->setDescription('Test Deposit')->setReferenceId('Referencia Deposit'));
-        $reserveTransaction = $this->transactionService->reserveFundsForDeposit(TransactionDTO::create($accountId, 350)->setDescription('Test Deposit')->setReferenceId('Referencia Deposit'));
+        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $this->transactionService->addFunds(TransactionDTO::create($walletId, 150)->setDescription('Test Deposit')->setReferenceId('Referencia Deposit'));
+        $reserveTransaction = $this->transactionService->reserveFundsForDeposit(TransactionDTO::create($walletId, 350)->setDescription('Test Deposit')->setReferenceId('Referencia Deposit'));
 
         // Executar ação
         $this->transactionService->rejectFundsById($reserveTransaction->getTransactionId());
@@ -302,14 +302,14 @@ public function testAcceptFundsById_InvalidType(): void
     public function testRejectFundsById_OK(): void
     {
         // Populate Data!
-        $accountId = $this->accountService->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $addDto = TransactionDTO::create($accountId, 150)
+        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $addDto = TransactionDTO::create($walletId, 150)
             ->setDescription('Test Add Funds')
             ->setReferenceId('Referencia Add')
             ->setReferenceSource('Source Add');
         $this->transactionService->addFunds($addDto);
         
-        $reserveDto = TransactionDTO::create($accountId, 350)
+        $reserveDto = TransactionDTO::create($walletId, 350)
             ->setDescription('Test Reserve Deposit')
             ->setReferenceId('Referencia Reserve')
             ->setReferenceSource('Source Reserve');
@@ -324,7 +324,7 @@ public function testAcceptFundsById_InvalidType(): void
         $transaction->setAmount('350.00');
         $transaction->setDescription('Test Reserve Deposit');
         $transaction->setBalance('1150.00');
-        $transaction->setAccountId($accountId);
+        $transaction->setWalletId($walletId);
         $transaction->setTransactionId($actualId);
         $transaction->setTransactionParentId($reserveTransaction->getTransactionId());
         $transaction->setTypeId('R');
@@ -334,7 +334,7 @@ public function testAcceptFundsById_InvalidType(): void
         $transaction->setReferenceId('Referencia Reserve');
         $transaction->setReferenceSource('Source Reserve');
         $transaction->setDate($actual->getDate());
-        $transaction->setAccountTypeId('USDTEST');
+        $transaction->setWalletTypeId('USDTEST');
         $transaction->setUuid($actual->getUuid());
 
         // Executar teste

@@ -2,5 +2,5 @@
 ALTER TABLE transaction
     DROP CONSTRAINT transaction_chk_value_nonnegative;
 
-ALTER TABLE account
-    DROP CONSTRAINT account_chk_value_nonnegative;
+ALTER TABLE wallet
+    DROP CONSTRAINT wallet_chk_value_nonnegative;

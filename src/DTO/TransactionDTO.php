@@ -15,7 +15,7 @@ use InvalidArgumentException;
 
 class TransactionDTO
 {
-    protected ?int $accountId = null;
+    protected ?int $walletId = null;
     protected ?int $amount = null;
 
     protected ?string $description = null;
@@ -28,18 +28,18 @@ class TransactionDTO
 
     /**
      * TransactionDTO constructor.
-     * @param int|null $accountId
+     * @param int|null $walletId
      * @param int|null $amount
      */
-    public function __construct(?int $accountId, ?int $amount)
+    public function __construct(?int $walletId, ?int $amount)
     {
-        $this->accountId = $accountId;
+        $this->accountId = $walletId;
         $this->amount = $amount;
     }
 
-    public static function create(int $accountId, int $amount): static
+    public static function create(int $walletId, int $amount): static
     {
-        return new TransactionDTO($accountId, $amount);
+        return new TransactionDTO($walletId, $amount);
     }
 
     public static function createEmpty(): static
@@ -54,8 +54,8 @@ class TransactionDTO
 
     public function setToTransaction(TransactionEntity $transaction): void
     {
-        if (!empty($this->getAccountId())) {
-            $transaction->setAccountId($this->getAccountId());
+        if (!empty($this->getWalletId())) {
+            $transaction->setWalletId($this->getWalletId());
         }
         if (!empty($this->getAmount()) || $this->getAmount() === 0) {
             $transaction->setAmount($this->getAmount());
@@ -90,7 +90,7 @@ class TransactionDTO
     /**
      * @return int|null
      */
-    public function getAccountId(): ?int
+    public function getWalletId(): ?int
     {
         return $this->accountId;
     }
@@ -135,9 +135,9 @@ class TransactionDTO
         return $this->code;
     }
 
-    public function setAccountId(int $accountId): static
+    public function setWalletId(int $walletId): static
     {
-        $this->accountId = $accountId;
+        $this->accountId = $walletId;
         return $this;
     }
 

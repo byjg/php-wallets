@@ -1,6 +1,6 @@
 -- MySQL dump 10.13  Distrib 5.7.9, for linux-glibc2.5 (x86_64)
 --
--- Host: 127.0.0.1    Database: accounts
+-- Host: 127.0.0.1    Database: wallets
 -- ------------------------------------------------------
 -- Server version	5.6.30-0ubuntu0.14.04.1-log
 --
@@ -18,15 +18,15 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `account`
+-- Table structure for table `wallet`
 --
 
-DROP TABLE IF EXISTS `account`;
+DROP TABLE IF EXISTS `wallet`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `account` (
-  `accountid` int(11) NOT NULL AUTO_INCREMENT,
-  `accounttypeid` varchar(20) COLLATE utf8_bin NOT NULL,
+CREATE TABLE `wallet` (
+  `walletid` int(11) NOT NULL AUTO_INCREMENT,
+  `wallettypeid` varchar(20) COLLATE utf8_bin NOT NULL,
   `userid` varchar(50) DEFAULT NULL,
   `balance` BIGINT DEFAULT 0,
   `reserved` BIGINT DEFAULT 0,
@@ -36,24 +36,24 @@ CREATE TABLE `account` (
   `minvalue` BIGINT NOT NULL DEFAULT 0,
   `last_uuid` binary(16) DEFAULT NULL,
   `entrydate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`accountid`),
-  UNIQUE KEY `unique_userid_type` (`userid`,`accounttypeid`),
-  KEY `fk_account_accounttype_idx` (`accounttypeid`),
-  CONSTRAINT `fk_account_accounttype` FOREIGN KEY (`accounttypeid`) REFERENCES `accounttype` (`accounttypeid`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  PRIMARY KEY (`walletid`),
+  UNIQUE KEY `unique_userid_type` (`userid`,`wallettypeid`),
+  KEY `fk_wallet_wallettype_idx` (`wallettypeid`),
+  CONSTRAINT `fk_wallet_wallettype` FOREIGN KEY (`wallettypeid`) REFERENCES `wallettype` (`wallettypeid`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `accounttype`
+-- Table structure for table `wallettype`
 --
 
-DROP TABLE IF EXISTS `accounttype`;
+DROP TABLE IF EXISTS `wallettype`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `accounttype` (
-  `accounttypeid` varchar(20) COLLATE utf8_bin NOT NULL,
+CREATE TABLE `wallettype` (
+  `wallettypeid` varchar(20) COLLATE utf8_bin NOT NULL,
   `name` varchar(45) COLLATE utf8_bin NOT NULL,
-  PRIMARY KEY (`accounttypeid`)
+  PRIMARY KEY (`wallettypeid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -66,8 +66,8 @@ DROP TABLE IF EXISTS `transaction`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `transaction` (
   `transactionid` int(11) NOT NULL AUTO_INCREMENT,
-  `accountid` int(11) NOT NULL,
-  `accounttypeid` varchar(20) COLLATE utf8_bin NOT NULL,
+  `walletid` int(11) NOT NULL,
+  `wallettypeid` varchar(20) COLLATE utf8_bin NOT NULL,
   `typeid` enum('B','D','W','DB','WB','R') COLLATE utf8_bin NOT NULL COMMENT 'B: Balance - Inicia um novo valor desprezando os antigos\nD: Deposit: Adiciona um valor imediatamente ao banco\nW: Withdrawal\nR: Reject\nWD: Withdrawal (blocked, reserved)\n',
   `amount` BIGINT NOT NULL,
   `price` BIGINT DEFAULT 100,
@@ -83,24 +83,24 @@ CREATE TABLE `transaction` (
   `uuid` binary(16) DEFAULT NULL,
   PRIMARY KEY (`transactionid`),
   UNIQUE KEY `idx_transaction_uuid` (`uuid`),
-  KEY `fk_transaction_account1_idx` (`accountid`),
+  KEY `fk_transaction_wallet1_idx` (`walletid`),
   KEY `fk_transaction_transaction1_idx` (`transactionparentid`),
   KEY `idx_transaction_typeid_date` (`typeid`,`date`) USING BTREE COMMENT 'Índice para filtros com tipo e ordenação por data decrescente',
-  KEY `fk_transaction_accounttype_idx` (`accounttypeid`),
+  KEY `fk_transaction_wallettype_idx` (`wallettypeid`),
   KEY `fk_transaction_referenceid_idx` (`referenceid`),
   KEY `fk_transaction_referencesource_idx` (`referencesource`),
-  CONSTRAINT `fk_transaction_accounttype` FOREIGN KEY (`accounttypeid`) REFERENCES `accounttype` (`accounttypeid`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk_transaction_account1` FOREIGN KEY (`accountid`) REFERENCES `account` (`accountid`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_transaction_wallettype` FOREIGN KEY (`wallettypeid`) REFERENCES `wallettype` (`wallettypeid`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_transaction_wallet1` FOREIGN KEY (`walletid`) REFERENCES `wallet` (`walletid`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `fk_transaction_transaction1` FOREIGN KEY (`transactionparentid`) REFERENCES `transaction` (`transactionid`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping events for database 'accounts'
+-- Dumping events for database 'wallets'
 --
 
 --
--- Dumping routines for database 'accounts'
+-- Dumping routines for database 'wallets'
 --
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 

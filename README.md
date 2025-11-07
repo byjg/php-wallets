@@ -19,48 +19,48 @@ It supports the following features:
 ### Basic usage
 
 ```php
-use ByJG\AccountTransactions\Service\AccountService;
-use ByJG\AccountTransactions\Service\AccountTypeService;
+use ByJG\AccountTransactions\Service\WalletService;
+use ByJG\AccountTransactions\Service\WalletTypeService;
 use ByJG\AccountTransactions\Service\StatementService;
-use ByJG\AccountTransactions\Entity\AccountTypeEntity;
-use ByJG\AccountTransactions\Repository\AccountRepository;
-use ByJG\AccountTransactions\Repository\AccountTypeRepository;
+use ByJG\AccountTransactions\Entity\WalletTypeEntity;
+use ByJG\AccountTransactions\Repository\WalletRepository;
+use ByJG\AccountTransactions\Repository\WalletTypeRepository;
 use ByJG\AccountTransactions\Repository\StatementRepository;
 use ByJG\AccountTransactions\DTO\StatementDTO;
 
 
 // Initiate Repositories
-$accountTypeRepo = new AccountTypeRepository($this->dbDriver);
+$walletTypeRepo = new WalletTypeRepository($this->dbDriver);
 $statementRepo = new StatementRepository($this->dbDriver);
-$accountRepo = new AccountRepository($this->dbDriver);
+$walletRepo = new WalletRepository($this->dbDriver);
 
 // Initiate Services
-$accountTypeService = new AccountTypeService($accountTypeRepo);
-$statementService = new StatementService($statementRepo, $accountRepo);
-$accountService = new AccountService($accountRepo, $accountTypeService, $statementService);
+$walletTypeService = new WalletTypeService($walletTypeRepo);
+$statementService = new StatementService($statementRepo, $walletRepo);
+$walletService = new WalletService($walletRepo, $walletTypeService, $statementService);
 
 // Create a new Account Type
-$accountType = new AccountTypeEntity();
-$accountType->setAccountTypeId('USD');
-$accountType->setName('Dollar Account');
+$walletType = new WalletTypeEntity();
+$walletType->setWalletTypeId('USD');
+$walletType->setName('Dollar Account');
 
-$accountTypeService = new AccountTypeService($accountTypeRepo);
-$accountTypeService->update($accountType);
+$walletTypeService = new WalletTypeService($walletTypeRepo);
+$walletTypeService->update($walletType);
 
 // Create a new Account
-$accountRepo = new AccountRepository($this->dbDriver);
-$accountId = $accountService->createAccount($accountType->getAccountTypeId(), '34', 0);
+$walletRepo = new WalletRepository($this->dbDriver);
+$walletId = $walletService->createWallet($walletType->getWalletTypeId(), '34', 0);
 
 // Add 200 USD to the account
-$statement = new StatementDTO($accountId, 200);
+$statement = new StatementDTO($walletId, 200);
 $statementService->addFunds($statement);
 
 // Withdraw 100 USD from the account
-$statement = new StatementDTO($accountId, 100);
+$statement = new StatementDTO($walletId, 100);
 $statementService->withdrawFunds($statement);
 
 // Add 50 USD hold to the account
-$statement = new StatementDTO($accountId, 50);
+$statement = new StatementDTO($walletId, 50);
 $reserve = $statementService->reserveFundsForDeposit($statement);
 
 // Accept the hold

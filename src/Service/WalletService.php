@@ -8,13 +8,13 @@
 namespace ByJG\AccountTransactions\Service;
 
 use ByJG\AccountTransactions\DTO\TransactionDTO;
-use ByJG\AccountTransactions\Entity\AccountEntity;
 use ByJG\AccountTransactions\Entity\TransactionEntity;
-use ByJG\AccountTransactions\Exception\AccountException;
-use ByJG\AccountTransactions\Exception\AccountTypeException;
+use ByJG\AccountTransactions\Entity\WalletEntity;
 use ByJG\AccountTransactions\Exception\AmountException;
 use ByJG\AccountTransactions\Exception\TransactionException;
-use ByJG\AccountTransactions\Repository\AccountRepository;
+use ByJG\AccountTransactions\Exception\WalletException;
+use ByJG\AccountTransactions\Exception\WalletTypeException;
+use ByJG\AccountTransactions\Repository\WalletRepository;
 use ByJG\AnyDataset\Core\Exception\DatabaseException;
 use ByJG\AnyDataset\Db\Exception\DbDriverNotConnected;
 use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
@@ -27,17 +27,17 @@ use ByJG\XmlUtil\Exception\XmlUtilException;
 use Exception;
 use PDOException;
 
-class AccountService
+class WalletService
 {
     /**
-     * @var AccountRepository
+     * @var WalletRepository
      */
-    protected AccountRepository $accountRepository;
+    protected WalletRepository $walletRepository;
 
     /**
-     * @var AccountTypeService
+     * @var WalletTypeService
      */
-    protected AccountTypeService $accountTypeService;
+    protected WalletTypeService $walletTypeService;
 
     /**
      * @var TransactionService
@@ -46,15 +46,15 @@ class AccountService
 
     /**
      * AccountService constructor.
-     * @param AccountRepository $accountRepository
-     * @param AccountTypeService $accountTypeService
+     * @param WalletRepository $walletRepository
+     * @param WalletTypeService $walletTypeService
      * @param TransactionService $transactionService
      */
-    public function __construct(AccountRepository $accountRepository, AccountTypeService $accountTypeService, TransactionService $transactionService)
+    public function __construct(WalletRepository $walletRepository, WalletTypeService $walletTypeService, TransactionService $transactionService)
     {
-        $this->accountRepository = $accountRepository;
+        $this->walletRepository = $walletRepository;
 
-        $this->accountTypeService = $accountTypeService;
+        $this->walletTypeService = $walletTypeService;
         $this->transactionService = $transactionService;
     }
 
@@ -62,8 +62,8 @@ class AccountService
     /**
      * Get an account by ID.
      *
-     * @param int $accountId Optional id empty return all.
-     * @return AccountEntity|AccountEntity[]
+     * @param int $walletId Optional id empty return all.
+     * @return WalletEntity|WalletEntity[]
      * @throws OrmInvalidFieldsException
      * @throws DatabaseException
      * @throws DbDriverNotConnected
@@ -71,57 +71,57 @@ class AccountService
      * @throws FileException
      * @throws XmlUtilException
      */
-    public function getById(int $accountId): array|AccountEntity
+    public function getById(int $walletId): array|WalletEntity
     {
         
-        return $this->accountRepository->getById($accountId);
+        return $this->walletRepository->getById($walletId);
     }
 
     /**
      * Return a list of AccountEntity by User ID
      *
      * @param string $userId
-     * @param string $accountType Tipo de conta
-     * @return AccountEntity[]
+     * @param string $walletType Tipo de conta
+     * @return WalletEntity[]
      * @throws DatabaseException
      * @throws DbDriverNotConnected
      * @throws FileException
      * @throws XmlUtilException
      */
-    public function getByUserId(string $userId, string $accountType = ""): array
+    public function getByUserId(string $userId, string $walletType = ""): array
     {
         
 
-        return $this->accountRepository->getByUserId($userId, $accountType);
+        return $this->walletRepository->getByUserId($userId, $walletType);
     }
 
     /**
      * Obtém uma lista  AccountEntity pelo Account Type ID
      *
-     * @param string $accountTypeId
-     * @return AccountEntity[]
+     * @param string $walletTypeId
+     * @return WalletEntity[]
      * @throws DatabaseException
      * @throws DbDriverNotConnected
      * @throws FileException
      * @throws XmlUtilException
      */
-    public function getByAccountTypeId(string $accountTypeId): array
+    public function getByWalletTypeId(string $walletTypeId): array
     {
-        return $this->accountRepository->getByAccountTypeId($accountTypeId);
+        return $this->walletRepository->getByWalletTypeId($walletTypeId);
     }
 
     /**
      * Cria uma nova conta no sistema
      *
-     * @param string $accountTypeId
+     * @param string $walletTypeId
      * @param string $userId
      * @param int $balance
      * @param int $price
      * @param int $minValue
      * @param string|null $extra
      * @return int
-     * @throws AccountException
-     * @throws AccountTypeException
+     * @throws WalletException
+     * @throws WalletTypeException
      * @throws AmountException
      * @throws DatabaseException
      * @throws DbDriverNotConnected
@@ -135,16 +135,16 @@ class AccountService
      * @throws XmlUtilException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function createAccount(string $accountTypeId, string $userId, int $balance, int $price = 1, int $minValue = 0, ?string $extra = null): int
+    public function createWallet(string $walletTypeId, string $userId, int $balance, int $price = 1, int $minValue = 0, ?string $extra = null): int
     {
         // Faz as validações
-        if ($this->accountTypeService->getById($accountTypeId) == null) {
-            throw new AccountTypeException('AccountTypeId ' . $accountTypeId . ' não existe');
+        if ($this->walletTypeService->getById($walletTypeId) == null) {
+            throw new WalletTypeException('AccountTypeId ' . $walletTypeId . ' não existe');
         }
 
         // Define os dados
-        $model = new AccountEntity();
-        $model->setAccountTypeId($accountTypeId);
+        $model = new WalletEntity();
+        $model->setWalletTypeId($walletTypeId);
         $model->setUserId($userId);
         $model->setBalance(0);
         $model->setAvailable(0);
@@ -156,35 +156,35 @@ class AccountService
         // Persiste os dados.
         
         try {
-            $result = $this->accountRepository->save($model);
-            $accountId = $result->getAccountId();
+            $result = $this->walletRepository->save($model);
+            $walletId = $result->getWalletId();
         } catch (PDOException $ex) {
             if (str_contains($ex->getMessage(), "Duplicate entry")) {
-                throw new AccountException("Usuário $userId já possui uma conta do tipo $accountTypeId");
+                throw new WalletException("Usuário $userId já possui uma conta do tipo $walletTypeId");
             } else {
                 throw $ex;
             }
         }
 
         if ($balance >= 0) {
-            $this->transactionService->addFunds(TransactionDTO::create($accountId, $balance)->setDescription("Opening Balance")->setCode('BAL'));
+            $this->transactionService->addFunds(TransactionDTO::create($walletId, $balance)->setDescription("Opening Balance")->setCode('BAL'));
         } else {
-            $this->transactionService->withdrawFunds(TransactionDTO::create($accountId, abs($balance))->setDescription("Opening Balance")->setCode('BAL'));
+            $this->transactionService->withdrawFunds(TransactionDTO::create($walletId, abs($balance))->setDescription("Opening Balance")->setCode('BAL'));
         }
 
-        return $accountId;
+        return $walletId;
     }
 
     /**
      * Reinicia o balanço
      *
-     * @param int $accountId
+     * @param int $walletId
      * @param int $newBalance
      * @param int $newPrice
      * @param int $newMinValue
      * @param string $description
      * @return int|null
-     * @throws AccountException
+     * @throws WalletException
      * @throws DatabaseException
      * @throws DbDriverNotConnected
      * @throws FileException
@@ -198,28 +198,28 @@ class AccountService
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
     public function overrideBalance(
-        int       $accountId,
+        int       $walletId,
         int     $newBalance,
         int $newPrice = 1,
         int $newMinValue = 0,
         string $description = "Reset Balance"
     ): ?int
     {
-        $account = $this->accountRepository->getById($accountId);
+        $wallet = $this->walletRepository->getById($walletId);
 
-        if (empty($account)) {
-            throw new AccountException('Account Id doesnt exists');
+        if (empty($wallet)) {
+            throw new WalletException('Account Id doesnt exists');
         }
 
         $dto = TransactionDTO::createEmpty();
-        $dto->setUuid($dto->calculateUuid($this->accountRepository->getExecutor()));
+        $dto->setUuid($dto->calculateUuid($this->walletRepository->getExecutor()));
 
-        $this->accountRepository->getExecutor()->beginTransaction();
+        $this->walletRepository->getExecutor()->beginTransaction();
         try {
             // Get total value reserved
             $reservedValues = 0;
             $qtd = 0;
-            $object = $this->transactionService->getReservedTransactions($account->getAccountId());
+            $object = $this->transactionService->getReservedTransactions($wallet->getWalletId());
             foreach ($object as $stmt) {
                 $qtd++;
                 $reservedValues += $stmt->getAmount();
@@ -232,18 +232,18 @@ class AccountService
             }
 
             // Update object Account
-            $account->setBalance($newBalance);
-            $account->setAvailable($newBalance - $reservedValues);
-            $account->setReserved($reservedValues);
-            $account->setPrice($newPrice);
-            $account->setMinValue($newMinValue);
-            $account->setLastUuid($dto->getUuid());
-            $this->accountRepository->save($account);
+            $wallet->setBalance($newBalance);
+            $wallet->setAvailable($newBalance - $reservedValues);
+            $wallet->setReserved($reservedValues);
+            $wallet->setPrice($newPrice);
+            $wallet->setMinValue($newMinValue);
+            $wallet->setLastUuid($dto->getUuid());
+            $this->walletRepository->save($wallet);
 
             // Create a new Transaction
             $transaction = new TransactionEntity();
             $transaction->setAmount($newBalance);
-            $transaction->setAccountId($account->getAccountId());
+            $transaction->setWalletId($wallet->getWalletId());
             $transaction->setDescription(empty($description) ? "Reset Balance" : $description);
             $transaction->setTypeId(TransactionEntity::BALANCE);
             $transaction->setCode('BAL');
@@ -251,12 +251,12 @@ class AccountService
             $transaction->setAvailable($newBalance - $reservedValues);
             $transaction->setReserved($reservedValues);
             $transaction->setPrice($newPrice);
-            $transaction->setAccountTypeId($account->getAccountTypeId());
+            $transaction->setWalletTypeId($wallet->getWalletTypeId());
             $transaction->setUuid($dto->getUuid());
             $this->transactionService->getRepository()->save($transaction);
-            $this->accountRepository->getExecutor()->commitTransaction();
+            $this->walletRepository->getExecutor()->commitTransaction();
         } catch (Exception $ex) {
-            $this->accountRepository->getExecutor()->rollbackTransaction();
+            $this->walletRepository->getExecutor()->rollbackTransaction();
             throw $ex;
         }
 
@@ -266,9 +266,9 @@ class AccountService
     /**
      * Encerra (Zera) uma conta
      *
-     * @param int $accountId
+     * @param int $walletId
      * @return int|null
-     * @throws AccountException
+     * @throws WalletException
      * @throws DatabaseException
      * @throws DbDriverNotConnected
      * @throws FileException
@@ -281,17 +281,17 @@ class AccountService
      * @throws XmlUtilException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function closeAccount(int $accountId): ?int
+    public function closeWallet(int $walletId): ?int
     {
-        return $this->overrideBalance($accountId, 0, 0);
+        return $this->overrideBalance($walletId, 0, 0);
     }
 
     /**
-     * @param int $accountId
+     * @param int $walletId
      * @param int $balance
      * @param string $description
      * @return TransactionEntity
-     * @throws AccountException
+     * @throws WalletException
      * @throws AmountException
      * @throws DatabaseException
      * @throws DbDriverNotConnected
@@ -302,51 +302,51 @@ class AccountService
      * @throws XmlUtilException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function partialBalance(int $accountId, int $balance, string $description = "Partial Balance"): TransactionEntity
+    public function partialBalance(int $walletId, int $balance, string $description = "Partial Balance"): TransactionEntity
     {
-        $account = $this->getById($accountId);
+        $wallet = $this->getById($walletId);
 
-        $amount = $balance - $account->getAvailable();
+        $amount = $balance - $wallet->getAvailable();
 
         if ($amount >= 0) {
-            $transaction = $this->transactionService->addFunds(TransactionDTO::create($accountId, $amount)->setDescription($description));
+            $transaction = $this->transactionService->addFunds(TransactionDTO::create($walletId, $amount)->setDescription($description));
         } else {
-            $transaction = $this->transactionService->withdrawFunds(TransactionDTO::create($accountId, abs($amount))->setDescription($description));
+            $transaction = $this->transactionService->withdrawFunds(TransactionDTO::create($walletId, abs($amount))->setDescription($description));
         }
 
         return $transaction;
     }
 
     /**
-     * @param int $accountSource
-     * @param int $accountTarget
+     * @param int $walletSource
+     * @param int $walletTarget
      * @param int $amount
      * @return array
-     * @throws AccountException
+     * @throws WalletException
      * @throws AmountException
      * @throws InvalidArgumentException
      * @throws TransactionException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function transferFunds(int $accountSource, int $accountTarget, int $amount): array
+    public function transferFunds(int $walletSource, int $walletTarget, int $amount): array
     {
         $refSource = bin2hex(openssl_random_pseudo_bytes(16));
 
         $transactionSourceDTO = TransactionDTO::createEmpty();
-        $transactionSourceDTO->setAccountId($accountSource);
+        $transactionSourceDTO->setWalletId($walletSource);
         $transactionSourceDTO->setAmount($amount);
         $transactionSourceDTO->setCode('T_TO');
         $transactionSourceDTO->setReferenceSource('transfer_to');
         $transactionSourceDTO->setReferenceId($refSource);
-        $transactionSourceDTO->setDescription('Transfer to account id ' . $accountTarget);
+        $transactionSourceDTO->setDescription('Transfer to account id ' . $walletTarget);
 
         $transactionTargetDTO = TransactionDTO::createEmpty();
-        $transactionTargetDTO->setAccountId($accountTarget);
+        $transactionTargetDTO->setWalletId($walletTarget);
         $transactionTargetDTO->setAmount($amount);
         $transactionTargetDTO->setCode('T_FROM');
         $transactionTargetDTO->setReferenceSource('transfer_from');
         $transactionTargetDTO->setReferenceId($refSource);
-        $transactionTargetDTO->setDescription('Transfer from account id ' . $accountSource);
+        $transactionTargetDTO->setDescription('Transfer from account id ' . $walletSource);
 
         $transactionSource = $this->transactionService->withdrawFunds($transactionSourceDTO);
         $transactionTarget = $this->transactionService->addFunds($transactionTargetDTO);
@@ -354,8 +354,8 @@ class AccountService
         return [ $transactionSource, $transactionTarget ];
     }
 
-    public function getRepository(): AccountRepository
+    public function getRepository(): WalletRepository
     {
-        return $this->accountRepository;
+        return $this->walletRepository;
     }
 }

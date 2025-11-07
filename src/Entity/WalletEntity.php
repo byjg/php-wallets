@@ -16,21 +16,21 @@ use ByJG\Serializer\BaseModel;
  *
  * @object:NodeName account
  */
-#[TableAttribute('account')]
-class AccountEntity extends BaseModel
+#[TableAttribute('wallet')]
+class WalletEntity extends BaseModel
 {
     /**
      * @var int|null
      * @OA\Property()
      */
     #[FieldAttribute(primaryKey: true)]
-    protected ?int $accountid = null;
+    protected ?int $walletid = null;
 
     /**
      * @var string|null
      * @OA\Property()
      */
-    protected ?string $accounttypeid = null;
+    protected ?string $wallettypeid = null;
 
     /**
      * @var string|null
@@ -84,14 +84,14 @@ class AccountEntity extends BaseModel
      */
     protected ?int $minvalue = null;
 
-    public function getAccountId(): ?int
+    public function getWalletId(): ?int
     {
-        return $this->accountid;
+        return $this->walletid;
     }
 
-    public function getAccountTypeId(): ?string
+    public function getWalletTypeId(): ?string
     {
-        return $this->accounttypeid;
+        return $this->wallettypeid;
     }
 
     public function getUserId(): ?string
@@ -134,14 +134,14 @@ class AccountEntity extends BaseModel
         return $this->minvalue;
     }
 
-    public function setAccountId($accountid): void
+    public function setWalletId($walletid): void
     {
-        $this->accountid = $accountid;
+        $this->walletid = $walletid;
     }
 
-    public function setAccountTypeId(?string $accounttypeid): void
+    public function setWalletTypeId(?string $wallettypeid): void
     {
-        $this->accounttypeid = $accounttypeid;
+        $this->wallettypeid = $wallettypeid;
     }
 
     public function setUserId(?string $userid): void

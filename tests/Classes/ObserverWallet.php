@@ -7,9 +7,9 @@ use ByJG\MicroOrm\Interface\ObserverProcessorInterface;
 use ByJG\MicroOrm\ObserverData;
 use Throwable;
 
-class ObserverAccount implements ObserverProcessorInterface
+class ObserverWallet implements ObserverProcessorInterface
 {
-    public function __construct(public AccountRepositoryExtended $repository)
+    public function __construct(public WalletRepositoryExtended $repository)
     {
 
     }
@@ -24,7 +24,7 @@ class ObserverAccount implements ObserverProcessorInterface
     #[\Override]
     public function getObservedTable(): string
     {
-        return "account";
+        return "wallet";
     }
 
     #[\Override]

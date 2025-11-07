@@ -9,20 +9,20 @@ use ByJG\MicroOrm\Mapper;
 use ByJG\MicroOrm\Repository;
 use ReflectionException;
 
-class AccountTypeRepository extends BaseRepository
+class WalletTypeRepository extends BaseRepository
 {
     /**
-     * AccountTypeRepository constructor.
+     * WalletTypeRepository constructor.
      *
      * @param DatabaseExecutor $dbExecutor
-     * @param string $accountTypeEntity
+     * @param string $walletTypeEntity
      * @throws OrmModelInvalidException
      * @throws ReflectionException
      * @throws InvalidArgumentException
      */
-    public function __construct(DatabaseExecutor $dbExecutor, string $accountTypeEntity)
+    public function __construct(DatabaseExecutor $dbExecutor, string $walletTypeEntity)
     {
-        $this->repository = new Repository($dbExecutor, $accountTypeEntity);
+        $this->repository = new Repository($dbExecutor, $walletTypeEntity);
     }
 
     public function getRepository(): Repository

@@ -2,7 +2,7 @@
 
 namespace ByJG\AccountTransactions\Repository;
 
-use ByJG\AccountTransactions\Entity\AccountEntity;
+use ByJG\AccountTransactions\Entity\WalletEntity;
 use ByJG\AnyDataset\Core\Exception\DatabaseException;
 use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\AnyDataset\Db\Exception\DbDriverNotConnected;
@@ -16,21 +16,21 @@ use ByJG\XmlUtil\Exception\FileException;
 use ByJG\XmlUtil\Exception\XmlUtilException;
 use ReflectionException;
 
-class AccountRepository extends BaseRepository
+class WalletRepository extends BaseRepository
 {
     /**
      * AccountRepository constructor.
      *
      * @param DatabaseExecutor $dbExecutor
-     * @param string $accountEntity
+     * @param string $walletEntity
      * @param FieldMapping[] $fieldMappingList
      * @throws OrmModelInvalidException
      * @throws ReflectionException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function __construct(DatabaseExecutor $dbExecutor, string $accountEntity, array $fieldMappingList = [])
+    public function __construct(DatabaseExecutor $dbExecutor, string $walletEntity, array $fieldMappingList = [])
     {
-        $this->repository = new Repository($dbExecutor, $accountEntity);
+        $this->repository = new Repository($dbExecutor, $walletEntity);
 
         $mapper = $this->repository->getMapper();
         foreach ($fieldMappingList as $fieldMapping) {
@@ -50,22 +50,22 @@ class AccountRepository extends BaseRepository
 
     /**
      * @param string $userId
-     * @param string $accountType
+     * @param string $walletType
      * @return array
      * @throws DatabaseException
      * @throws DbDriverNotConnected
      * @throws FileException
      * @throws XmlUtilException
      */
-    public function getByUserId(string $userId, string $accountType = ""): array
+    public function getByUserId(string $userId, string $walletType = ""): array
     {
         $query = Query::getInstance()
             ->table($this->repository->getMapper()->getTable())
             ->where('userid = :userid', ['userid' => $userId])
         ;
 
-        if (!empty($accountType)) {
-            $query->where("accounttypeid = :acctype", ["acctype" => $accountType]);
+        if (!empty($walletType)) {
+            $query->where("wallettypeid = :acctype", ["acctype" => $walletType]);
         }
 
         return $this->repository
@@ -73,18 +73,18 @@ class AccountRepository extends BaseRepository
     }
 
     /**
-     * @param string $accountTypeId
+     * @param string $walletTypeId
      * @return array
      * @throws DatabaseException
      * @throws DbDriverNotConnected
      * @throws FileException
      * @throws XmlUtilException
      */
-    public function getByAccountTypeId(string $accountTypeId): array
+    public function getByWalletTypeId(string $walletTypeId): array
     {
         $query = Query::getInstance()
             ->table($this->repository->getMapper()->getTable())
-            ->where("accounttypeid = :acctype", ["acctype" => $accountTypeId])
+            ->where("wallettypeid = :acctype", ["acctype" => $walletTypeId])
         ;
 
 
@@ -94,7 +94,7 @@ class AccountRepository extends BaseRepository
 
     /**
      * @param int $transactionid
-     * @return AccountEntity|null
+     * @return WalletEntity|null
      * @throws DatabaseException
      * @throws DbDriverNotConnected
      * @throws FileException
@@ -102,12 +102,12 @@ class AccountRepository extends BaseRepository
      * @throws XmlUtilException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function getByTransactionId(int $transactionid): ?AccountEntity
+    public function getByTransactionId(int $transactionid): ?WalletEntity
     {
         $query = Query::getInstance()
-            ->fields(['account.*'])
+            ->fields(['wallet.*'])
             ->table($this->repository->getMapper()->getTable())
-            ->join('transaction', 'transaction.accountid = account.accountid')
+            ->join('transaction', 'transaction.walletid = wallet.walletid')
             ->where('transactionid = :transactionid', ['transactionid' => $transactionid])
         ;
 

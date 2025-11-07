@@ -38,7 +38,7 @@ class TransactionEntity extends BaseModel
      * @var int|null
      * @OA\Property()
      */
-    protected ?int $accountid = null;
+    protected ?int $walletid = null;
 
     /**
      * @var string|null
@@ -124,7 +124,7 @@ class TransactionEntity extends BaseModel
      * @var string|null
      * @OA\Property()
      */
-    protected ?string $accounttypeid = null;
+    protected ?string $wallettypeid = null;
 
     public function getTransactionId(): ?int
     {
@@ -134,9 +134,9 @@ class TransactionEntity extends BaseModel
     /**
      * @return int|null
      */
-    public function getAccountId(): ?int
+    public function getWalletId(): ?int
     {
-        return $this->accountid;
+        return $this->walletid;
     }
 
     /**
@@ -238,9 +238,9 @@ class TransactionEntity extends BaseModel
     /**
      * @return string|null
      */
-    public function getAccountTypeId(): ?string
+    public function getWalletTypeId(): ?string
     {
-        return $this->accounttypeid;
+        return $this->wallettypeid;
     }
 
     public function setTransactionId(?int $transactionid): void
@@ -248,9 +248,9 @@ class TransactionEntity extends BaseModel
         $this->transactionid = $transactionid;
     }
 
-    public function setAccountId(?int $accountid): void
+    public function setWalletId(?int $walletid): void
     {
-        $this->accountid = $accountid;
+        $this->walletid = $walletid;
     }
 
     public function setTypeId(?string $typeid): void
@@ -303,9 +303,9 @@ class TransactionEntity extends BaseModel
         $this->transactionparentid = $transactionparentid;
     }
 
-    public function setAccountTypeId(?string $accounttypeid): void
+    public function setWalletTypeId(?string $wallettypeid): void
     {
-        $this->accounttypeid = $accounttypeid;
+        $this->wallettypeid = $wallettypeid;
     }
 
     public function setReferenceId(?string $referenceid): void
@@ -329,20 +329,20 @@ class TransactionEntity extends BaseModel
     }
 
     /**
-     * @var AccountEntity|null
+     * @var WalletEntity|null
      */
-    protected ?AccountEntity $account = null;
+    protected ?WalletEntity $wallet = null;
 
-    public function attachAccount(AccountEntity $account): void
+    public function attachAccount(WalletEntity $wallet): void
     {
-        $this->setAccountId($account->getAccountId());
-        $this->setAccountTypeId($account->getAccountTypeId());
-        $this->setBalance($account->getBalance());
-        $this->setAvailable($account->getAvailable());
-        $this->setReserved($account->getReserved());
-        $this->setPrice($account->getPrice());
+        $this->setWalletId($wallet->getWalletId());
+        $this->setWalletTypeId($wallet->getWalletTypeId());
+        $this->setBalance($wallet->getBalance());
+        $this->setAvailable($wallet->getAvailable());
+        $this->setReserved($wallet->getReserved());
+        $this->setPrice($wallet->getPrice());
 
-        $this->account = $account;
+        $this->account = $wallet;
     }
 
     /**

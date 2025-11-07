@@ -112,7 +112,7 @@ class TransactionRepository extends BaseRepository
     }
 
     /**
-     * @param int $accountId
+     * @param int $walletId
      * @param int $limit
      * @return TransactionEntity[]
      * @throws DatabaseException
@@ -121,11 +121,11 @@ class TransactionRepository extends BaseRepository
      * @throws XmlUtilException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function getByAccountId(int $accountId, int $limit = 20): array
+    public function getByAccountId(int $walletId, int $limit = 20): array
     {
         $query = Query::getInstance()
             ->table($this->repository->getMapper()->getTable())
-            ->where("accountid = :id", ["id" => $accountId])
+            ->where("walletid = :id", ["id" => $walletId])
             ->limit(0, $limit)
         ;
 
@@ -133,7 +133,7 @@ class TransactionRepository extends BaseRepository
     }
 
     /**
-     * @param int|null $accountId
+     * @param int|null $walletId
      * @return array
      * @throws InvalidArgumentException
      * @throws DatabaseException
@@ -142,30 +142,30 @@ class TransactionRepository extends BaseRepository
      * @throws FileException
      * @throws XmlUtilException
      */
-    public function getReservedTransactions(?int $accountId = null): array
+    public function getReservedTransactions(?int $walletId = null): array
     {
         $query = Query::getInstance()
             ->fields([
                 "st1.*",
-                "ac.accounttypeid",
+                "ac.wallettypeid",
             ])
             ->table($this->repository->getMapper()->getTable() . " st1")
-            ->join("account ac", "st1.accountid = ac.accountid")
+            ->join("wallet ac", "st1.walletid = ac.walletid")
             ->leftJoin("transaction st2", "st1.transactionid = st2.transactionparentid")
             ->where("st1.typeid in ('WB', 'DB')")
             ->where("st2.transactionid is null")
             ->orderBy(["st1.date desc"])
         ;
 
-        if (!empty($accountId)) {
-            $query->where("st1.accountid = :id", ["id" => $accountId]);
+        if (!empty($walletId)) {
+            $query->where("st1.walletid = :id", ["id" => $walletId]);
         }
 
         return $this->repository->getByQuery($query);
     }
 
     /**
-     * @param int $accountId
+     * @param int $walletId
      * @param string $startDate
      * @param string $endDate
      * @return array
@@ -174,12 +174,12 @@ class TransactionRepository extends BaseRepository
      * @throws FileException
      * @throws XmlUtilException
      */
-    public function getByDate(int $accountId, string $startDate, string $endDate): array
+    public function getByDate(int $walletId, string $startDate, string $endDate): array
     {
         $query = Query::getInstance()
             ->table($this->repository->getMapper()->getTable())
             ->where("date between :start and :end", ["start" => $startDate, "end" => $endDate])
-            ->where("accountid = :id", ["id" => $accountId])
+            ->where("walletid = :id", ["id" => $walletId])
             ->orderBy(["date"])
         ;
 
@@ -192,12 +192,12 @@ class TransactionRepository extends BaseRepository
      * @throws DbDriverNotConnected
      * @throws FileException
      */
-    public function getByCode(int $accountId, string $code, ?string $startDate = null, ?string $endDate = null): array
+    public function getByCode(int $walletId, string $code, ?string $startDate = null, ?string $endDate = null): array
     {
         $query = Query::getInstance()
             ->table($this->repository->getMapper()->getTable())
             ->where("code = :code", ["code" => $code])
-            ->where("accountid = :id", ["id" => $accountId])
+            ->where("walletid = :id", ["id" => $walletId])
             ->orderBy(["date"])
         ;
 
@@ -218,13 +218,13 @@ class TransactionRepository extends BaseRepository
      * @throws DbDriverNotConnected
      * @throws FileException
      */
-    public function getByReferenceId(int $accountId, string $referenceSource, string $referenceId, ?string $startDate = null, ?string $endDate = null): array
+    public function getByReferenceId(int $walletId, string $referenceSource, string $referenceId, ?string $startDate = null, ?string $endDate = null): array
     {
         $query = Query::getInstance()
             ->table($this->repository->getMapper()->getTable())
             ->where("referencesource = :source", ["source" => $referenceSource])
             ->where("referenceid = :id", ["id" => $referenceId])
-            ->where("accountid = :accountid", ["accountid" => $accountId])
+            ->where("walletid = :walletid", ["walletid" => $walletId])
             ->orderBy(["date"])
         ;
 

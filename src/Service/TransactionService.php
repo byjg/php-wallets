@@ -3,13 +3,13 @@
 namespace ByJG\AccountTransactions\Service;
 
 use ByJG\AccountTransactions\DTO\TransactionDTO;
-use ByJG\AccountTransactions\Entity\AccountEntity;
 use ByJG\AccountTransactions\Entity\TransactionEntity;
-use ByJG\AccountTransactions\Exception\AccountException;
+use ByJG\AccountTransactions\Entity\WalletEntity;
 use ByJG\AccountTransactions\Exception\AmountException;
 use ByJG\AccountTransactions\Exception\TransactionException;
-use ByJG\AccountTransactions\Repository\AccountRepository;
+use ByJG\AccountTransactions\Exception\WalletException;
 use ByJG\AccountTransactions\Repository\TransactionRepository;
+use ByJG\AccountTransactions\Repository\WalletRepository;
 use ByJG\AnyDataset\Db\IsolationLevelEnum;
 use ByJG\MicroOrm\Enum\ObserverEvent;
 use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
@@ -32,19 +32,19 @@ class TransactionService
     protected TransactionRepository $transactionRepository;
 
     /**
-     * @var AccountRepository
+     * @var WalletRepository
      */
-    protected AccountRepository $accountRepository;
+    protected WalletRepository $walletRepository;
 
     /**
      * TransactionService constructor.
      * @param TransactionRepository $transactionRepository
-     * @param AccountRepository $accountRepository
+     * @param WalletRepository $walletRepository
      */
-    public function __construct(TransactionRepository $transactionRepository, AccountRepository $accountRepository)
+    public function __construct(TransactionRepository $transactionRepository, WalletRepository $walletRepository)
     {
         $this->transactionRepository = $transactionRepository;
-        $this->accountRepository = $accountRepository;
+        $this->accountRepository = $walletRepository;
     }
 
     /**
@@ -80,7 +80,7 @@ class TransactionService
      * @param TransactionDTO $dto Input data (account, amount, description, etc.)
      * @param bool $capAtZero When true and operation is WITHDRAW, caps the withdrawal so net balance never goes below zero
      * @return TransactionEntity
-     * @throws AccountException
+     * @throws WalletException
      * @throws AmountException
      * @throws InvalidArgumentException
      * @throws TransactionException
@@ -104,27 +104,27 @@ class TransactionService
             (string)$reservedDelta
         );
 
-        $accountUpdate = $this->getAccountUpdateQuery($dto);
+        $walletUpdate = $this->getAccountUpdateQuery($dto);
 
         // 3) Execute both queries atomically
         $this->getRepository()->getExecutor()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, allowJoin: true);
         try {
             $this->getRepository()->bulkExecute([
                 $transactionInsert,
-                $accountUpdate,
+                $walletUpdate,
             ]);
 
             // 4) Load the account just updated
-            /** @var AccountEntity $account */
-            $account = $this->accountRepository->getById($dto->getAccountId());
-            if (empty($account)) {
-                throw new AccountException('Transaction Failed: Account not found');
+            /** @var WalletEntity $wallet */
+            $wallet = $this->accountRepository->getById($dto->getWalletId());
+            if (empty($wallet)) {
+                throw new WalletException('Transaction Failed: Account not found');
             }
-            if (empty($account->getLastUuid())) {
-                throw new AccountException('Transaction Failed: Account last_uuid is empty');
+            if (empty($wallet->getLastUuid())) {
+                throw new WalletException('Transaction Failed: Account last_uuid is empty');
             }
-            if (HexUuidLiteral::getFormattedUuid($account->getLastUuid()) !== HexUuidLiteral::getFormattedUuid($dto->getUuid())) {
-                throw new AccountException('Transaction Failed: Account last_uuid does not match the DTO');
+            if (HexUuidLiteral::getFormattedUuid($wallet->getLastUuid()) !== HexUuidLiteral::getFormattedUuid($dto->getUuid())) {
+                throw new WalletException('Transaction Failed: Account last_uuid does not match the DTO');
             }
 
             // 5) Load the transaction just created
@@ -135,7 +135,7 @@ class TransactionService
 
             // Validate that the persisted transaction matches the DTO intent (allowing capped withdraw amount)
             $mismatches = [];
-            if ((int)$transaction->getAccountId() !== (int)$dto->getAccountId()) { $mismatches[] = 'accountId'; }
+            if ((int)$transaction->getWalletId() !== (int)$dto->getWalletId()) { $mismatches[] = 'accountId'; }
             if ($transaction->getDescription() !== $dto->getDescription()) { $mismatches[] = 'description'; }
             if ($transaction->getCode() !== $dto->getCode()) { $mismatches[] = 'code'; }
             if ($transaction->getReferenceId() !== $dto->getReferenceId()) { $mismatches[] = 'referenceId'; }
@@ -170,7 +170,7 @@ class TransactionService
         }
 
         // 6) Notify observers of account change, providing an oldAccount with pre-change balances
-        $oldAccount = clone $account;
+        $oldAccount = clone $wallet;
         $oldAccount->setBalance($oldAccount->getBalance() - $balanceDelta);
         $oldAccount->setReserved($oldAccount->getReserved() - $reservedDelta);
         $oldAccount->setAvailable($oldAccount->getAvailable() - $availableDelta);
@@ -178,7 +178,7 @@ class TransactionService
         ORMSubject::getInstance()->notify(
             $this->accountRepository->getMapper()->getTable(),
             ObserverEvent::Update,
-            $account,
+            $wallet,
             $oldAccount
         );
 
@@ -283,8 +283,8 @@ class TransactionService
     {
         // Build base target columns and select fields
         $targetColumns = [
-            'accountid',
-            'accounttypeid',
+            'walletid',
+            'wallettypeid',
             'balance',
             'available',
             'reserved',
@@ -301,8 +301,8 @@ class TransactionService
         ];
 
         $selectFields = [
-            'accountid',
-            'accounttypeid',
+            'walletid',
+            'wallettypeid',
             $expressionSumBalance,
             $expressionSumAvailable,
             "reserved + $sumReserved",
@@ -322,10 +322,10 @@ class TransactionService
         $this->appendExtraMappedFields($dto, $targetColumns, $selectFields);
 
         $transactionQuery = Query::getInstance()
-            ->table('account')
+            ->table('wallet')
             ->fields($selectFields)
-            ->where('accountid = :accid2', [
-                'accid2' => $dto->getAccountId(),
+            ->where('walletid = :accid2', [
+                'accid2' => $dto->getWalletId(),
                 'description' => $dto->getDescription(),
                 'code' => $dto->getCode(),
                 'referenceid' => $dto->getReferenceId(),
@@ -346,13 +346,13 @@ class TransactionService
         $uuid = new HexUuidLiteral($dto->getUuid());
 
         return UpdateQuery::getInstance()
-            ->table('account')
-            ->setLiteral('account.balance', 'st.balance')
-            ->setLiteral('account.reserved', 'st.reserved')
-            ->setLiteral('account.available', 'st.available')
-            ->setLiteral('account.last_uuid', $uuid)
-            ->where('account.accountid = :accid', ['accid' => $dto->getAccountId()])
-            ->join($this->transactionRepository->getMapper()->getTable(), 'st.accountid = account.accountid and st.uuid = ' . $uuid, 'st');
+            ->table('wallet')
+            ->setLiteral('wallet.balance', 'st.balance')
+            ->setLiteral('wallet.reserved', 'st.reserved')
+            ->setLiteral('wallet.available', 'st.available')
+            ->setLiteral('wallet.last_uuid', $uuid)
+            ->where('wallet.walletid = :accid', ['accid' => $dto->getWalletId()])
+            ->join($this->transactionRepository->getMapper()->getTable(), 'st.walletid = wallet.walletid and st.uuid = ' . $uuid, 'st');
     }
 
     /**
@@ -360,7 +360,7 @@ class TransactionService
      *
      * @param TransactionDTO $dto
      * @return TransactionEntity Newly created transaction entity
-     * @throws AccountException
+     * @throws WalletException
      * @throws AmountException
      * @throws InvalidArgumentException
      * @throws TransactionException
@@ -377,7 +377,7 @@ class TransactionService
      * @param TransactionDTO $dto
      * @param bool $capAtZero
      * @return TransactionEntity Transaction ID
-     * @throws AccountException
+     * @throws WalletException
      * @throws AmountException
      * @throws InvalidArgumentException
      * @throws TransactionException
@@ -393,7 +393,7 @@ class TransactionService
      *
      * @param TransactionDTO $dto
      * @return TransactionEntity Transaction ID
-     * @throws AccountException
+     * @throws WalletException
      * @throws AmountException
      * @throws InvalidArgumentException
      * @throws TransactionException
@@ -409,7 +409,7 @@ class TransactionService
      *
      * @param TransactionDTO $dto
      * @return TransactionEntity Transaction ID
-     * @throws AccountException
+     * @throws WalletException
      * @throws AmountException
      * @throws InvalidArgumentException
      * @throws TransactionException
@@ -458,25 +458,25 @@ class TransactionService
                 throw new TransactionException('The transaction has been accepted already');
             }
 
-            if ($transactionDto->hasAccount() && $transactionDto->getAccountId() != $transaction->getAccountId()) {
+            if ($transactionDto->hasAccount() && $transactionDto->getWalletId() != $transaction->getWalletId()) {
                 throw new TransactionException('The transaction account is different from the informed account in the DTO. Try createEmpty().');
             }
 
             // Get values and apply the updates
             $signal = $transaction->getTypeId() == TransactionEntity::DEPOSIT_BLOCKED ? 1 : -1;
 
-            $account = $this->accountRepository->getById($transaction->getAccountId());
-            $account->setReserved($account->getReserved() + ($transaction->getAmount() * $signal));
-            $account->setBalance($account->getBalance() + ($transaction->getAmount() * $signal));
-            $account->setEntryDate(null);
-            $this->accountRepository->save($account);
+            $wallet = $this->accountRepository->getById($transaction->getWalletId());
+            $wallet->setReserved($wallet->getReserved() + ($transaction->getAmount() * $signal));
+            $wallet->setBalance($wallet->getBalance() + ($transaction->getAmount() * $signal));
+            $wallet->setEntryDate(null);
+            $this->accountRepository->save($wallet);
 
             // Update data
             $transaction->setTransactionParentId($transaction->getTransactionId());
             $transaction->setTransactionId(null); // Poder criar um novo registro
             $transaction->setDate(null);
             $transaction->setTypeId($transaction->getTypeId() == TransactionEntity::WITHDRAW_BLOCKED ? TransactionEntity::WITHDRAW : TransactionEntity::DEPOSIT);
-            $transaction->attachAccount($account);
+            $transaction->attachAccount($wallet);
             $transactionDto->setUuid($transactionDto->calculateUuid($this->transactionRepository->getExecutor()));
             $transactionDto->setToTransaction($transaction);
             $result = $this->transactionRepository->save($transaction);
@@ -496,7 +496,7 @@ class TransactionService
      * @param TransactionDTO $transactionDtoWithdraw
      * @param TransactionDTO $transactionDtoRefund
      * @return TransactionEntity
-     * @throws AccountException
+     * @throws WalletException
      * @throws AmountException
      * @throws InvalidArgumentException
      * @throws OrmBeforeInvalidException
@@ -536,7 +536,7 @@ class TransactionService
 
             $this->rejectFundsById($transactionId, $transactionDtoRefund);
 
-            $transactionDtoWithdraw->setAccountId($transaction->getAccountId());
+            $transactionDtoWithdraw->setWalletId($transaction->getWalletId());
 
             $finalDebitTransaction = $this->withdrawFunds($transactionDtoWithdraw);
 
@@ -587,25 +587,25 @@ class TransactionService
                 throw new TransactionException('The transaction has been accepted already');
             }
 
-            if ($transactionDto->hasAccount() && $transactionDto->getAccountId() != $transaction->getAccountId()) {
+            if ($transactionDto->hasAccount() && $transactionDto->getWalletId() != $transaction->getWalletId()) {
                 throw new TransactionException('The transaction account is different from the informed account in the DTO. Try createEmpty().');
             }
 
             // Update Account
             $signal = $transaction->getTypeId() == TransactionEntity::DEPOSIT_BLOCKED ? -1 : +1;
 
-            $account = $this->accountRepository->getById($transaction->getAccountId());
-            $account->setReserved($account->getReserved() - ($transaction->getAmount() * $signal));
-            $account->setAvailable($account->getAvailable() + ($transaction->getAmount() * $signal));
-            $account->setEntryDate(null);
-            $this->accountRepository->save($account);
+            $wallet = $this->accountRepository->getById($transaction->getWalletId());
+            $wallet->setReserved($wallet->getReserved() - ($transaction->getAmount() * $signal));
+            $wallet->setAvailable($wallet->getAvailable() + ($transaction->getAmount() * $signal));
+            $wallet->setEntryDate(null);
+            $this->accountRepository->save($wallet);
 
             // Update Transaction
             $transaction->setTransactionParentId($transaction->getTransactionId());
             $transaction->setTransactionId(null); // Poder criar um novo registro
             $transaction->setDate(null);
             $transaction->setTypeId(TransactionEntity::REJECT);
-            $transaction->attachAccount($account);
+            $transaction->attachAccount($wallet);
             $transactionDto->setUuid($transactionDto->calculateUuid($this->transactionRepository->getExecutor()));
             $transactionDto->setToTransaction($transaction);
             $result = $this->transactionRepository->save($transaction);
@@ -623,25 +623,25 @@ class TransactionService
     /**
      * Update all blocked (reserved) transactions
      *
-     * @param int|null $accountId
+     * @param int|null $walletId
      * @return TransactionEntity[]
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      * @throws InvalidArgumentException
      */
-    public function getReservedTransactions(?int $accountId = null): array
+    public function getReservedTransactions(?int $walletId = null): array
     {
-        return $this->transactionRepository->getReservedTransactions($accountId);
+        return $this->transactionRepository->getReservedTransactions($walletId);
     }
 
     /**
-     * @param int $accountId
+     * @param int $walletId
      * @param string $startDate
      * @param string $endDate
      * @return array
      */
-    public function getByDate(int $accountId, string $startDate, string $endDate): array
+    public function getByDate(int $walletId, string $startDate, string $endDate): array
     {
-        return $this->transactionRepository->getByDate($accountId, $startDate, $endDate);
+        return $this->transactionRepository->getByDate($walletId, $startDate, $endDate);
     }
 
     /**
