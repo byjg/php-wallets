@@ -130,7 +130,7 @@ class AccountBLL
         $model->setUserId($userId);
         $model->setGrossBalance(0);
         $model->setNetBalance(0);
-        $model->setUncleared(0);
+        $model->setReserved(0);
         $model->setPrice($price);
         $model->setExtra($extra);
         $model->setMinValue($minValue);
@@ -195,24 +195,24 @@ class AccountBLL
         $this->accountRepository->getExecutor()->beginTransaction();
         try {
             // Get total value reserved
-            $unclearedValues = 0;
+            $reservedValues = 0;
             $qtd = 0;
-            $object = $this->statementBLL->getUnclearedStatements($account->getAccountId());
+            $object = $this->statementBLL->getReservedStatements($account->getAccountId());
             foreach ($object as $stmt) {
                 $qtd++;
-                $unclearedValues += $stmt->getAmount();
+                $reservedValues += $stmt->getAmount();
             }
 
-            if ($newBalance - $unclearedValues < $newMinValue) {
+            if ($newBalance - $reservedValues < $newMinValue) {
                 throw new StatementException(
-                    "Can't override balance because there is $qtd pending statements with the amount of $unclearedValues"
+                    "Can't override balance because there is $qtd pending statements with the amount of $reservedValues"
                 );
             }
 
             // Update object Account
             $account->setGrossBalance($newBalance);
-            $account->setNetBalance($newBalance - $unclearedValues);
-            $account->setUnCleared($unclearedValues);
+            $account->setNetBalance($newBalance - $reservedValues);
+            $account->setReserved($reservedValues);
             $account->setPrice($newPrice);
             $account->setMinValue($newMinValue);
             $account->setLastUuid($dto->getUuid());
@@ -226,8 +226,8 @@ class AccountBLL
             $statement->setTypeId(StatementEntity::BALANCE);
             $statement->setCode('BAL');
             $statement->setGrossBalance($newBalance);
-            $statement->setNetBalance($newBalance - $unclearedValues);
-            $statement->setUnCleared($unclearedValues);
+            $statement->setNetBalance($newBalance - $reservedValues);
+            $statement->setReserved($reservedValues);
             $statement->setPrice($newPrice);
             $statement->setAccountTypeId($account->getAccountTypeId());
             $statement->setUuid($dto->getUuid());

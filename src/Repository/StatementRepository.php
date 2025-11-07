@@ -121,7 +121,7 @@ class StatementRepository extends BaseRepository
      * @throws InvalidArgumentException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function getUnclearedStatements(?int $accountId = null): array
+    public function getReservedStatements(?int $accountId = null): array
     {
         $query = Query::getInstance()
             ->fields([

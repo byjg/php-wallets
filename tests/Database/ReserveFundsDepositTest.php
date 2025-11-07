@@ -58,7 +58,7 @@ class ReserveFundsDepositTest extends TestCase
         $statement->setTypeId('DB');
         $statement->setNetBalance('1350.00');
         $statement->setPrice('1.00');
-        $statement->setUnCleared('-350.00');
+        $statement->setReserved('-350.00');
         $statement->setReferenceId('Referencia Deposit');
         $statement->setReferenceSource('Source Deposit');
         $statement->setAccountTypeId('USDTEST');
@@ -101,7 +101,7 @@ class ReserveFundsDepositTest extends TestCase
         $statement->setTypeId('DB');
         $statement->setNetBalance('100.00');
         $statement->setPrice('1.00');
-        $statement->setUnCleared('-300.00');
+        $statement->setReserved('-300.00');
         $statement->setReferenceId('Referencia Deposit');
         $statement->setReferenceSource('Source Deposit');
         $statement->setAccountTypeId('NEGTEST');
@@ -187,7 +187,7 @@ public function testAcceptFundsById_InvalidType(): void
         $statement->setTypeId('D');
         $statement->setNetBalance('1500.00');
         $statement->setPrice('1.00');
-        $statement->setUnCleared('0.00');
+        $statement->setReserved('0.00');
         $statement->setReferenceId('Referencia Deposit');
         $statement->setReferenceSource('Source Deposit');
         $statement->setDate($actual->getDate());
@@ -258,7 +258,7 @@ public function testAcceptFundsById_InvalidType(): void
         $accountAfter = $this->accountBLL->getById($accountId);
         $this->assertEquals('920.00', $accountAfter->getGrossBalance());
         $this->assertEquals('920.00', $accountAfter->getNetBalance());
-        $this->assertEquals('0.00', $accountAfter->getUnCleared());
+        $this->assertEquals('0.00', $accountAfter->getReserved());
 
         $rejectedStatement = $this->statementBLL->getRepository()->getByParentId($reserveStatement->getStatementId());
         $this->assertNotNull($rejectedStatement);
@@ -330,7 +330,7 @@ public function testAcceptFundsById_InvalidType(): void
         $statement->setTypeId('R');
         $statement->setNetBalance('1150.00');
         $statement->setPrice('1.00');
-        $statement->setUnCleared('0.00');
+        $statement->setReserved('0.00');
         $statement->setReferenceId('Referencia Reserve');
         $statement->setReferenceSource('Source Reserve');
         $statement->setDate($actual->getDate());

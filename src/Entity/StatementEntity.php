@@ -75,7 +75,7 @@ class StatementEntity extends BaseModel
      * @var int|null
      * @OA\Property()
      */
-    protected ?int $uncleared = null;
+    protected ?int $reserved = null;
 
     /**
      * @var int|null
@@ -182,9 +182,9 @@ class StatementEntity extends BaseModel
     /**
      * @return int|null
      */
-    public function getUnCleared(): ?int
+    public function getReserved(): ?int
     {
-        return $this->uncleared;
+        return $this->reserved;
     }
 
     /**
@@ -278,9 +278,9 @@ class StatementEntity extends BaseModel
         $this->grossbalance = $grossbalance;
     }
 
-    public function setUnCleared(?int $uncleared): void
+    public function setReserved(?int $reserved): void
     {
-        $this->uncleared = $uncleared;
+        $this->reserved = $reserved;
     }
 
     public function setNetBalance(?int $netbalance): void
@@ -339,7 +339,7 @@ class StatementEntity extends BaseModel
         $this->setAccountTypeId($account->getAccountTypeId());
         $this->setGrossBalance($account->getGrossBalance());
         $this->setNetBalance($account->getNetBalance());
-        $this->setUnCleared($account->getUnCleared());
+        $this->setReserved($account->getReserved());
         $this->setPrice($account->getPrice());
 
         $this->account = $account;
@@ -363,7 +363,7 @@ class StatementEntity extends BaseModel
 
         if ($this->getNetBalance() < $this->account->getMinValue()
             || $this->getGrossBalance() < $this->account->getMinValue()
-            || $this->getUnCleared() < $this->account->getMinValue()
+            || $this->getReserved() < $this->account->getMinValue()
         ) {
             throw new AmountException('Valor não pode ser menor que ' . $this->account->getMinValue());
         }

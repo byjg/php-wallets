@@ -58,7 +58,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $statement->setTypeId('WB');
         $statement->setNetBalance('650.00');
         $statement->setPrice('1.00');
-        $statement->setUnCleared('350.00');
+        $statement->setReserved('350.00');
         $statement->setReferenceId('Referencia Withdraw');
         $statement->setReferenceSource('Source Withdraw');
         $statement->setAccountTypeId('USDTEST');
@@ -104,7 +104,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $statement->setTypeId('WB');
         $statement->setNetBalance('-150.00');
         $statement->setPrice('1.00');
-        $statement->setUnCleared('1150.00');
+        $statement->setReserved('1150.00');
         $statement->setReferenceId('Referencia Withdraw');
         $statement->setReferenceSource('Source Withdraw');
         $statement->setAccountTypeId('NEGTEST');
@@ -203,7 +203,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $statement->setTypeId('W');
         $statement->setNetBalance('500.00');
         $statement->setPrice('1.00');
-        $statement->setUnCleared('0.00');
+        $statement->setReserved('0.00');
         $statement->setReferenceId('Referencia Withdraw');
         $statement->setReferenceSource('Source Withdraw');
         $statement->setDate($actual->getDate());
@@ -293,7 +293,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $statement->setTypeId('R');
         $statement->setNetBalance('850.00');
         $statement->setPrice('1.00');
-        $statement->setUnCleared('0.00');
+        $statement->setReserved('0.00');
         $statement->setReferenceId('Referencia Withdraw');
         $statement->setReferenceSource('Source Withdraw');
         $statement->setDate($actual->getDate());

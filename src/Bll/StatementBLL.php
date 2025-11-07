@@ -91,7 +91,7 @@ class StatementBLL
         $this->validateStatementDto($dto);
 
         // 1) Compute numeric deltas for balances (used for notifications) and the SQL expressions (used for insert/select)
-        [$grossDelta, $unclearedDelta, $netDelta] = $this->computeBalanceDeltas($operation, $dto->getAmount());
+        [$grossDelta, $reservedDelta, $netDelta] = $this->computeBalanceDeltas($operation, $dto->getAmount());
         [$exprAmount, $exprGross, $exprNet] = $this->buildAmountAndExpressions($operation, $dto->getAmount(), $capAtZero);
 
         // 2) Build the insert-select for the statement and the account update based on the new statement
@@ -101,7 +101,7 @@ class StatementBLL
             $exprGross,
             $exprNet,
             $exprAmount,
-            (string)$unclearedDelta
+            (string)$reservedDelta
         );
 
         $accountUpdate = $this->getAccountUpdateQuery($dto);
@@ -172,7 +172,7 @@ class StatementBLL
         // 6) Notify observers of account change, providing an oldAccount with pre-change balances
         $oldAccount = clone $account;
         $oldAccount->setGrossbalance($oldAccount->getGrossbalance() - $grossDelta);
-        $oldAccount->setUncleared($oldAccount->getUncleared() - $unclearedDelta);
+        $oldAccount->setReserved($oldAccount->getReserved() - $reservedDelta);
         $oldAccount->setNetbalance($oldAccount->getNetbalance() - $netDelta);
 
         ORMSubject::getInstance()->notify(
@@ -200,7 +200,7 @@ class StatementBLL
 
     /**
      * Compute numeric deltas for balances according to the operation and amount.
-     * Returns [grossDelta, unclearedDelta, netDelta].
+     * Returns [grossDelta, reservedDelta, netDelta].
      */
     private function computeBalanceDeltas(string $operation, int $amount): array
     {
@@ -210,7 +210,7 @@ class StatementBLL
             default => 0,
         };
 
-        $unclearedDelta = $amount * match ($operation) {
+        $reservedDelta = $amount * match ($operation) {
             StatementEntity::DEPOSIT_BLOCKED => -1,
             StatementEntity::WITHDRAW_BLOCKED => 1,
             default => 0,
@@ -222,7 +222,7 @@ class StatementBLL
             default => 0,
         };
 
-        return [$grossDelta, $unclearedDelta, $netDelta];
+        return [$grossDelta, $reservedDelta, $netDelta];
     }
 
     /**
@@ -278,7 +278,7 @@ class StatementBLL
         string $expressionSumGrossBalance,
         string $expressionSumNetBalance,
         string $expressionAmount,
-        string $sumUnCleared
+        string $sumReserved
     ): InsertSelectQuery
     {
         // Build base target columns and select fields
@@ -287,7 +287,7 @@ class StatementBLL
             'accounttypeid',
             'grossbalance',
             'netbalance',
-            'uncleared',
+            'reserved',
             'price',
             'amount',
             'description',
@@ -305,7 +305,7 @@ class StatementBLL
             'accounttypeid',
             $expressionSumGrossBalance,
             $expressionSumNetBalance,
-            "uncleared + $sumUnCleared",
+            "reserved + $sumReserved",
             'price',
             $expressionAmount,
             ':description',
@@ -348,7 +348,7 @@ class StatementBLL
         return UpdateQuery::getInstance()
             ->table('account')
             ->setLiteral('account.grossbalance', 'st.grossbalance')
-            ->setLiteral('account.uncleared', 'st.uncleared')
+            ->setLiteral('account.reserved', 'st.reserved')
             ->setLiteral('account.netbalance', 'st.netbalance')
             ->setLiteral('account.last_uuid', $uuid)
             ->where('account.accountid = :accid', ['accid' => $dto->getAccountId()])
@@ -466,7 +466,7 @@ class StatementBLL
             $signal = $statement->getTypeId() == StatementEntity::DEPOSIT_BLOCKED ? 1 : -1;
 
             $account = $this->accountRepository->getById($statement->getAccountId());
-            $account->setUnCleared($account->getUnCleared() + ($statement->getAmount() * $signal));
+            $account->setReserved($account->getReserved() + ($statement->getAmount() * $signal));
             $account->setGrossBalance($account->getGrossBalance() + ($statement->getAmount() * $signal));
             $account->setEntryDate(null);
             $this->accountRepository->save($account);
@@ -595,7 +595,7 @@ class StatementBLL
             $signal = $statement->getTypeId() == StatementEntity::DEPOSIT_BLOCKED ? -1 : +1;
 
             $account = $this->accountRepository->getById($statement->getAccountId());
-            $account->setUnCleared($account->getUnCleared() - ($statement->getAmount() * $signal));
+            $account->setReserved($account->getReserved() - ($statement->getAmount() * $signal));
             $account->setNetBalance($account->getNetBalance() + ($statement->getAmount() * $signal));
             $account->setEntryDate(null);
             $this->accountRepository->save($account);
@@ -628,9 +628,9 @@ class StatementBLL
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      * @throws InvalidArgumentException
      */
-    public function getUnclearedStatements(?int $accountId = null): array
+    public function getReservedStatements(?int $accountId = null): array
     {
-        return $this->statementRepository->getUnclearedStatements($accountId);
+        return $this->statementRepository->getReservedStatements($accountId);
     }
 
     /**

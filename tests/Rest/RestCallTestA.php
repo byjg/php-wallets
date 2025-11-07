@@ -82,7 +82,7 @@
 //             "accounttypeid" => "USDTEST",
 //             "userid" => "___TESTUSER-10",
 //             "grossbalance" => 1000,
-//             "uncleared" => 0,
+//             "reserved" => 0,
 //             "netbalance" => 1000,
 //             "price" => 1,
 //             "extra" => "Extra Information",
@@ -117,7 +117,7 @@
 //             "accounttypeid" => "USDTEST",
 //             "userid" => "___TESTUSER-10",
 //             "grossbalance" => 300,
-//             "uncleared" => 0,
+//             "reserved" => 0,
 //             "netbalance" => 300,
 //             "price" => 1,
 //             "extra" => "Extra Information",
@@ -154,7 +154,7 @@
 //             "accounttypeid" => "USDTEST",
 //             "userid" => "___TESTUSER-10",
 //             "grossbalance" => 600,
-//             "uncleared" => 0,
+//             "reserved" => 0,
 //             "netbalance" => 600,
 //             "price" => 1.1,
 //             "extra" => "Extra Information",
@@ -184,7 +184,7 @@
 //             "accounttypeid" => "USDTEST",
 //             "userid" => "___TESTUSER-10",
 //             "grossbalance" => 0,
-//             "uncleared" => 0,
+//             "reserved" => 0,
 //             "netbalance" => 0,
 //             "price" => 0,
 //             "extra" => "Extra Information",
@@ -248,7 +248,7 @@
 //             "accounttypeid" => "USDTEST",
 //             "userid" => "___TESTUSER-10",
 //             "grossbalance" => 1150,
-//             "uncleared" => 0,
+//             "reserved" => 0,
 //             "netbalance" => 1150,
 //             "price" => 1,
 //             "extra" => "Extra Information",
@@ -271,7 +271,7 @@
 //             'typeid' => 'D',
 //             'amount' => 150,
 //             'grossbalance' => 1150,
-//             'uncleared' => 0,
+//             'reserved' => 0,
 //             'netbalance' => 1150,
 //             'description' => 'Add Funds',
 //             'statementparentid' => '',
@@ -337,7 +337,7 @@
 //             "accounttypeid" => "USDTEST",
 //             "userid" => "___TESTUSER-10",
 //             "grossbalance" => 850,
-//             "uncleared" => 0,
+//             "reserved" => 0,
 //             "netbalance" => 850,
 //             "price" => 1,
 //             "extra" => "Extra Information",
@@ -360,7 +360,7 @@
 //             'typeid' => 'W',
 //             'amount' => 150,
 //             'grossbalance' => 850,
-//             'uncleared' => 0,
+//             'reserved' => 0,
 //             'netbalance' => 850,
 //             'description' => 'Withdraw Funds',
 //             'statementparentid' => '',
@@ -445,7 +445,7 @@
 //             "accounttypeid" => "USDTEST",
 //             "userid" => "___TESTUSER-10",
 //             "grossbalance" => 1000,
-//             "uncleared" => 400,
+//             "reserved" => 400,
 //             "netbalance" => 600,
 //             "price" => 1,
 //             "extra" => "Extra Information",
@@ -468,7 +468,7 @@
 //             'typeid' => 'WB',
 //             'amount' => 150,
 //             'grossbalance' => 1000,
-//             'uncleared' => 150,
+//             'reserved' => 150,
 //             'netbalance' => 850,
 //             'description' => 'Withdraw Funds 01',
 //             'statementparentid' => '',
@@ -492,7 +492,7 @@
 //             'typeid' => 'WB',
 //             'amount' => 250,
 //             'grossbalance' => 1000,
-//             'uncleared' => 400,
+//             'reserved' => 400,
 //             'netbalance' => 600,
 //             'description' => 'Withdraw Funds 02',
 //             'statementparentid' => '',
@@ -506,17 +506,17 @@
 //         $request = new SwaggerRequester();
 //         $request
 //             ->withMethod('GET')
-//             ->withPath("/statement/unclearedstatements/{$result['accountid']}")
+//             ->withPath("/statement/reservedstatements/{$result['accountid']}")
 //         ;
-//         $unclearedStatements = $this->assertRequest($request);
-//         unset($unclearedStatements[0]['date']);
-//         unset($unclearedStatements[1]['date']);
+//         $reservedStatements = $this->assertRequest($request);
+//         unset($reservedStatements[0]['date']);
+//         unset($reservedStatements[1]['date']);
 //         $this->assertEquals(
 //             [
 //                 $expectedStatement2,
 //                 $expectedStatement1,
 //             ],
-//             $unclearedStatements
+//             $reservedStatements
 //         );
 
 //         // -------------------------------------
@@ -549,7 +549,7 @@
 //             "accounttypeid" => "USDTEST",
 //             "userid" => "___TESTUSER-10",
 //             "grossbalance" => 750,
-//             "uncleared" => 0,
+//             "reserved" => 0,
 //             "netbalance" => 750,
 //             "price" => 1,
 //             "extra" => "Extra Information",
@@ -572,7 +572,7 @@
 //             'typeid' => 'R',
 //             'amount' => 150,
 //             'grossbalance' => 1000,
-//             'uncleared' => 250,
+//             'reserved' => 250,
 //             'netbalance' => 750,
 //             'description' => 'Withdraw Funds 01',
 //             'statementparentid' => $statement['statementid'],
@@ -595,7 +595,7 @@
 //             'typeid' => 'W',
 //             'amount' => 250,
 //             'grossbalance' => 750,
-//             'uncleared' => 0,
+//             'reserved' => 0,
 //             'netbalance' => 750,
 //             'description' => 'Withdraw Funds 02',
 //             'statementparentid' => $statement2['statementid'],
@@ -649,7 +649,7 @@
 //                 "accounttypeid" => "USDTEST",
 //                 "userid" => "___TESTUSER-10",
 //                 "grossbalance" => 1000,
-//                 "uncleared" => 0,
+//                 "reserved" => 0,
 //                 "netbalance" => 1000,
 //                 "price" => 1,
 //                 "extra" => "Extra Information",
@@ -700,7 +700,7 @@
 //                 "accounttypeid" => "ABCTEST",
 //                 "userid" => "___TESTUSER-10",
 //                 "grossbalance" => 1000,
-//                 "uncleared" => 0,
+//                 "reserved" => 0,
 //                 "netbalance" => 1000,
 //                 "price" => 1,
 //                 "extra" => "Extra Information",
