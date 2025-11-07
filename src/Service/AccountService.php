@@ -15,11 +15,16 @@ use ByJG\AccountTransactions\Exception\AccountTypeException;
 use ByJG\AccountTransactions\Exception\AmountException;
 use ByJG\AccountTransactions\Exception\TransactionException;
 use ByJG\AccountTransactions\Repository\AccountRepository;
+use ByJG\AnyDataset\Core\Exception\DatabaseException;
+use ByJG\AnyDataset\Db\Exception\DbDriverNotConnected;
 use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
 use ByJG\MicroOrm\Exception\OrmInvalidFieldsException;
 use ByJG\MicroOrm\Exception\RepositoryReadOnlyException;
 use ByJG\MicroOrm\Exception\UpdateConstraintException;
 use ByJG\Serializer\Exception\InvalidArgumentException;
+use ByJG\XmlUtil\Exception\FileException;
+use ByJG\XmlUtil\Exception\XmlUtilException;
+use Exception;
 use PDOException;
 
 class AccountService
@@ -57,9 +62,14 @@ class AccountService
     /**
      * Get an account by ID.
      *
-     * @param int $accountId Optional id empty return all. 
+     * @param int $accountId Optional id empty return all.
      * @return AccountEntity|AccountEntity[]
+     * @throws OrmInvalidFieldsException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     * @throws FileException
+     * @throws XmlUtilException
      */
     public function getById(int $accountId): array|AccountEntity
     {
@@ -68,13 +78,15 @@ class AccountService
     }
 
     /**
-     * Obtém uma lista AccountEntity pelo Id do Usuário
+     * Return a list of AccountEntity by User ID
      *
      * @param string $userId
      * @param string $accountType Tipo de conta
      * @return AccountEntity[]
-     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
-     * @throws InvalidArgumentException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws XmlUtilException
      */
     public function getByUserId(string $userId, string $accountType = ""): array
     {
@@ -88,8 +100,10 @@ class AccountService
      *
      * @param string $accountTypeId
      * @return AccountEntity[]
-     * @throws InvalidArgumentException
-     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws XmlUtilException
      */
     public function getByAccountTypeId(string $accountTypeId): array
     {
@@ -109,12 +123,16 @@ class AccountService
      * @throws AccountException
      * @throws AccountTypeException
      * @throws AmountException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
      * @throws InvalidArgumentException
      * @throws OrmBeforeInvalidException
      * @throws OrmInvalidFieldsException
      * @throws RepositoryReadOnlyException
      * @throws TransactionException
      * @throws UpdateConstraintException
+     * @throws XmlUtilException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
     public function createAccount(string $accountTypeId, string $userId, int $balance, int $price = 1, int $minValue = 0, ?string $extra = null): int
@@ -167,12 +185,16 @@ class AccountService
      * @param string $description
      * @return int|null
      * @throws AccountException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
      * @throws InvalidArgumentException
      * @throws OrmBeforeInvalidException
      * @throws OrmInvalidFieldsException
      * @throws RepositoryReadOnlyException
      * @throws TransactionException
      * @throws UpdateConstraintException
+     * @throws XmlUtilException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
     public function overrideBalance(
@@ -190,7 +212,7 @@ class AccountService
         }
 
         $dto = TransactionDTO::createEmpty();
-        $dto->setUuid($dto->calculateUuid($this->accountRepository->getExecutor()));;
+        $dto->setUuid($dto->calculateUuid($this->accountRepository->getExecutor()));
 
         $this->accountRepository->getExecutor()->beginTransaction();
         try {
@@ -218,7 +240,7 @@ class AccountService
             $account->setLastUuid($dto->getUuid());
             $this->accountRepository->save($account);
 
-            // Create new Transaction
+            // Create a new Transaction
             $transaction = new TransactionEntity();
             $transaction->setAmount($newBalance);
             $transaction->setAccountId($account->getAccountId());
@@ -233,7 +255,7 @@ class AccountService
             $transaction->setUuid($dto->getUuid());
             $this->transactionService->getRepository()->save($transaction);
             $this->accountRepository->getExecutor()->commitTransaction();
-        } catch (\Exception $ex) {
+        } catch (Exception $ex) {
             $this->accountRepository->getExecutor()->rollbackTransaction();
             throw $ex;
         }
@@ -247,12 +269,16 @@ class AccountService
      * @param int $accountId
      * @return int|null
      * @throws AccountException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
      * @throws InvalidArgumentException
      * @throws OrmBeforeInvalidException
      * @throws OrmInvalidFieldsException
      * @throws RepositoryReadOnlyException
      * @throws TransactionException
      * @throws UpdateConstraintException
+     * @throws XmlUtilException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
     public function closeAccount(int $accountId): ?int
@@ -267,8 +293,13 @@ class AccountService
      * @return TransactionEntity
      * @throws AccountException
      * @throws AmountException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
      * @throws InvalidArgumentException
+     * @throws OrmInvalidFieldsException
      * @throws TransactionException
+     * @throws XmlUtilException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
     public function partialBalance(int $accountId, int $balance, string $description = "Partial Balance"): TransactionEntity

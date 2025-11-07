@@ -5,8 +5,13 @@ namespace ByJG\AccountTransactions\DTO;
 
 
 use ByJG\AccountTransactions\Entity\TransactionEntity;
+use ByJG\AnyDataset\Core\Exception\DatabaseException;
 use ByJG\AnyDataset\Db\DatabaseExecutor;
+use ByJG\AnyDataset\Db\Exception\DbDriverNotConnected;
 use ByJG\MicroOrm\Literal\Literal;
+use ByJG\XmlUtil\Exception\FileException;
+use ByJG\XmlUtil\Exception\XmlUtilException;
+use InvalidArgumentException;
 
 class TransactionDTO
 {
@@ -77,7 +82,7 @@ class TransactionDTO
             } else if (property_exists($transaction, $name)) {
                 $transaction->{$name} = $value;
             } else {
-                throw new \InvalidArgumentException("Property $name not found in TransactionEntity");
+                throw new InvalidArgumentException("Property $name not found in TransactionEntity");
             }
         }
     }
@@ -203,6 +208,12 @@ class TransactionDTO
         return $this->uuid;
     }
 
+    /**
+     * @throws DatabaseException
+     * @throws XmlUtilException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     */
     public function calculateUuid(DatabaseExecutor $dbExecutor): mixed
     {
         return new Literal("X'" . $dbExecutor->getScalar("SELECT hex(uuid_to_bin(uuid()))") . "'");

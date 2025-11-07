@@ -3,6 +3,7 @@
 namespace ByJG\AccountTransactions\Repository;
 
 use ByJG\AnyDataset\Db\DatabaseExecutor;
+use ByJG\MicroOrm\Exception\InvalidArgumentException;
 use ByJG\MicroOrm\Exception\OrmModelInvalidException;
 use ByJG\MicroOrm\Mapper;
 use ByJG\MicroOrm\Repository;
@@ -17,6 +18,7 @@ class AccountTypeRepository extends BaseRepository
      * @param string $accountTypeEntity
      * @throws OrmModelInvalidException
      * @throws ReflectionException
+     * @throws InvalidArgumentException
      */
     public function __construct(DatabaseExecutor $dbExecutor, string $accountTypeEntity)
     {

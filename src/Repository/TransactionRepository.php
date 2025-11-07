@@ -3,7 +3,9 @@
 namespace ByJG\AccountTransactions\Repository;
 
 use ByJG\AccountTransactions\Entity\TransactionEntity;
+use ByJG\AnyDataset\Core\Exception\DatabaseException;
 use ByJG\AnyDataset\Db\DatabaseExecutor;
+use ByJG\AnyDataset\Db\Exception\DbDriverNotConnected;
 use ByJG\MicroOrm\Exception\OrmModelInvalidException;
 use ByJG\MicroOrm\FieldMapping;
 use ByJG\MicroOrm\Literal\HexUuidLiteral;
@@ -12,6 +14,8 @@ use ByJG\MicroOrm\Mapper;
 use ByJG\MicroOrm\Query;
 use ByJG\MicroOrm\Repository;
 use ByJG\Serializer\Exception\InvalidArgumentException;
+use ByJG\XmlUtil\Exception\FileException;
+use ByJG\XmlUtil\Exception\XmlUtilException;
 use ReflectionException;
 
 class TransactionRepository extends BaseRepository
@@ -24,6 +28,7 @@ class TransactionRepository extends BaseRepository
      * @param FieldMapping[] $fieldMappingList
      * @throws OrmModelInvalidException
      * @throws ReflectionException
+     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
     public function __construct(DatabaseExecutor $dbExecutor, string $transactionEntity, array $fieldMappingList = [])
     {
@@ -51,6 +56,10 @@ class TransactionRepository extends BaseRepository
      * @param int $parentId
      * @param bool $forUpdate
      * @return TransactionEntity|null
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws XmlUtilException
      */
     public function getByParentId(int $parentId, bool $forUpdate = false): ?TransactionEntity
     {
@@ -77,6 +86,10 @@ class TransactionRepository extends BaseRepository
      *
      * @param Literal|string $uuid
      * @return TransactionEntity|null
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws XmlUtilException
      */
     public function getByUuid(Literal|string $uuid): ?TransactionEntity
     {
@@ -102,6 +115,10 @@ class TransactionRepository extends BaseRepository
      * @param int $accountId
      * @param int $limit
      * @return TransactionEntity[]
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws XmlUtilException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
     public function getByAccountId(int $accountId, int $limit = 20): array
@@ -119,7 +136,11 @@ class TransactionRepository extends BaseRepository
      * @param int|null $accountId
      * @return array
      * @throws InvalidArgumentException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     * @throws FileException
+     * @throws XmlUtilException
      */
     public function getReservedTransactions(?int $accountId = null): array
     {
@@ -148,6 +169,10 @@ class TransactionRepository extends BaseRepository
      * @param string $startDate
      * @param string $endDate
      * @return array
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws XmlUtilException
      */
     public function getByDate(int $accountId, string $startDate, string $endDate): array
     {
@@ -161,6 +186,12 @@ class TransactionRepository extends BaseRepository
         return $this->repository->getByQuery($query);
     }
 
+    /**
+     * @throws XmlUtilException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     */
     public function getByCode(int $accountId, string $code, ?string $startDate = null, ?string $endDate = null): array
     {
         $query = Query::getInstance()
@@ -181,6 +212,12 @@ class TransactionRepository extends BaseRepository
         return $this->repository->getByQuery($query);
     }
 
+    /**
+     * @throws XmlUtilException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     */
     public function getByReferenceId(int $accountId, string $referenceSource, string $referenceId, ?string $startDate = null, ?string $endDate = null): array
     {
         $query = Query::getInstance()

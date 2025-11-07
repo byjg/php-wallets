@@ -2,17 +2,21 @@
 
 namespace ByJG\AccountTransactions\Repository;
 
+use ByJG\AnyDataset\Core\Exception\DatabaseException;
 use ByJG\AnyDataset\Core\GenericIterator;
 use ByJG\AnyDataset\Core\IteratorFilter;
 use ByJG\AnyDataset\Db\DatabaseExecutor;
+use ByJG\AnyDataset\Db\Exception\DbDriverNotConnected;
 use ByJG\AnyDataset\Db\IsolationLevelEnum;
+use ByJG\MicroOrm\Exception\InvalidArgumentException;
 use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
 use ByJG\MicroOrm\Exception\OrmInvalidFieldsException;
 use ByJG\MicroOrm\Exception\RepositoryReadOnlyException;
 use ByJG\MicroOrm\Exception\UpdateConstraintException;
 use ByJG\MicroOrm\Query;
 use ByJG\MicroOrm\Repository;
-use ByJG\Serializer\Exception\InvalidArgumentException;
+use ByJG\XmlUtil\Exception\FileException;
+use ByJG\XmlUtil\Exception\XmlUtilException;
 
 abstract class BaseRepository
 {
@@ -24,7 +28,12 @@ abstract class BaseRepository
     /**
      * @param string|int $itemId
      * @return mixed
-     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     * @throws OrmInvalidFieldsException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws InvalidArgumentException
+     * @throws FileException
+     * @throws XmlUtilException
      */
     public function getById(string|int $itemId): mixed
     {
@@ -49,7 +58,11 @@ abstract class BaseRepository
      * @param string|null $orderBy
      * @param array|IteratorFilter|null $filter
      * @return array
-     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws XmlUtilException
+     * @throws InvalidArgumentException
      */
     public function getAll(?int $page = 0, ?int $size = 20, ?string $orderBy = null, array|IteratorFilter|null $filter = null): array
     {
@@ -91,18 +104,28 @@ abstract class BaseRepository
     /**
      * @param $model
      * @return mixed
-     * @throws InvalidArgumentException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
      * @throws OrmBeforeInvalidException
      * @throws OrmInvalidFieldsException
-     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      * @throws RepositoryReadOnlyException
      * @throws UpdateConstraintException
+     * @throws XmlUtilException
+     * @throws InvalidArgumentException
      */
     public function save($model): mixed
     {
         return $this->repository->save($model);
     }
 
+    /**
+     * @throws XmlUtilException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws InvalidArgumentException
+     */
     public function bulkExecute(array $queries): ?GenericIterator
     {
         return $this->repository->bulkExecute($queries, IsolationLevelEnum::SERIALIZABLE);

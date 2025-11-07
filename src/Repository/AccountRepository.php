@@ -3,13 +3,17 @@
 namespace ByJG\AccountTransactions\Repository;
 
 use ByJG\AccountTransactions\Entity\AccountEntity;
+use ByJG\AnyDataset\Core\Exception\DatabaseException;
 use ByJG\AnyDataset\Db\DatabaseExecutor;
+use ByJG\AnyDataset\Db\Exception\DbDriverNotConnected;
 use ByJG\MicroOrm\Exception\OrmModelInvalidException;
 use ByJG\MicroOrm\FieldMapping;
 use ByJG\MicroOrm\Mapper;
 use ByJG\MicroOrm\Query;
 use ByJG\MicroOrm\Repository;
 use ByJG\Serializer\Exception\InvalidArgumentException;
+use ByJG\XmlUtil\Exception\FileException;
+use ByJG\XmlUtil\Exception\XmlUtilException;
 use ReflectionException;
 
 class AccountRepository extends BaseRepository
@@ -22,6 +26,7 @@ class AccountRepository extends BaseRepository
      * @param FieldMapping[] $fieldMappingList
      * @throws OrmModelInvalidException
      * @throws ReflectionException
+     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
     public function __construct(DatabaseExecutor $dbExecutor, string $accountEntity, array $fieldMappingList = [])
     {
@@ -47,6 +52,10 @@ class AccountRepository extends BaseRepository
      * @param string $userId
      * @param string $accountType
      * @return array
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws XmlUtilException
      */
     public function getByUserId(string $userId, string $accountType = ""): array
     {
@@ -66,6 +75,10 @@ class AccountRepository extends BaseRepository
     /**
      * @param string $accountTypeId
      * @return array
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws XmlUtilException
      */
     public function getByAccountTypeId(string $accountTypeId): array
     {
@@ -82,7 +95,11 @@ class AccountRepository extends BaseRepository
     /**
      * @param int $transactionid
      * @return AccountEntity|null
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
      * @throws InvalidArgumentException
+     * @throws XmlUtilException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
     public function getByTransactionId(int $transactionid): ?AccountEntity
