@@ -11,10 +11,10 @@ use ByJG\Wallets\Exception\AmountException;
 
 /**
  * @OA\Definition(
- *   description="Account",
+ *   description="Wallet",
  * )
  *
- * @object:NodeName account
+ * @object:NodeName wallet
  */
 #[TableAttribute('wallet')]
 class WalletEntity extends BaseModel

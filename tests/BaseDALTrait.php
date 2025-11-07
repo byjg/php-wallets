@@ -55,9 +55,9 @@ trait BaseDALTrait
         $walletTypeRepository = new WalletTypeRepository($this->dbExecutor, $walletTypeEntity);
         $transactionRepository = new TransactionRepository($this->dbExecutor, $transactionEntity);
 
-        $this->accountTypeService = new WalletTypeService($walletTypeRepository);
+        $this->walletTypeService = new WalletTypeService($walletTypeRepository);
         $this->transactionService = new TransactionService($transactionRepository, $walletRepository);
-        $this->accountService = new WalletService($walletRepository, $this->accountTypeService, $this->transactionService);
+        $this->walletService = new WalletService($walletRepository, $this->walletTypeService, $this->transactionService);
     }
 
     /**
@@ -72,7 +72,7 @@ trait BaseDALTrait
 
     public function dbSetUp(): void
     {
-        $uriMySqlTest = getenv('MYSQL_TEST_URI') ? getenv('MYSQL_TEST_URI') : "mysql://root:password@127.0.0.1/accounttest";
+        $uriMySqlTest = getenv('MYSQL_TEST_URI') ? getenv('MYSQL_TEST_URI') : "mysql://root:password@127.0.0.1/wallettest";
         $this->uri = new Uri($uriMySqlTest);
 
         Migration::registerDatabase(MySqlDatabase::class);
@@ -141,11 +141,11 @@ trait BaseDALTrait
         $dto4->setWalletTypeId('NEGTEST');
         $dto4->setName('Test 4');
 
-        $this->accountTypeService->update($dto1);
-        $this->accountTypeService->update($dto2);
-        $this->accountTypeService->update($dto3);
-        $this->accountTypeService->update($dto4);
+        $this->walletTypeService->update($dto1);
+        $this->walletTypeService->update($dto2);
+        $this->walletTypeService->update($dto3);
+        $this->walletTypeService->update($dto4);
 
-        $this->accountService->createWallet('BRLTEST', '___TESTUSER-1', 1000, 1);
+        $this->walletService->createWallet('BRLTEST', '___TESTUSER-1', 1000, 1);
     }
 }

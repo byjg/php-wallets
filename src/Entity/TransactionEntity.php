@@ -333,7 +333,7 @@ class TransactionEntity extends BaseModel
      */
     protected ?WalletEntity $wallet = null;
 
-    public function attachAccount(WalletEntity $wallet): void
+    public function attachWallet(WalletEntity $wallet): void
     {
         $this->setWalletId($wallet->getWalletId());
         $this->setWalletTypeId($wallet->getWalletTypeId());
@@ -342,7 +342,7 @@ class TransactionEntity extends BaseModel
         $this->setReserved($wallet->getReserved());
         $this->setPrice($wallet->getPrice());
 
-        $this->account = $wallet;
+        $this->wallet = $wallet;
     }
 
     /**
@@ -357,15 +357,15 @@ class TransactionEntity extends BaseModel
             throw new AmountException('Amount não pode ser menor que zero');
         }
 
-        if (empty($this->account)) {
+        if (empty($this->wallet)) {
             return;
         }
 
-        if ($this->getAvailable() < $this->account->getMinValue()
-            || $this->getBalance() < $this->account->getMinValue()
-            || $this->getReserved() < $this->account->getMinValue()
+        if ($this->getAvailable() < $this->wallet->getMinValue()
+            || $this->getBalance() < $this->wallet->getMinValue()
+            || $this->getReserved() < $this->wallet->getMinValue()
         ) {
-            throw new AmountException('Valor não pode ser menor que ' . $this->account->getMinValue());
+            throw new AmountException('Valor não pode ser menor que ' . $this->wallet->getMinValue());
         }
     }
 }

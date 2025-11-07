@@ -85,8 +85,8 @@ docker run --name mysql-container --rm  -e MYSQL_ROOT_PASSWORD=password -p 3306:
 
 ```mermaid  
 flowchart TD  
-    byjg/account-statements --> ext-openssl
-    byjg/account-statements --> byjg/micro-orm
+    byjg/wallets --> ext-openssl
+    byjg/wallets --> byjg/micro-orm
 ```
 
 ----  

@@ -27,8 +27,8 @@ class WalletTypeService
 
 
     /**
-     * Obtém um AccountType por ID.
-     * Se o ID não for passado, então devolve todos os AccountTypes.
+     * Obtém um WalletType por ID.
+     * Se o ID não for passado, então devolve todos os WalletTypes.
      *
      * @param string $walletTypeId Opcional. Se não for passado obtém todos
      * @return WalletTypeEntity|WalletTypeEntity[]|null
@@ -40,7 +40,7 @@ class WalletTypeService
     }
 
     /**
-     * Salvar ou Atualizar um AccountType
+     * Salvar ou Atualizar um WalletType
      *
      * @param mixed $data
      * @return string Id do objeto inserido atualizado
@@ -58,7 +58,7 @@ class WalletTypeService
         $walletTypeId = $object->getWalletTypeId();
 
         if (empty($object->getWalletTypeId())) {
-            throw new WalletTypeException('Id account type não pode ser em branco');
+            throw new WalletTypeException('Id wallet type não pode ser em branco');
         }
 
         if (empty($object->getName())) {

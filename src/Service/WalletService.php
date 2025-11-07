@@ -45,7 +45,7 @@ class WalletService
     protected TransactionService $transactionService;
 
     /**
-     * AccountService constructor.
+     * WalletService constructor.
      * @param WalletRepository $walletRepository
      * @param WalletTypeService $walletTypeService
      * @param TransactionService $transactionService
@@ -60,7 +60,7 @@ class WalletService
 
 
     /**
-     * Get an account by ID.
+     * Get an wallet by ID.
      *
      * @param int $walletId Optional id empty return all.
      * @return WalletEntity|WalletEntity[]
@@ -78,7 +78,7 @@ class WalletService
     }
 
     /**
-     * Return a list of AccountEntity by User ID
+     * Return a list of WalletEntity by User ID
      *
      * @param string $userId
      * @param string $walletType Tipo de conta
@@ -96,7 +96,7 @@ class WalletService
     }
 
     /**
-     * Obtém uma lista  AccountEntity pelo Account Type ID
+     * Obtém uma lista  WalletEntity pelo Wallet Type ID
      *
      * @param string $walletTypeId
      * @return WalletEntity[]
@@ -139,7 +139,7 @@ class WalletService
     {
         // Faz as validações
         if ($this->walletTypeService->getById($walletTypeId) == null) {
-            throw new WalletTypeException('AccountTypeId ' . $walletTypeId . ' não existe');
+            throw new WalletTypeException('WalletTypeId ' . $walletTypeId . ' não existe');
         }
 
         // Define os dados
@@ -208,7 +208,7 @@ class WalletService
         $wallet = $this->walletRepository->getById($walletId);
 
         if (empty($wallet)) {
-            throw new WalletException('Account Id doesnt exists');
+            throw new WalletException('Wallet Id doesnt exists');
         }
 
         $dto = TransactionDTO::createEmpty();
@@ -231,7 +231,7 @@ class WalletService
                 );
             }
 
-            // Update object Account
+            // Update object Wallet
             $wallet->setBalance($newBalance);
             $wallet->setAvailable($newBalance - $reservedValues);
             $wallet->setReserved($reservedValues);
@@ -338,7 +338,7 @@ class WalletService
         $transactionSourceDTO->setCode('T_TO');
         $transactionSourceDTO->setReferenceSource('transfer_to');
         $transactionSourceDTO->setReferenceId($refSource);
-        $transactionSourceDTO->setDescription('Transfer to account id ' . $walletTarget);
+        $transactionSourceDTO->setDescription('Transfer to wallet id ' . $walletTarget);
 
         $transactionTargetDTO = TransactionDTO::createEmpty();
         $transactionTargetDTO->setWalletId($walletTarget);
@@ -346,7 +346,7 @@ class WalletService
         $transactionTargetDTO->setCode('T_FROM');
         $transactionTargetDTO->setReferenceSource('transfer_from');
         $transactionTargetDTO->setReferenceId($refSource);
-        $transactionTargetDTO->setDescription('Transfer from account id ' . $walletSource);
+        $transactionTargetDTO->setDescription('Transfer from wallet id ' . $walletSource);
 
         $transactionSource = $this->transactionService->withdrawFunds($transactionSourceDTO);
         $transactionTarget = $this->transactionService->addFunds($transactionTargetDTO);

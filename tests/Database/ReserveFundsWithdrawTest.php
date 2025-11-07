@@ -40,7 +40,7 @@ class ReserveFundsWithdrawTest extends TestCase
     public function testReserveForWithdrawFunds(): void
     {
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $dto = TransactionDTO::create($walletId, 350)
             ->setDescription('Test Withdraw')
             ->setReferenceId('Referencia Withdraw')
@@ -75,7 +75,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $this->expectExceptionMessage('Amount needs to be greater than zero');
 
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $this->transactionService->reserveFundsForWithdraw(
             TransactionDTO::create($walletId, -50)
                 ->setDescription('Test Withdraw')
@@ -86,7 +86,7 @@ class ReserveFundsWithdrawTest extends TestCase
     public function testReserveForWithdrawFunds_Allow_Negative(): void
     {
         // Populate Data!
-        $walletId = $this->accountService->createWallet('NEGTEST', "___TESTUSER-1", 1000, 1, -400);
+        $walletId = $this->walletService->createWallet('NEGTEST', "___TESTUSER-1", 1000, 1, -400);
         $dto = TransactionDTO::create($walletId, 1150)
             ->setDescription('Test Withdraw')
             ->setReferenceId('Referencia Withdraw')
@@ -120,7 +120,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $this->expectException(AmountException::class);
 
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000, 1, -400);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000, 1, -400);
         $this->transactionService->reserveFundsForWithdraw(
             TransactionDTO::create($walletId, 1401)
                 ->setDescription('Test Withdraw')
@@ -134,7 +134,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $this->expectException(TransactionException::class);
 
         // Populate Data!
-        $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
 
         $this->transactionService->acceptFundsById(2);
     }
@@ -144,7 +144,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $this->expectException(TransactionException::class);
 
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $transaction = $this->transactionService->withdrawFunds(
             TransactionDTO::create($walletId, 200)
                 ->setDescription('Test Withdraw')
@@ -160,7 +160,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $this->expectException(TransactionException::class);
 
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $this->transactionService->withdrawFunds(TransactionDTO::create($walletId, 150)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
         $transaction = $this->transactionService->reserveFundsForWithdraw(TransactionDTO::create($walletId, 350)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
 
@@ -174,7 +174,7 @@ class ReserveFundsWithdrawTest extends TestCase
     public function testAcceptFundsById_OK(): void
     {
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $this->transactionService->withdrawFunds(
             TransactionDTO::create($walletId, 150)
                 ->setDescription( 'Test Withdraw')
@@ -219,7 +219,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $this->expectException(TransactionException::class);
 
         // Populate Data!
-        $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
 
         $this->transactionService->rejectFundsById(5);
     }
@@ -229,7 +229,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $this->expectException(TransactionException::class);
 
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $transaction = $this->transactionService->withdrawFunds(TransactionDTO::create($walletId, 300));
 
         $this->transactionService->rejectFundsById($transaction->getTransactionId());
@@ -240,7 +240,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $this->expectException(TransactionException::class);
 
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $this->transactionService->withdrawFunds(
             TransactionDTO::create($walletId, 150)
                 ->setDescription('Test Withdraw')
@@ -264,7 +264,7 @@ class ReserveFundsWithdrawTest extends TestCase
     public function testRejectFundsById_OK(): void
     {
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $this->transactionService->withdrawFunds(
             TransactionDTO::create($walletId, 150)
                 ->setDescription('Test Withdraw')

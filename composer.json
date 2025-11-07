@@ -1,5 +1,5 @@
 {
-  "name": "byjg/account-statements",
+  "name": "byjg/wallets",
   "description": "Very simple component to manage Account Statements in PHP",
   "minimum-stability": "dev",
   "prefer-stable": true,

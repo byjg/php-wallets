@@ -17,7 +17,7 @@ class ObserverWallet implements ObserverProcessorInterface
     #[\Override]
     public function process(ObserverData $observerData): void
     {
-        // This is tied to the test AccountTransactionTest::testTransactionObserver()
+        // This is tied to the test WalletTransactionTest::testTransactionObserver()
         $this->repository->setReach($observerData->getEvent() == ObserverEvent::Update && $observerData->getData()->getAvailable() == 1250);
     }
 

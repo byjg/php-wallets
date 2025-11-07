@@ -36,7 +36,7 @@ jobs:
           --health-retries=10
 
     env:
-      MYSQL_TEST_URI: "mysql://root:password@mysql/accounttest"
+      MYSQL_TEST_URI: "mysql://root:password@mysql/wallettest"
       
     steps:
       - uses: actions/checkout@v4

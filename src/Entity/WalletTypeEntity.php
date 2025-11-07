@@ -8,10 +8,10 @@ use ByJG\Serializer\BaseModel;
 
 /**
  * @OA\Definition(
- *   description="AccountType",
+ *   description="WalletType",
  * )
  *
- * @object:nodename accounttype
+ * @object:nodename wallettype
  */
 #[TableAttribute('wallettype')]
 class WalletTypeEntity extends BaseModel

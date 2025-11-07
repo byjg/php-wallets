@@ -58,9 +58,9 @@ class WalletTransactionsTest extends TestCase
      * @return void
      * @throws InvalidArgumentException
      */
-    public function testGetAccountType()
+    public function testGetWalletType()
     {
-        $walletTypeRepo = $this->accountTypeService->getRepository();
+        $walletTypeRepo = $this->walletTypeService->getRepository();
         $list = $walletTypeRepo->getAll(null, null, null, [["wallettypeid like '___TEST'", []]]);
 
         $this->assertEquals(4, count($list));
@@ -87,7 +87,7 @@ class WalletTransactionsTest extends TestCase
             Serialize::from($list)->toArray()
         );
 
-        $dto = $this->accountTypeService->getById('USDTEST');
+        $dto = $this->walletTypeService->getById('USDTEST');
         $this->assertEquals('Test 1', $dto->getName());
         $this->assertEquals('USDTEST', $dto->getWalletTypeId());
     }
@@ -95,7 +95,7 @@ class WalletTransactionsTest extends TestCase
     public function testGetById(): void
     {
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $dto = TransactionDTO::create($walletId, 10)
             ->setDescription('Test')
             ->setReferenceId('Referencia')
@@ -129,7 +129,7 @@ class WalletTransactionsTest extends TestCase
     public function testGetById_Zero(): void
     {
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 0);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 0);
         $dto = TransactionDTO::create($walletId, 10)
             ->setDescription('Test')
             ->setReferenceId('Referencia')
@@ -169,7 +169,7 @@ class WalletTransactionsTest extends TestCase
     public function testGetAll(): void
     {
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $transactionResult = $this->transactionService->withdrawFunds(
             TransactionDTO::create($walletId, 10)
                 ->setDescription('Test')
@@ -254,7 +254,7 @@ class WalletTransactionsTest extends TestCase
     public function testAddFunds(): void
     {
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $dto = TransactionDTO::create($walletId, 250)
             ->setDescription('Test Add Funds')
             ->setReferenceId('Referencia Add Funds')
@@ -294,7 +294,7 @@ class WalletTransactionsTest extends TestCase
         $this->expectExceptionMessage('Amount needs to be greater than zero');
 
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
 
         // Check;
         $this->transactionService->addFunds(TransactionDTO::create($walletId, -15));
@@ -303,7 +303,7 @@ class WalletTransactionsTest extends TestCase
     public function testWithdrawFunds(): void
     {
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $dto = TransactionDTO::create($walletId, 350)
             ->setDescription('Test Withdraw')
             ->setReferenceId('Referencia Withdraw')
@@ -338,7 +338,7 @@ class WalletTransactionsTest extends TestCase
         $this->expectExceptionMessage('Amount needs to be greater than zero');
 
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
 
         // Check
         $this->transactionService->withdrawFunds(TransactionDTO::create($walletId, -15));
@@ -347,7 +347,7 @@ class WalletTransactionsTest extends TestCase
     public function testWithdrawFunds_Allow_Negative(): void
     {
         // Populate Data!
-        $walletId = $this->accountService->createWallet('NEGTEST', "___TESTUSER-1", 1000, 1, -400);
+        $walletId = $this->walletService->createWallet('NEGTEST', "___TESTUSER-1", 1000, 1, -400);
         $dto = TransactionDTO::create($walletId, 1150)
             ->setDescription('Test Withdraw')
             ->setReferenceId('Referencia Withdraw')
@@ -379,7 +379,7 @@ class WalletTransactionsTest extends TestCase
     public function testWithdrawFunds_Allow_Negative2(): void
     {
         // Populate Data!
-        $walletId = $this->accountService->createWallet('NEGTEST', "___TESTUSER-1", 1000, 1, -400);
+        $walletId = $this->walletService->createWallet('NEGTEST', "___TESTUSER-1", 1000, 1, -400);
         $transaction = $this->transactionService->withdrawFunds(TransactionDTO::create($walletId, 1400)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
 
         $transaction = $this->transactionService->getById($transaction->getTransactionId());
@@ -393,7 +393,7 @@ class WalletTransactionsTest extends TestCase
         $this->expectException(AmountException::class);
 
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000, 1, -400);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000, 1, -400);
         $this->transactionService->withdrawFunds(TransactionDTO::create($walletId, 1401)->setDescription('Test Withdraw')->setReferenceId('Referencia Withdraw'));
     }
 
@@ -408,9 +408,9 @@ class WalletTransactionsTest extends TestCase
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      * @throws \ByJG\Serializer\Exception\InvalidArgumentException
      */
-    public function testGetAccountByUserId()
+    public function testGetWalletByUserId()
     {
-        $walletId = $this->accountService->createWallet(
+        $walletId = $this->walletService->createWallet(
             'USDTEST',
             "___TESTUSER-10",
             1000,
@@ -419,10 +419,10 @@ class WalletTransactionsTest extends TestCase
             'Extra Information'
         );
 
-        $wallet = $this->accountService->getByUserId("___TESTUSER-10");
+        $wallet = $this->walletService->getByUserId("___TESTUSER-10");
         $wallet[0]->setEntryDate(null);
 
-        $walletEntity = $this->accountService->getRepository()->getMapper()->getEntity([
+        $walletEntity = $this->walletService->getRepository()->getMapper()->getEntity([
             "walletid" => $walletId,
             "wallettypeid" => "USDTEST",
             "userid" => "___TESTUSER-10",
@@ -453,9 +453,9 @@ class WalletTransactionsTest extends TestCase
      * @throws TransactionException
      * @throws \ByJG\Serializer\Exception\InvalidArgumentException
      */
-    public function testGetAccountByAccountType(): void
+    public function testGetWalletByWalletType(): void
     {
-        $walletId = $this->accountService->createWallet(
+        $walletId = $this->walletService->createWallet(
             'ABCTEST',
             "___TESTUSER-10",
             1000,
@@ -464,10 +464,10 @@ class WalletTransactionsTest extends TestCase
             'Extra Information'
         );
 
-        $wallet = $this->accountService->getByWalletTypeId('ABCTEST');
+        $wallet = $this->walletService->getByWalletTypeId('ABCTEST');
         $wallet[0]->setEntryDate(null);
 
-        $walletEntity = $this->accountService->getRepository()->getMapper()->getEntity([
+        $walletEntity = $this->walletService->getRepository()->getMapper()->getEntity([
             "walletid" => $walletId,
             "wallettypeid" => "ABCTEST",
             "userid" => "___TESTUSER-10",
@@ -491,10 +491,10 @@ class WalletTransactionsTest extends TestCase
     public function testOverrideFunds(): void
     {
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
 
-        $transactionId = $this->accountService->overrideBalance($walletId, 650);
-        $wallet = $this->accountService->getById($walletId)->toArray();
+        $transactionId = $this->walletService->overrideBalance($walletId, 650);
+        $wallet = $this->walletService->getById($walletId)->toArray();
         unset($wallet["entrydate"]);
 
         $transaction = $this->transactionService->getById($transactionId)->toArray();
@@ -540,10 +540,10 @@ class WalletTransactionsTest extends TestCase
     public function testPartialFunds(): void
     {
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
 
-        $transactionPartial = $this->accountService->partialBalance($walletId, 650);
-        $wallet = $this->accountService->getById($walletId)->toArray();
+        $transactionPartial = $this->walletService->partialBalance($walletId, 650);
+        $wallet = $this->walletService->getById($walletId)->toArray();
         unset($wallet["entrydate"]);
 
         // Executar teste
@@ -589,18 +589,18 @@ class WalletTransactionsTest extends TestCase
 
     }
 
-    public function testCloseAccount(): void
+    public function testCloseWallet(): void
     {
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
 
         $this->transactionService->addFunds(TransactionDTO::create($walletId, 400));
         $this->transactionService->addFunds(TransactionDTO::create($walletId, 200));
         $this->transactionService->withdrawFunds(TransactionDTO::create($walletId, 300));
 
-        $transactionId = $this->accountService->closeWallet($walletId);
+        $transactionId = $this->walletService->closeWallet($walletId);
 
-        $wallet = $this->accountService->getById($walletId)->toArray();
+        $wallet = $this->walletService->getById($walletId)->toArray();
         unset($wallet["entrydate"]);
 
         $transaction = $this->transactionService->getById($transactionId)->toArray();
@@ -648,11 +648,11 @@ class WalletTransactionsTest extends TestCase
     public function testGetByDate(): void
     {
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $this->transactionService->addFunds(TransactionDTO::create($walletId, 400));
         $this->transactionService->withdrawFunds(TransactionDTO::create($walletId, 300));
 
-        $ignore = $this->accountService->createWallet('BRLTEST', "___TESTUSER-999", 1000); // I dont want this account
+        $ignore = $this->walletService->createWallet('BRLTEST', "___TESTUSER-999", 1000); // I dont want this wallet
         $this->transactionService->addFunds(TransactionDTO::create($ignore, 200));
 
         $startDate = date('Y') . "/" . date('m') . "/01";
@@ -732,14 +732,14 @@ class WalletTransactionsTest extends TestCase
     public function testGetByTransactionId(): void
     {
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $transaction = $this->transactionService->addFunds(TransactionDTO::create($walletId, 400));
         $this->transactionService->withdrawFunds(TransactionDTO::create($walletId, 300));
 
-        $ignore = $this->accountService->createWallet('BRLTEST', "___TESTUSER-999", 1000); // I dont want this account
+        $ignore = $this->walletService->createWallet('BRLTEST', "___TESTUSER-999", 1000); // I dont want this wallet
         $this->transactionService->addFunds(TransactionDTO::create($ignore, 200));
 
-        $walletRepo = $this->accountService->getRepository();
+        $walletRepo = $this->walletService->getRepository();
 
         $walletResult = $walletRepo->getByTransactionId($transaction->getTransactionId());;
         $walletExpected = $walletRepo->getById($walletId);
@@ -750,7 +750,7 @@ class WalletTransactionsTest extends TestCase
 
     public function testGetByTransactionIdNotFound(): void
     {
-        $walletRepo = $this->accountService->getRepository();
+        $walletRepo = $this->walletService->getRepository();
         $walletResult = $walletRepo->getByTransactionId(12345); // Dont exists
         $this->assertNull($walletResult);
     }
@@ -758,11 +758,11 @@ class WalletTransactionsTest extends TestCase
     public function testTransactionsByCode(): void
     {
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $this->transactionService->addFunds(TransactionDTO::create($walletId, 400)->setCode('TEST'));
         $this->transactionService->withdrawFunds(TransactionDTO::create($walletId, 300));
 
-        $ignore = $this->accountService->createWallet('BRLTEST', "___TESTUSER-999", 1000); // I dont want this account
+        $ignore = $this->walletService->createWallet('BRLTEST', "___TESTUSER-999", 1000); // I dont want this wallet
         $this->transactionService->addFunds(TransactionDTO::create($ignore, 200));
 
         $transactionList = $this->transactionService->getRepository()->getByCode($walletId, 'TEST');
@@ -808,11 +808,11 @@ class WalletTransactionsTest extends TestCase
     public function testGetTransactionsByReferenceId(): void
     {
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $this->transactionService->addFunds(TransactionDTO::create($walletId, 400)->setReferenceId('REFID')->setReferenceSource('REFSRC'));
         $this->transactionService->withdrawFunds(TransactionDTO::create($walletId, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
 
-        $ignore = $this->accountService->createWallet('BRLTEST', "___TESTUSER-999", 1000); // I dont want this account
+        $ignore = $this->walletService->createWallet('BRLTEST', "___TESTUSER-999", 1000); // I dont want this wallet
         $this->transactionService->addFunds(TransactionDTO::create($ignore, 200));
 
         $transactionList = $this->transactionService->getRepository()->getByReferenceId($walletId, 'REFSRC', 'REFID2');
@@ -851,13 +851,13 @@ class WalletTransactionsTest extends TestCase
 
     public function testTransferFunds(): void
     {
-        $walletBrlId = $this->accountService->getByWalletTypeId('BRLTEST')[0]->getWalletId();
-        $walletUsdId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletBrlId = $this->walletService->getByWalletTypeId('BRLTEST')[0]->getWalletId();
+        $walletUsdId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
 
-        [$transactionSource, $transactionTarget] = $this->accountService->transferFunds($walletBrlId, $walletUsdId, 300);
+        [$transactionSource, $transactionTarget] = $this->walletService->transferFunds($walletBrlId, $walletUsdId, 300);
 
-        $walletSource = $this->accountService->getById($transactionSource->getWalletId());
-        $walletTarget = $this->accountService->getById($transactionTarget->getWalletId());
+        $walletSource = $this->walletService->getById($transactionSource->getWalletId());
+        $walletTarget = $this->walletService->getById($transactionTarget->getWalletId());
 
         $this->assertEquals(700, $walletSource->getAvailable());
         $this->assertEquals(1300, $walletTarget->getAvailable());
@@ -865,13 +865,13 @@ class WalletTransactionsTest extends TestCase
 
     public function testTransferFundsFail(): void
     {
-        $walletBrlId = $this->accountService->getByWalletTypeId('BRLTEST')[0]->getWalletId();
-        $walletUsdId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletBrlId = $this->walletService->getByWalletTypeId('BRLTEST')[0]->getWalletId();
+        $walletUsdId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
 
         $this->expectException(AmountException::class);
-        $this->expectExceptionMessage('Cannot withdraw above the account balance');
+        $this->expectExceptionMessage('Cannot withdraw above the wallet balance');
 
-        $this->accountService->transferFunds($walletBrlId, $walletUsdId, 1100);
+        $this->walletService->transferFunds($walletBrlId, $walletUsdId, 1100);
     }
 
     public function testJoinTransactionAndCommit(): void
@@ -879,7 +879,7 @@ class WalletTransactionsTest extends TestCase
         // This transaction starts outside the Transaction Context
         $this->dbExecutor->beginTransaction(IsolationLevelEnum::SERIALIZABLE);
 
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $transaction = $this->transactionService->withdrawFunds(
             TransactionDTO::create($walletId, 10)
                 ->setDescription('Test')
@@ -900,7 +900,7 @@ class WalletTransactionsTest extends TestCase
         // This transaction starts outside the Transaction Context
         $this->dbExecutor->beginTransaction(IsolationLevelEnum::SERIALIZABLE);
 
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $transaction = $this->transactionService->withdrawFunds(
             TransactionDTO::create($walletId, 10)
                 ->setDescription('Test')
@@ -925,7 +925,7 @@ class WalletTransactionsTest extends TestCase
         $this->expectExceptionMessage('You cannot join a transaction with a different isolation level');
 
         try {
-            $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+            $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
             $this->transactionService->withdrawFunds(
                 TransactionDTO::create($walletId, 10)
                     ->setDescription('Test')
@@ -944,7 +944,7 @@ class WalletTransactionsTest extends TestCase
         $this->prepareObjects(walletEntity: WalletEntity::class, walletTypeEntity: WalletTypeEntity::class, transactionEntity: TransactionExtended::class);
 
         // Populate Data!
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $dto = TransactionDTO::create($walletId, 250)
             ->setDescription('Test Add Funds')
             ->setReferenceId('Referencia Add Funds')
@@ -974,31 +974,31 @@ class WalletTransactionsTest extends TestCase
         $this->assertEquals($transaction, $actual);
     }
 
-    public function testAddFundAccountNotFound(): void
+    public function testAddFundWalletNotFound(): void
     {
         $this->expectException(WalletException::class);
-        $this->expectExceptionMessage('Account not found');
+        $this->expectExceptionMessage('Wallet not found');
         $this->transactionService->addFunds(TransactionDTO::create(1023, 400)->setReferenceId('REFID')->setReferenceSource('REFSRC'));
     }
 
-    public function testWithdrawFundAccountNotFound(): void
+    public function testWithdrawFundWalletNotFound(): void
     {
         $this->expectException(WalletException::class);
-        $this->expectExceptionMessage('Account not found');
+        $this->expectExceptionMessage('Wallet not found');
         $this->transactionService->withdrawFunds(TransactionDTO::create(1023, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
     }
 
-    public function testReserveWithdrawFundAccountNotFound(): void
+    public function testReserveWithdrawFundWalletNotFound(): void
     {
         $this->expectException(WalletException::class);
-        $this->expectExceptionMessage('Account not found');
+        $this->expectExceptionMessage('Wallet not found');
         $this->transactionService->reserveFundsForWithdraw(TransactionDTO::create(1023, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
     }
 
-    public function testReserveDepositFundAccountNotFound(): void
+    public function testReserveDepositFundWalletNotFound(): void
     {
         $this->expectException(WalletException::class);
-        $this->expectExceptionMessage('Account not found');
+        $this->expectExceptionMessage('Wallet not found');
         $this->transactionService->reserveFundsForDeposit(TransactionDTO::create(1023, 300)->setReferenceId('REFID2')->setReferenceSource('REFSRC'));
     }
 
@@ -1008,7 +1008,7 @@ class WalletTransactionsTest extends TestCase
         $transactionRepository = new TransactionRepositoryExtended($this->dbExecutor, TransactionEntity::class);
 
         // Recreate Service instances with the extended repositories that have observers
-        $walletTypeService = new WalletTypeService($this->accountTypeService->getRepository());
+        $walletTypeService = new WalletTypeService($this->walletTypeService->getRepository());
         $this->transactionService = new TransactionService($transactionRepository, $walletRepository);
         $walletService = new WalletService($walletRepository, $walletTypeService, $this->transactionService);
 
@@ -1034,9 +1034,9 @@ class WalletTransactionsTest extends TestCase
     public function testCapAtZeroFalse(): void
     {
         $this->expectException(AmountException::class);
-        $this->expectExceptionMessage('Cannot withdraw above the account balance');
+        $this->expectExceptionMessage('Cannot withdraw above the wallet balance');
 
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $this->transactionService->withdrawFunds(
             TransactionDTO::create($walletId, 1250)
                 ->setDescription('Test Add Funds')
@@ -1048,7 +1048,7 @@ class WalletTransactionsTest extends TestCase
 
     public function testCapAtZeroTrue(): void
     {
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
 
         $dto = TransactionDTO::create($walletId, 1100)
             ->setDescription('Test Add Funds')
@@ -1060,7 +1060,7 @@ class WalletTransactionsTest extends TestCase
         );
 
         // Should be zero, because allow cap at zero
-        $wallet = $this->accountService->getById($walletId);
+        $wallet = $this->walletService->getById($walletId);
         $this->assertEquals(0, $wallet->getBalance());
         $this->assertEquals(0, $wallet->getReserved());
         $this->assertEquals(0, $wallet->getAvailable());
@@ -1075,7 +1075,7 @@ class WalletTransactionsTest extends TestCase
 
     public function testCapAtZeroTruePartial(): void
     {
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
 
         $dto = TransactionDTO::create($walletId, 800)
             ->setDescription('Test Add Funds')
@@ -1087,7 +1087,7 @@ class WalletTransactionsTest extends TestCase
         );
 
         // Should be zero, because allow cap at zero
-        $wallet = $this->accountService->getById($walletId);
+        $wallet = $this->walletService->getById($walletId);
         $this->assertEquals(200, $wallet->getBalance());
         $this->assertEquals(0, $wallet->getReserved());
         $this->assertEquals(200, $wallet->getAvailable());
@@ -1102,7 +1102,7 @@ class WalletTransactionsTest extends TestCase
 
     public function testCapAtZeroTrueReserved(): void
     {
-        $walletId = $this->accountService->createWallet('USDTEST', "___TESTUSER-1", 1000);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
 
         $this->transactionService->reserveFundsForWithdraw(
             TransactionDTO::create($walletId, 250)
@@ -1121,7 +1121,7 @@ class WalletTransactionsTest extends TestCase
         );
 
         // Should be zero, because allow cap at zero
-        $wallet = $this->accountService->getById($walletId);
+        $wallet = $this->walletService->getById($walletId);
         $this->assertEquals(250, $wallet->getBalance());
         $this->assertEquals(250, $wallet->getReserved());
         $this->assertEquals(0, $wallet->getAvailable());

@@ -19,7 +19,7 @@ use ReflectionException;
 class WalletRepository extends BaseRepository
 {
     /**
-     * AccountRepository constructor.
+     * WalletRepository constructor.
      *
      * @param DatabaseExecutor $dbExecutor
      * @param string $walletEntity

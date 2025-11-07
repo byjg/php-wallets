@@ -121,7 +121,7 @@ class TransactionRepository extends BaseRepository
      * @throws XmlUtilException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function getByAccountId(int $walletId, int $limit = 20): array
+    public function getByWalletId(int $walletId, int $limit = 20): array
     {
         $query = Query::getInstance()
             ->table($this->repository->getMapper()->getTable())

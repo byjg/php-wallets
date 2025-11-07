@@ -33,7 +33,7 @@ class TransactionDTO
      */
     public function __construct(?int $walletId, ?int $amount)
     {
-        $this->accountId = $walletId;
+        $this->walletId = $walletId;
         $this->amount = $amount;
     }
 
@@ -47,9 +47,9 @@ class TransactionDTO
         return new TransactionDTO(null, null);
     }
 
-    public function hasAccount(): bool
+    public function hasWallet(): bool
     {
-        return !empty($this->accountId) && (!is_null($this->amount));
+        return !empty($this->walletId) && (!is_null($this->amount));
     }
 
     public function setToTransaction(TransactionEntity $transaction): void
@@ -92,7 +92,7 @@ class TransactionDTO
      */
     public function getWalletId(): ?int
     {
-        return $this->accountId;
+        return $this->walletId;
     }
 
     /**
@@ -137,7 +137,7 @@ class TransactionDTO
 
     public function setWalletId(int $walletId): static
     {
-        $this->accountId = $walletId;
+        $this->walletId = $walletId;
         return $this;
     }
 

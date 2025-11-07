@@ -16,7 +16,7 @@ class ObserverTransaction implements ObserverProcessorInterface
     #[\Override]
     public function process(ObserverData $observerData): void
     {
-        // This is tied to the test AccountTransactionTest::testTransactionObserver()
+        // This is tied to the test WalletTransactionTest::testTransactionObserver()
         $this->repository->setReach($observerData->getData()->getTransactionId() == 3 && $observerData->getData()->getAmount() == 250);
     }
 

@@ -15,7 +15,7 @@ class WalletRepositoryExtended extends WalletRepository
     protected bool $reach = false;
 
     /**
-     * AccountRepository constructor.
+     * WalletRepository constructor.
      *
      * @param DatabaseExecutor $dbExecutor
      * @param string $walletEntity
