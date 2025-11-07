@@ -1,14 +1,14 @@
 <?php
 
 
-namespace ByJG\AccountTransactions\DTO;
+namespace ByJG\Wallets\DTO;
 
 
-use ByJG\AccountTransactions\Entity\TransactionEntity;
 use ByJG\AnyDataset\Core\Exception\DatabaseException;
 use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\AnyDataset\Db\Exception\DbDriverNotConnected;
 use ByJG\MicroOrm\Literal\Literal;
+use ByJG\Wallets\Entity\TransactionEntity;
 use ByJG\XmlUtil\Exception\FileException;
 use ByJG\XmlUtil\Exception\XmlUtilException;
 use InvalidArgumentException;

@@ -1,7 +1,7 @@
 <?php
 
 
-namespace ByJG\AccountTransactions\Exception;
+namespace ByJG\Wallets\Exception;
 
 
 use Exception;

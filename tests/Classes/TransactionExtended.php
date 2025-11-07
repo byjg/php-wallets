@@ -2,9 +2,9 @@
 
 namespace Tests\Classes;
 
-use ByJG\AccountTransactions\Entity\TransactionEntity;
 use ByJG\MicroOrm\Attributes\FieldAttribute;
 use ByJG\MicroOrm\Attributes\TableAttribute;
+use ByJG\Wallets\Entity\TransactionEntity;
 
 #[TableAttribute('transaction_extended')]
 class TransactionExtended extends TransactionEntity

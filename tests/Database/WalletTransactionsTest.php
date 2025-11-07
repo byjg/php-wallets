@@ -2,16 +2,6 @@
 
 namespace Tests\Database;
 
-use ByJG\AccountTransactions\DTO\TransactionDTO;
-use ByJG\AccountTransactions\Entity\TransactionEntity;
-use ByJG\AccountTransactions\Entity\WalletEntity;
-use ByJG\AccountTransactions\Entity\WalletTypeEntity;
-use ByJG\AccountTransactions\Exception\AmountException;
-use ByJG\AccountTransactions\Exception\WalletException;
-use ByJG\AccountTransactions\Exception\WalletTypeException;
-use ByJG\AccountTransactions\Service\TransactionService;
-use ByJG\AccountTransactions\Service\WalletService;
-use ByJG\AccountTransactions\Service\WalletTypeService;
 use ByJG\AnyDataset\Db\Exception\TransactionStartedException;
 use ByJG\AnyDataset\Db\IsolationLevelEnum;
 use ByJG\MicroOrm\Exception\InvalidArgumentException;
@@ -20,6 +10,16 @@ use ByJG\MicroOrm\Exception\OrmInvalidFieldsException;
 use ByJG\MicroOrm\Exception\TransactionException;
 use ByJG\MicroOrm\Literal\HexUuidLiteral;
 use ByJG\Serializer\Serialize;
+use ByJG\Wallets\DTO\TransactionDTO;
+use ByJG\Wallets\Entity\TransactionEntity;
+use ByJG\Wallets\Entity\WalletEntity;
+use ByJG\Wallets\Entity\WalletTypeEntity;
+use ByJG\Wallets\Exception\AmountException;
+use ByJG\Wallets\Exception\WalletException;
+use ByJG\Wallets\Exception\WalletTypeException;
+use ByJG\Wallets\Service\TransactionService;
+use ByJG\Wallets\Service\WalletService;
+use ByJG\Wallets\Service\WalletTypeService;
 use PHPUnit\Framework\TestCase;
 use Tests\BaseDALTrait;
 use Tests\Classes\TransactionExtended;

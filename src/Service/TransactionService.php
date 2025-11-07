@@ -1,15 +1,7 @@
 <?php
 
-namespace ByJG\AccountTransactions\Service;
+namespace ByJG\Wallets\Service;
 
-use ByJG\AccountTransactions\DTO\TransactionDTO;
-use ByJG\AccountTransactions\Entity\TransactionEntity;
-use ByJG\AccountTransactions\Entity\WalletEntity;
-use ByJG\AccountTransactions\Exception\AmountException;
-use ByJG\AccountTransactions\Exception\TransactionException;
-use ByJG\AccountTransactions\Exception\WalletException;
-use ByJG\AccountTransactions\Repository\TransactionRepository;
-use ByJG\AccountTransactions\Repository\WalletRepository;
 use ByJG\AnyDataset\Db\IsolationLevelEnum;
 use ByJG\MicroOrm\Enum\ObserverEvent;
 use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
@@ -22,6 +14,14 @@ use ByJG\MicroOrm\ORMSubject;
 use ByJG\MicroOrm\Query;
 use ByJG\MicroOrm\UpdateQuery;
 use ByJG\Serializer\Exception\InvalidArgumentException;
+use ByJG\Wallets\DTO\TransactionDTO;
+use ByJG\Wallets\Entity\TransactionEntity;
+use ByJG\Wallets\Entity\WalletEntity;
+use ByJG\Wallets\Exception\AmountException;
+use ByJG\Wallets\Exception\TransactionException;
+use ByJG\Wallets\Exception\WalletException;
+use ByJG\Wallets\Repository\TransactionRepository;
+use ByJG\Wallets\Repository\WalletRepository;
 use Exception;
 
 class TransactionService

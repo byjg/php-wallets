@@ -19,14 +19,14 @@ It supports the following features:
 ### Basic usage
 
 ```php
-use ByJG\AccountTransactions\Service\WalletService;
-use ByJG\AccountTransactions\Service\WalletTypeService;
-use ByJG\AccountTransactions\Service\StatementService;
-use ByJG\AccountTransactions\Entity\WalletTypeEntity;
-use ByJG\AccountTransactions\Repository\WalletRepository;
-use ByJG\AccountTransactions\Repository\WalletTypeRepository;
-use ByJG\AccountTransactions\Repository\StatementRepository;
-use ByJG\AccountTransactions\DTO\StatementDTO;
+use ByJG\Wallets\Service\WalletService;
+use ByJG\Wallets\Service\WalletTypeService;
+use ByJG\Wallets\Service\StatementService;
+use ByJG\Wallets\Entity\WalletTypeEntity;
+use ByJG\Wallets\Repository\WalletRepository;
+use ByJG\Wallets\Repository\WalletTypeRepository;
+use ByJG\Wallets\Repository\StatementRepository;
+use ByJG\Wallets\DTO\StatementDTO;
 
 
 // Initiate Repositories

@@ -2,11 +2,11 @@
 
 namespace Tests\Database;
 
-use ByJG\AccountTransactions\DTO\TransactionDTO;
-use ByJG\AccountTransactions\Entity\TransactionEntity;
-use ByJG\AccountTransactions\Exception\AmountException;
-use ByJG\AccountTransactions\Exception\TransactionException;
 use ByJG\MicroOrm\Literal\HexUuidLiteral;
+use ByJG\Wallets\DTO\TransactionDTO;
+use ByJG\Wallets\Entity\TransactionEntity;
+use ByJG\Wallets\Exception\AmountException;
+use ByJG\Wallets\Exception\TransactionException;
 use PHPUnit\Framework\TestCase;
 use Tests\BaseDALTrait;
 

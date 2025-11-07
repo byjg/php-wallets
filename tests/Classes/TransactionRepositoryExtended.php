@@ -2,8 +2,8 @@
 
 namespace Tests\Classes;
 
-use ByJG\AccountTransactions\Repository\TransactionRepository;
 use ByJG\AnyDataset\Db\DatabaseExecutor;
+use ByJG\Wallets\Repository\TransactionRepository;
 
 class TransactionRepositoryExtended extends TransactionRepository
 {

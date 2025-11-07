@@ -2,19 +2,6 @@
 
 namespace Tests;
 
-use ByJG\AccountTransactions\Entity\TransactionEntity;
-use ByJG\AccountTransactions\Entity\WalletEntity;
-use ByJG\AccountTransactions\Entity\WalletTypeEntity;
-use ByJG\AccountTransactions\Exception\AmountException;
-use ByJG\AccountTransactions\Exception\TransactionException;
-use ByJG\AccountTransactions\Exception\WalletException;
-use ByJG\AccountTransactions\Exception\WalletTypeException;
-use ByJG\AccountTransactions\Repository\TransactionRepository;
-use ByJG\AccountTransactions\Repository\WalletRepository;
-use ByJG\AccountTransactions\Repository\WalletTypeRepository;
-use ByJG\AccountTransactions\Service\TransactionService;
-use ByJG\AccountTransactions\Service\WalletService;
-use ByJG\AccountTransactions\Service\WalletTypeService;
 use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\DbMigration\Database\MySqlDatabase;
 use ByJG\DbMigration\Migration;
@@ -25,6 +12,19 @@ use ByJG\MicroOrm\Exception\OrmModelInvalidException;
 use ByJG\MicroOrm\Exception\RepositoryReadOnlyException;
 use ByJG\MicroOrm\Exception\UpdateConstraintException;
 use ByJG\Util\Uri;
+use ByJG\Wallets\Entity\TransactionEntity;
+use ByJG\Wallets\Entity\WalletEntity;
+use ByJG\Wallets\Entity\WalletTypeEntity;
+use ByJG\Wallets\Exception\AmountException;
+use ByJG\Wallets\Exception\TransactionException;
+use ByJG\Wallets\Exception\WalletException;
+use ByJG\Wallets\Exception\WalletTypeException;
+use ByJG\Wallets\Repository\TransactionRepository;
+use ByJG\Wallets\Repository\WalletRepository;
+use ByJG\Wallets\Repository\WalletTypeRepository;
+use ByJG\Wallets\Service\TransactionService;
+use ByJG\Wallets\Service\WalletService;
+use ByJG\Wallets\Service\WalletTypeService;
 use ReflectionException;
 
 trait BaseDALTrait

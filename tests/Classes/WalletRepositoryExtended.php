@@ -2,11 +2,11 @@
 
 namespace Tests\Classes;
 
-use ByJG\AccountTransactions\Repository\WalletRepository;
 use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\MicroOrm\Exception\InvalidArgumentException;
 use ByJG\MicroOrm\Exception\OrmModelInvalidException;
 use ByJG\MicroOrm\FieldMapping;
+use ByJG\Wallets\Repository\WalletRepository;
 use ReflectionException;
 
 class WalletRepositoryExtended extends WalletRepository

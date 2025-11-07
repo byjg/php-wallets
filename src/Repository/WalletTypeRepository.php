@@ -1,6 +1,6 @@
 <?php
 
-namespace ByJG\AccountTransactions\Repository;
+namespace ByJG\Wallets\Repository;
 
 use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\MicroOrm\Exception\InvalidArgumentException;

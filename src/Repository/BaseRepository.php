@@ -1,6 +1,6 @@
 <?php
 
-namespace ByJG\AccountTransactions\Repository;
+namespace ByJG\Wallets\Repository;
 
 use ByJG\AnyDataset\Core\Exception\DatabaseException;
 use ByJG\AnyDataset\Core\GenericIterator;

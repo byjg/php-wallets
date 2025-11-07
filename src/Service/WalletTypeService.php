@@ -1,15 +1,15 @@
 <?php
 
-namespace ByJG\AccountTransactions\Service;
+namespace ByJG\Wallets\Service;
 
-use ByJG\AccountTransactions\Entity\WalletTypeEntity;
-use ByJG\AccountTransactions\Exception\WalletTypeException;
-use ByJG\AccountTransactions\Repository\WalletTypeRepository;
 use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
 use ByJG\MicroOrm\Exception\OrmInvalidFieldsException;
 use ByJG\MicroOrm\Exception\RepositoryReadOnlyException;
 use ByJG\MicroOrm\Exception\UpdateConstraintException;
 use ByJG\Serializer\Exception\InvalidArgumentException;
+use ByJG\Wallets\Entity\WalletTypeEntity;
+use ByJG\Wallets\Exception\WalletTypeException;
+use ByJG\Wallets\Repository\WalletTypeRepository;
 
 class WalletTypeService
 {

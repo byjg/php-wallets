@@ -1,8 +1,7 @@
 <?php
 
-namespace ByJG\AccountTransactions\Repository;
+namespace ByJG\Wallets\Repository;
 
-use ByJG\AccountTransactions\Entity\TransactionEntity;
 use ByJG\AnyDataset\Core\Exception\DatabaseException;
 use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\AnyDataset\Db\Exception\DbDriverNotConnected;
@@ -14,6 +13,7 @@ use ByJG\MicroOrm\Mapper;
 use ByJG\MicroOrm\Query;
 use ByJG\MicroOrm\Repository;
 use ByJG\Serializer\Exception\InvalidArgumentException;
+use ByJG\Wallets\Entity\TransactionEntity;
 use ByJG\XmlUtil\Exception\FileException;
 use ByJG\XmlUtil\Exception\XmlUtilException;
 use ReflectionException;

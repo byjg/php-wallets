@@ -1,13 +1,13 @@
 <?php
 
-namespace ByJG\AccountTransactions\Entity;
+namespace ByJG\Wallets\Entity;
 
-use ByJG\AccountTransactions\Exception\AmountException;
 use ByJG\MicroOrm\Attributes\FieldAttribute;
 use ByJG\MicroOrm\Attributes\FieldUuidAttribute;
 use ByJG\MicroOrm\Attributes\TableAttribute;
 use ByJG\MicroOrm\Literal\Literal;
 use ByJG\Serializer\BaseModel;
+use ByJG\Wallets\Exception\AmountException;
 
 /**
  * @OA\Definition(

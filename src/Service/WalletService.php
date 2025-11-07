@@ -5,16 +5,8 @@
  * and open the template in the editor.
  */
 
-namespace ByJG\AccountTransactions\Service;
+namespace ByJG\Wallets\Service;
 
-use ByJG\AccountTransactions\DTO\TransactionDTO;
-use ByJG\AccountTransactions\Entity\TransactionEntity;
-use ByJG\AccountTransactions\Entity\WalletEntity;
-use ByJG\AccountTransactions\Exception\AmountException;
-use ByJG\AccountTransactions\Exception\TransactionException;
-use ByJG\AccountTransactions\Exception\WalletException;
-use ByJG\AccountTransactions\Exception\WalletTypeException;
-use ByJG\AccountTransactions\Repository\WalletRepository;
 use ByJG\AnyDataset\Core\Exception\DatabaseException;
 use ByJG\AnyDataset\Db\Exception\DbDriverNotConnected;
 use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
@@ -22,6 +14,14 @@ use ByJG\MicroOrm\Exception\OrmInvalidFieldsException;
 use ByJG\MicroOrm\Exception\RepositoryReadOnlyException;
 use ByJG\MicroOrm\Exception\UpdateConstraintException;
 use ByJG\Serializer\Exception\InvalidArgumentException;
+use ByJG\Wallets\DTO\TransactionDTO;
+use ByJG\Wallets\Entity\TransactionEntity;
+use ByJG\Wallets\Entity\WalletEntity;
+use ByJG\Wallets\Exception\AmountException;
+use ByJG\Wallets\Exception\TransactionException;
+use ByJG\Wallets\Exception\WalletException;
+use ByJG\Wallets\Exception\WalletTypeException;
+use ByJG\Wallets\Repository\WalletRepository;
 use ByJG\XmlUtil\Exception\FileException;
 use ByJG\XmlUtil\Exception\XmlUtilException;
 use Exception;
