@@ -4,7 +4,7 @@ namespace ByJG\AccountStatements\Repository;
 
 use ByJG\AnyDataset\Core\GenericIterator;
 use ByJG\AnyDataset\Core\IteratorFilter;
-use ByJG\AnyDataset\Db\DbDriverInterface;
+use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\AnyDataset\Db\IsolationLevelEnum;
 use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
 use ByJG\MicroOrm\Exception\OrmInvalidFieldsException;
@@ -29,7 +29,7 @@ abstract class BaseRepository
     public function getById(string|int $itemId): mixed
     {
         // Check if there's an active transaction and use forUpdate if so
-        if ($this->repository->getDbDriver()->hasActiveTransaction()) {
+        if ($this->getExecutor()->hasActiveTransaction()) {
             [$filterList, $filterKeys] = $this->repository->getMapper()->getPkFilter($itemId);
             $result = $this->repository->getByFilter($filterList, $filterKeys, true); // forUpdate = true
             
@@ -108,8 +108,8 @@ abstract class BaseRepository
         return $this->repository->bulkExecute($queries, IsolationLevelEnum::SERIALIZABLE);
     }
 
-    public function getDbDriver(): DbDriverInterface
+    public function getExecutor(): DatabaseExecutor
     {
-        return $this->repository->getDbDriver();
+        return $this->repository->getExecutor();
     }
 }

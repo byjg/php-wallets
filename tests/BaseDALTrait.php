@@ -15,7 +15,7 @@ use ByJG\AccountStatements\Exception\StatementException;
 use ByJG\AccountStatements\Repository\AccountRepository;
 use ByJG\AccountStatements\Repository\AccountTypeRepository;
 use ByJG\AccountStatements\Repository\StatementRepository;
-use ByJG\AnyDataset\Db\DbDriverInterface;
+use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\DbMigration\Database\MySqlDatabase;
 use ByJG\DbMigration\Migration;
 use ByJG\MicroOrm\Exception\InvalidArgumentException;
@@ -51,9 +51,9 @@ trait BaseDALTrait
      */
     public function prepareObjects($accountEntity = AccountEntity::class, $accountTypeEntity = AccountTypeEntity::class, $statementEntity = StatementEntity::class): void
     {
-        $accountRepository = new AccountRepository($this->dbDriver, $accountEntity);
-        $accountTypeRepository = new AccountTypeRepository($this->dbDriver, $accountTypeEntity);
-        $statementRepository = new StatementRepository($this->dbDriver, $statementEntity);
+        $accountRepository = new AccountRepository($this->dbExecutor, $accountEntity);
+        $accountTypeRepository = new AccountTypeRepository($this->dbExecutor, $accountTypeEntity);
+        $statementRepository = new StatementRepository($this->dbExecutor, $statementEntity);
 
         $this->accountTypeBLL = new AccountTypeBLL($accountTypeRepository);
         $this->statementBLL = new StatementBLL($statementRepository, $accountRepository);
@@ -66,9 +66,9 @@ trait BaseDALTrait
     protected $uri;
 
     /**
-     * @var DbDriverInterface
+     * @var DatabaseExecutor
      */
-    protected $dbDriver;
+    protected $dbExecutor;
 
     public function dbSetUp(): void
     {
@@ -82,32 +82,33 @@ trait BaseDALTrait
         // This will delete the constraint to validate the negative amount
         $maxVersion = null;
         /** @psalm-suppress InternalMethod */
-        if (strpos($this->getName(), "Allow_Negativ") !== false) {
+        if (strpos($this->name(), "Allow_Negativ") !== false) {
             $maxVersion = 3;
         }
         $migration->reset($maxVersion);
 
-        $migration->getDbDriver()->execute("CREATE TABLE statement_extended LIKE statement");
-        $migration->getDbDriver()->execute("alter table statement_extended add extra_property varchar(100) null;");
+        $dbDriver = $migration->getDbDriver();
+        $this->dbExecutor = DatabaseExecutor::using($dbDriver);
 
-        $this->dbDriver = $migration->getDbDriver();
+        $this->dbExecutor->execute("CREATE TABLE statement_extended LIKE statement");
+        $this->dbExecutor->execute("alter table statement_extended add extra_property varchar(100) null;");
     }
 
     protected function dbClear(): void
     {
-        $this->dbDriver->execute(
+        $this->dbExecutor->execute(
             'DELETE statement FROM `account` INNER JOIN statement ' .
             "WHERE account.accountid = statement.accountid and account.userid like '___TESTUSER-%' and statementparentid is not null;"
         );
 
-        $this->dbDriver->execute(
+        $this->dbExecutor->execute(
             'DELETE statement FROM `account` INNER JOIN statement ' .
             "WHERE account.accountid = statement.accountid and account.userid like '___TESTUSER-%'"
         );
 
-        $this->dbDriver->execute("DELETE FROM `account` where account.userid like '___TESTUSER-%'");
+        $this->dbExecutor->execute("DELETE FROM `account` where account.userid like '___TESTUSER-%'");
 
-        $this->dbDriver->execute("DELETE FROM `accounttype` WHERE accounttypeid like '___TEST'");
+        $this->dbExecutor->execute("DELETE FROM `accounttype` WHERE accounttypeid like '___TEST'");
     }
 
     /**

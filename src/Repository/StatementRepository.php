@@ -3,7 +3,7 @@
 namespace ByJG\AccountStatements\Repository;
 
 use ByJG\AccountStatements\Entity\StatementEntity;
-use ByJG\AnyDataset\Db\DbDriverInterface;
+use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\MicroOrm\Exception\OrmModelInvalidException;
 use ByJG\MicroOrm\FieldMapping;
 use ByJG\MicroOrm\Literal\HexUuidLiteral;
@@ -19,15 +19,15 @@ class StatementRepository extends BaseRepository
     /**
      * StatementRepository constructor.
      *
-     * @param DbDriverInterface $dbDriver
+     * @param DatabaseExecutor $dbExecutor
      * @param string $statementEntity
      * @param FieldMapping[] $fieldMappingList
      * @throws OrmModelInvalidException
      * @throws ReflectionException
      */
-    public function __construct(DbDriverInterface $dbDriver, string $statementEntity, array $fieldMappingList = [])
+    public function __construct(DatabaseExecutor $dbExecutor, string $statementEntity, array $fieldMappingList = [])
     {
-        $this->repository = new Repository($dbDriver, $statementEntity);
+        $this->repository = new Repository($dbExecutor, $statementEntity);
 
         $mapper = $this->repository->getMapper();
         foreach ($fieldMappingList as $fieldMapping) {
@@ -89,7 +89,7 @@ class StatementRepository extends BaseRepository
             ->where('uuid = :uuid', ['uuid' => $uuid])
         ;
 
-        if ($this->repository->getDbDriver()->hasActiveTransaction()) {
+        if ($this->repository->getExecutor()->hasActiveTransaction()) {
             $query->forUpdate();
         }
 

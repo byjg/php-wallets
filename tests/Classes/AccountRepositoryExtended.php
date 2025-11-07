@@ -3,7 +3,7 @@
 namespace Tests\Classes;
 
 use ByJG\AccountStatements\Repository\AccountRepository;
-use ByJG\AnyDataset\Db\DbDriverInterface;
+use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\MicroOrm\Exception\InvalidArgumentException;
 use ByJG\MicroOrm\Exception\OrmModelInvalidException;
 use ByJG\MicroOrm\FieldMapping;
@@ -17,16 +17,16 @@ class AccountRepositoryExtended extends AccountRepository
     /**
      * AccountRepository constructor.
      *
-     * @param DbDriverInterface $dbDriver
+     * @param DatabaseExecutor $dbExecutor
      * @param string $accountEntity
      * @param FieldMapping[] $fieldMappingList
      * @throws OrmModelInvalidException
      * @throws InvalidArgumentException
      * @throws ReflectionException
      */
-    public function __construct(DbDriverInterface $dbDriver, string $accountEntity, array $fieldMappingList = [])
+    public function __construct(DatabaseExecutor $dbExecutor, string $accountEntity, array $fieldMappingList = [])
     {
-        parent::__construct($dbDriver, $accountEntity, $fieldMappingList);
+        parent::__construct($dbExecutor, $accountEntity, $fieldMappingList);
         $this->getRepository()->addObserver(new ObserverAccount($this));
     }
 

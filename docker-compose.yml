@@ -1,0 +1,22 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-account
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "password"
+      # Optional app DB/user (uncomment if you want them created on first start)
+      # MYSQL_DATABASE: app
+      # MYSQL_USER: app
+      # MYSQL_PASSWORD: apppass
+
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-ppassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    # If a client requires legacy auth, uncomment the line below:
+    # command: ["mysqld","--default-authentication-plugin=mysql_native_password"]

@@ -190,9 +190,9 @@ class AccountBLL
         }
 
         $dto = StatementDTO::createEmpty();
-        $dto->setUuid($dto->calculateUuid($this->accountRepository->getDbDriver()));;
+        $dto->setUuid($dto->calculateUuid($this->accountRepository->getExecutor()));;
 
-        $this->accountRepository->getDbDriver()->beginTransaction();
+        $this->accountRepository->getExecutor()->beginTransaction();
         try {
             // Get total value reserved
             $unclearedValues = 0;
@@ -232,9 +232,9 @@ class AccountBLL
             $statement->setAccountTypeId($account->getAccountTypeId());
             $statement->setUuid($dto->getUuid());
             $this->statementBLL->getRepository()->save($statement);
-            $this->accountRepository->getDbDriver()->commitTransaction();
+            $this->accountRepository->getExecutor()->commitTransaction();
         } catch (\Exception $ex) {
-            $this->accountRepository->getDbDriver()->rollbackTransaction();
+            $this->accountRepository->getExecutor()->rollbackTransaction();
             throw $ex;
         }
 

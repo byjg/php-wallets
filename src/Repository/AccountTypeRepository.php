@@ -2,7 +2,7 @@
 
 namespace ByJG\AccountStatements\Repository;
 
-use ByJG\AnyDataset\Db\DbDriverInterface;
+use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\MicroOrm\Exception\OrmModelInvalidException;
 use ByJG\MicroOrm\Mapper;
 use ByJG\MicroOrm\Repository;
@@ -13,14 +13,14 @@ class AccountTypeRepository extends BaseRepository
     /**
      * AccountTypeRepository constructor.
      *
-     * @param DbDriverInterface $dbDriver
+     * @param DatabaseExecutor $dbExecutor
      * @param string $accountTypeEntity
      * @throws OrmModelInvalidException
      * @throws ReflectionException
      */
-    public function __construct(DbDriverInterface $dbDriver, string $accountTypeEntity)
+    public function __construct(DatabaseExecutor $dbExecutor, string $accountTypeEntity)
     {
-        $this->repository = new Repository($dbDriver, $accountTypeEntity);
+        $this->repository = new Repository($dbExecutor, $accountTypeEntity);
     }
 
     public function getRepository(): Repository

@@ -5,7 +5,7 @@ namespace ByJG\AccountStatements\DTO;
 
 
 use ByJG\AccountStatements\Entity\StatementEntity;
-use ByJG\AnyDataset\Db\DbDriverInterface;
+use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\MicroOrm\Literal\Literal;
 
 class StatementDTO
@@ -203,8 +203,8 @@ class StatementDTO
         return $this->uuid;
     }
 
-    public function calculateUuid(DbDriverInterface $dbDriver): mixed
+    public function calculateUuid(DatabaseExecutor $dbExecutor): mixed
     {
-        return new Literal("X'" . $dbDriver->getScalar("SELECT hex(uuid_to_bin(uuid()))") . "'");
+        return new Literal("X'" . $dbExecutor->getScalar("SELECT hex(uuid_to_bin(uuid()))") . "'");
     }
 }

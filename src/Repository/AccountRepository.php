@@ -3,7 +3,7 @@
 namespace ByJG\AccountStatements\Repository;
 
 use ByJG\AccountStatements\Entity\AccountEntity;
-use ByJG\AnyDataset\Db\DbDriverInterface;
+use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\MicroOrm\Exception\OrmModelInvalidException;
 use ByJG\MicroOrm\FieldMapping;
 use ByJG\MicroOrm\Mapper;
@@ -17,15 +17,15 @@ class AccountRepository extends BaseRepository
     /**
      * AccountRepository constructor.
      *
-     * @param DbDriverInterface $dbDriver
+     * @param DatabaseExecutor $dbExecutor
      * @param string $accountEntity
      * @param FieldMapping[] $fieldMappingList
      * @throws OrmModelInvalidException
      * @throws ReflectionException
      */
-    public function __construct(DbDriverInterface $dbDriver, string $accountEntity, array $fieldMappingList = [])
+    public function __construct(DatabaseExecutor $dbExecutor, string $accountEntity, array $fieldMappingList = [])
     {
-        $this->repository = new Repository($dbDriver, $accountEntity);
+        $this->repository = new Repository($dbExecutor, $accountEntity);
 
         $mapper = $this->repository->getMapper();
         foreach ($fieldMappingList as $fieldMapping) {

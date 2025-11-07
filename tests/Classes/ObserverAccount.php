@@ -17,7 +17,7 @@ class ObserverAccount implements ObserverProcessorInterface
     public function process(ObserverData $observerData): void
     {
         // This is tied to the test AccountStatementTest::testStatementObserver()
-        $this->repository->setReach($observerData->getEvent() == 'update' && $observerData->getData()->getNetbalance() == 1250);
+        $this->repository->setReach($observerData->getEvent() == \ByJG\MicroOrm\Enum\ObserverEvent::Update && $observerData->getData()->getNetbalance() == 1250);
     }
 
     #[\Override]

@@ -2,6 +2,9 @@
 
 namespace Tests\Database;
 
+use ByJG\AccountStatements\Bll\AccountBLL;
+use ByJG\AccountStatements\Bll\AccountTypeBLL;
+use ByJG\AccountStatements\Bll\StatementBLL;
 use ByJG\AccountStatements\DTO\StatementDTO;
 use ByJG\AccountStatements\Entity\AccountEntity;
 use ByJG\AccountStatements\Entity\StatementEntity;
@@ -948,7 +951,7 @@ class AccountStatementsTest extends TestCase
     public function testJoinTransactionAndCommit(): void
     {
         // This transaction starts outside the Statement Context
-        $this->dbDriver->beginTransaction(IsolationLevelEnum::SERIALIZABLE);
+        $this->dbExecutor->beginTransaction(IsolationLevelEnum::SERIALIZABLE);
 
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
         $statement = $this->statementBLL->withdrawFunds(
@@ -960,7 +963,7 @@ class AccountStatementsTest extends TestCase
         );
 
         // Needs to commit inside the context
-        $this->dbDriver->commitTransaction();
+        $this->dbExecutor->commitTransaction();
 
         $statement = $this->statementBLL->getById($statement->getStatementId());
         $this->assertNotNull($statement);
@@ -969,7 +972,7 @@ class AccountStatementsTest extends TestCase
     public function testJoinTransactionAndRollback(): void
     {
         // This transaction starts outside the Statement Context
-        $this->dbDriver->beginTransaction(IsolationLevelEnum::SERIALIZABLE);
+        $this->dbExecutor->beginTransaction(IsolationLevelEnum::SERIALIZABLE);
 
         $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
         $statement = $this->statementBLL->withdrawFunds(
@@ -981,7 +984,7 @@ class AccountStatementsTest extends TestCase
         );
 
         // Needs to commit inside the context
-        $this->dbDriver->rollbackTransaction();
+        $this->dbExecutor->rollbackTransaction();
 
         $statement = $this->statementBLL->getById($statement->getStatementId());
         $this->assertNull($statement);
@@ -990,7 +993,7 @@ class AccountStatementsTest extends TestCase
     public function testJoinTransactionDifferentIsolationLevel(): void
     {
         // This transaction starts outside the Statement Context
-        $this->dbDriver->beginTransaction(IsolationLevelEnum::READ_UNCOMMITTED);
+        $this->dbExecutor->beginTransaction(IsolationLevelEnum::READ_UNCOMMITTED);
 
         $this->expectException(TransactionStartedException::class);
         $this->expectExceptionMessage('You cannot join a transaction with a different isolation level');
@@ -1005,7 +1008,7 @@ class AccountStatementsTest extends TestCase
                     ->setCode('XYZ')
             );
         } finally {
-            $this->dbDriver->rollbackTransaction();
+            $this->dbExecutor->rollbackTransaction();
         }
 
     }
@@ -1075,15 +1078,20 @@ class AccountStatementsTest extends TestCase
 
     public function testStatementObserver(): void
     {
-        $accountRepository = new AccountRepositoryExtended($this->dbDriver, AccountEntity::class);
-        $statementRepository = new StatementRepositoryExtended($this->dbDriver, StatementEntity::class);
+        $accountRepository = new AccountRepositoryExtended($this->dbExecutor, AccountEntity::class);
+        $statementRepository = new StatementRepositoryExtended($this->dbExecutor, StatementEntity::class);
+
+        // Recreate BLL instances with the extended repositories that have observers
+        $accountTypeBLL = new AccountTypeBLL($this->accountTypeBLL->getRepository());
+        $statementBLL = new StatementBLL($statementRepository, $accountRepository);
+        $accountBLL = new AccountBLL($accountRepository, $accountTypeBLL, $statementBLL);
 
         // Sanity Check
         $this->assertFalse($accountRepository->getReach());
         $this->assertFalse($statementRepository->getReach());
 
-        $accountId = $this->accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
-        $this->statementBLL->addFunds(
+        $accountId = $accountBLL->createAccount('USDTEST', "___TESTUSER-1", 1000);
+        $statementBLL->addFunds(
             StatementDTO::create($accountId, 250)
                 ->setDescription('Test Add Funds')
                 ->setReferenceId('Referencia Add Funds')

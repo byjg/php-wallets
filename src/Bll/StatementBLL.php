@@ -11,6 +11,7 @@ use ByJG\AccountStatements\Exception\StatementException;
 use ByJG\AccountStatements\Repository\AccountRepository;
 use ByJG\AccountStatements\Repository\StatementRepository;
 use ByJG\AnyDataset\Db\IsolationLevelEnum;
+use ByJG\MicroOrm\Enum\ObserverEvent;
 use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
 use ByJG\MicroOrm\Exception\OrmInvalidFieldsException;
 use ByJG\MicroOrm\Exception\RepositoryReadOnlyException;
@@ -71,7 +72,7 @@ class StatementBLL
             throw new AmountException('Amount needs to have two decimal places');
         }
 
-        $dto->setUuid($dto->calculateUuid($this->statementRepository->getDbDriver()));
+        $dto->setUuid($dto->calculateUuid($this->statementRepository->getExecutor()));
     }
 
     /**
@@ -110,7 +111,7 @@ class StatementBLL
         $accountUpdate = $this->getAccountUpdateQuery($dto);
 
         // 3) Execute both queries atomically
-        $this->getRepository()->getDbDriver()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, allowJoin: true);
+        $this->getRepository()->getExecutor()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, allowJoin: true);
         try {
             $this->getRepository()->bulkExecute([
                 $statementInsert,
@@ -161,10 +162,10 @@ class StatementBLL
                 throw new StatementException('Persisted statement does not match the DTO fields: ' . implode(', ', $mismatches));
             }
 
-            $this->getRepository()->getDbDriver()->commitTransaction();
+            $this->getRepository()->getExecutor()->commitTransaction();
         } catch (Exception $ex) {
-            if ($this->getRepository()->getDbDriver()->hasActiveTransaction()) {
-                $this->getRepository()->getDbDriver()->rollbackTransaction();
+            if ($this->getRepository()->getExecutor()->hasActiveTransaction()) {
+                $this->getRepository()->getExecutor()->rollbackTransaction();
             }
             if ($ex instanceof \PDOException && strpos($ex->getMessage(), 'chk_value_nonnegative') !== false) {
                 throw new AmountException('Cannot withdraw above the account balance');
@@ -180,7 +181,7 @@ class StatementBLL
 
         ORMSubject::getInstance()->notify(
             $this->accountRepository->getMapper()->getTable(),
-            ORMSubject::EVENT_UPDATE,
+            ObserverEvent::Update,
             $account,
             $oldAccount
         );
@@ -188,7 +189,7 @@ class StatementBLL
         // 7) Notify observers of statement insert
         ORMSubject::getInstance()->notify(
             $this->statementRepository->getMapper()->getTable(),
-            ORMSubject::EVENT_INSERT,
+            ObserverEvent::Insert,
             $statement,
             null
         );
@@ -316,7 +317,7 @@ class StatementBLL
             ':referenceid',
             ':referencesource',
             ':operation',
-            $this->statementRepository->getDbDriver()->getDbHelper()->sqlDate('Y-m-d H:i:s'),
+            $this->statementRepository->getExecutor()->getHelper()->sqlDate('Y-m-d H:i:s'),
             'null',
             ':uuid'
         ];
@@ -443,7 +444,7 @@ class StatementBLL
             $statementDto = StatementDTO::createEmpty();
         }
 
-        $this->getRepository()->getDbDriver()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, true);
+        $this->getRepository()->getExecutor()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, true);
         try {
             /** @var StatementEntity $statement */
             $statement = $this->statementRepository->getById($statementId);
@@ -480,15 +481,15 @@ class StatementBLL
             $statement->setDate(null);
             $statement->setTypeId($statement->getTypeId() == StatementEntity::WITHDRAW_BLOCKED ? StatementEntity::WITHDRAW : StatementEntity::DEPOSIT);
             $statement->attachAccount($account);
-            $statementDto->setUuid($statementDto->calculateUuid($this->statementRepository->getDbDriver()));
+            $statementDto->setUuid($statementDto->calculateUuid($this->statementRepository->getExecutor()));
             $statementDto->setToStatement($statement);
             $result = $this->statementRepository->save($statement);
 
-            $this->getRepository()->getDbDriver()->commitTransaction();
+            $this->getRepository()->getExecutor()->commitTransaction();
 
             return $result->getStatementId();
         } catch (Exception $ex) {
-            $this->getRepository()->getDbDriver()->rollbackTransaction();
+            $this->getRepository()->getExecutor()->rollbackTransaction();
 
             throw $ex;
         }
@@ -517,7 +518,7 @@ class StatementBLL
             throw new AmountException('Partial amount must be greater than zero.');
         }
 
-        $this->getRepository()->getDbDriver()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, true);
+        $this->getRepository()->getExecutor()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, true);
         try {
             $statement = $this->statementRepository->getById($statementId);
             if (is_null($statement)) {
@@ -543,12 +544,12 @@ class StatementBLL
 
             $finalDebitStatement = $this->withdrawFunds($statementDtoWithdraw);
 
-            $this->getRepository()->getDbDriver()->commitTransaction();
+            $this->getRepository()->getExecutor()->commitTransaction();
 
             return $finalDebitStatement;
 
         } catch (Exception $ex) {
-            $this->getRepository()->getDbDriver()->rollbackTransaction();
+            $this->getRepository()->getExecutor()->rollbackTransaction();
             throw $ex;
         }
     }
@@ -573,7 +574,7 @@ class StatementBLL
             $statementDto = StatementDTO::createEmpty();
         }
 
-        $this->getRepository()->getDbDriver()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, true);
+        $this->getRepository()->getExecutor()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, true);
         try {
             $statement = $this->statementRepository->getById($statementId);
             if (is_null($statement)) {
@@ -609,15 +610,15 @@ class StatementBLL
             $statement->setDate(null);
             $statement->setTypeId(StatementEntity::REJECT);
             $statement->attachAccount($account);
-            $statementDto->setUuid($statementDto->calculateUuid($this->statementRepository->getDbDriver()));
+            $statementDto->setUuid($statementDto->calculateUuid($this->statementRepository->getExecutor()));
             $statementDto->setToStatement($statement);
             $result = $this->statementRepository->save($statement);
 
-            $this->getRepository()->getDbDriver()->commitTransaction();
+            $this->getRepository()->getExecutor()->commitTransaction();
 
             return $result->getStatementId();
         } catch (Exception $ex) {
-            $this->getRepository()->getDbDriver()->rollbackTransaction();
+            $this->getRepository()->getExecutor()->rollbackTransaction();
 
             throw $ex;
         }
