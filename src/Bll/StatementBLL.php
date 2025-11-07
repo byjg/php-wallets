@@ -146,7 +146,7 @@ class StatementBLL
             if ($statement->getReferenceSource() !== $dto->getReferenceSource()) { $mismatches[] = 'referenceSource'; }
             if ($statement->getTypeId() !== $operation) { $mismatches[] = 'typeId'; }
             $amountMatches =
-                (abs((float)$statement->getAmount() - (float)$dto->getAmount()) < 0.00001) ||
+                ($statement->getAmount() === $dto->getAmount()) ||
                 ($capAtZero && $operation === StatementEntity::WITHDRAW && $statement->getAmount() <= $dto->getAmount());
             if (!$amountMatches) { $mismatches[] = 'amount'; }
             foreach ($dto->getProperties() as $propertyName => $propertyValue) {
@@ -195,7 +195,7 @@ class StatementBLL
         );
 
         // If capping occurred on withdraw, the actual amount may differ from the DTO amount
-        $dto->setAmount(floatval($statement->getAmount()));
+        $dto->setAmount(intval($statement->getAmount()));
 
         return $statement;
     }
@@ -206,7 +206,7 @@ class StatementBLL
      * Compute numeric deltas for balances according to the operation and amount.
      * Returns [grossDelta, unclearedDelta, netDelta].
      */
-    private function computeBalanceDeltas(string $operation, float $amount): array
+    private function computeBalanceDeltas(string $operation, int $amount): array
     {
         $grossDelta = $amount * match ($operation) {
             StatementEntity::DEPOSIT => 1,
@@ -234,7 +234,7 @@ class StatementBLL
      * When capping at zero (withdraw), it ensures the amount is reduced to avoid negative net balance.
      * Returns [exprAmount, exprGross, exprNet].
      */
-    private function buildAmountAndExpressions(string $operation, float $amount, bool $capAtZero): array
+    private function buildAmountAndExpressions(string $operation, int $amount, bool $capAtZero): array
     {
         $exprGross = "grossbalance + " . ($amount * match ($operation) {
             StatementEntity::DEPOSIT => 1,

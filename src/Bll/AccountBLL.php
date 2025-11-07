@@ -101,9 +101,9 @@ class AccountBLL
      *
      * @param string $accountTypeId
      * @param string $userId
-     * @param float $balance
-     * @param float|int $price
-     * @param float|int $minValue
+     * @param int $balance
+     * @param int $price
+     * @param int $minValue
      * @param string|null $extra
      * @return int
      * @throws AccountException
@@ -117,7 +117,7 @@ class AccountBLL
      * @throws UpdateConstraintException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function createAccount(string $accountTypeId, string $userId, float $balance, float|int $price = 1, float|int $minValue = 0, string $extra = null): int
+    public function createAccount(string $accountTypeId, string $userId, int $balance, int $price = 100, int $minValue = 0, string $extra = null): int
     {
         // Faz as validações
         if ($this->accountTypeBLL->getById($accountTypeId) == null) {
@@ -161,9 +161,9 @@ class AccountBLL
      * Reinicia o balanço
      *
      * @param int $accountId
-     * @param float $newBalance
-     * @param float|int $newPrice
-     * @param float|int $newMinValue
+     * @param int $newBalance
+     * @param int $newPrice
+     * @param int $newMinValue
      * @param string $description
      * @return int|null
      * @throws AccountException
@@ -177,9 +177,9 @@ class AccountBLL
      */
     public function overrideBalance(
         int       $accountId,
-        float     $newBalance,
-        float|int $newPrice = 1,
-        float|int $newMinValue = 0,
+        int     $newBalance,
+        int $newPrice = 100,
+        int $newMinValue = 0,
         string $description = "Reset Balance"
     ): ?int
     {
@@ -262,7 +262,7 @@ class AccountBLL
 
     /**
      * @param int $accountId
-     * @param float $balance
+     * @param int $balance
      * @param string $description
      * @return StatementEntity
      * @throws AccountException
@@ -271,7 +271,7 @@ class AccountBLL
      * @throws StatementException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function partialBalance(int $accountId, float $balance, string $description = "Partial Balance"): StatementEntity
+    public function partialBalance(int $accountId, int $balance, string $description = "Partial Balance"): StatementEntity
     {
         $account = $this->getById($accountId);
 
@@ -289,7 +289,7 @@ class AccountBLL
     /**
      * @param int $accountSource
      * @param int $accountTarget
-     * @param float $amount
+     * @param int $amount
      * @return array
      * @throws AccountException
      * @throws AmountException
@@ -297,7 +297,7 @@ class AccountBLL
      * @throws StatementException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function transferFunds(int $accountSource, int $accountTarget, float $amount): array
+    public function transferFunds(int $accountSource, int $accountTarget, int $amount): array
     {
         $refSource = bin2hex(openssl_random_pseudo_bytes(16));
 

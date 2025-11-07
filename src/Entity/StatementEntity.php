@@ -47,16 +47,16 @@ class StatementEntity extends BaseModel
     protected ?string $typeid = null;
 
     /**
-     * @var float|string|int|null
+     * @var int|null
      * @OA\Property()
      */
-    protected float|string|int|null $amount = null;
+    protected ?int $amount = null;
 
     /**
-     * @var float|string|int|null
+     * @var int|null
      * @OA\Property()
      */
-    protected float|string|int|null $price = null;
+    protected ?int $price = null;
 
     /**
      * @var string|null
@@ -66,22 +66,22 @@ class StatementEntity extends BaseModel
     protected ?string $date = null;
 
     /**
-     * @var float|string|int|null
+     * @var int|null
      * @OA\Property()
      */
-    protected float|string|int|null $grossbalance = null;
+    protected ?int $grossbalance = null;
 
     /**
-     * @var float|string|int|null
+     * @var int|null
      * @OA\Property()
      */
-    protected float|string|int|null $uncleared = null;
+    protected ?int $uncleared = null;
 
     /**
-     * @var float|string|int|null
+     * @var int|null
      * @OA\Property()
      */
-    protected float|string|int|null $netbalance = null;
+    protected ?int $netbalance = null;
 
     /**
      * @var string|null
@@ -148,17 +148,17 @@ class StatementEntity extends BaseModel
     }
 
     /**
-     * @return float|string|int|null
+     * @return int|null
      */
-    public function getAmount(): float|string|int|null
+    public function getAmount(): ?int
     {
         return $this->amount;
     }
 
     /**
-     * @return float|string|int|null
+     * @return int|null
      */
-    public function getPrice(): float|string|int|null
+    public function getPrice(): ?int
     {
         return $this->price;
     }
@@ -172,25 +172,25 @@ class StatementEntity extends BaseModel
     }
 
     /**
-     * @return float|string|int|null
+     * @return int|null
      */
-    public function getGrossBalance(): float|string|int|null
+    public function getGrossBalance(): ?int
     {
         return $this->grossbalance;
     }
 
     /**
-     * @return float|string|int|null
+     * @return int|null
      */
-    public function getUnCleared(): float|string|int|null
+    public function getUnCleared(): ?int
     {
         return $this->uncleared;
     }
 
     /**
-     * @return float|string|int|null
+     * @return int|null
      */
-    public function getNetBalance(): float|string|int|null
+    public function getNetBalance(): ?int
     {
         return $this->netbalance;
     }
@@ -258,12 +258,12 @@ class StatementEntity extends BaseModel
         $this->typeid = $typeid;
     }
 
-    public function setAmount(float|string|int|null $amount): void
+    public function setAmount(?int $amount): void
     {
         $this->amount = $amount;
     }
 
-    public function setPrice(float|string|int|null $price): void
+    public function setPrice(?int $price): void
     {
         $this->price = $price;
     }
@@ -273,17 +273,17 @@ class StatementEntity extends BaseModel
         $this->date = $date;
     }
 
-    public function setGrossBalance(float|string|int|null $grossbalance): void
+    public function setGrossBalance(?int $grossbalance): void
     {
         $this->grossbalance = $grossbalance;
     }
 
-    public function setUnCleared(float|string|int|null $uncleared): void
+    public function setUnCleared(?int $uncleared): void
     {
         $this->uncleared = $uncleared;
     }
 
-    public function setNetBalance(float|string|int|null $netbalance): void
+    public function setNetBalance(?int $netbalance): void
     {
         $this->netbalance = $netbalance;
     }

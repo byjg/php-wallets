@@ -39,28 +39,28 @@ class AccountEntity extends BaseModel
     protected ?string $userid = null;
 
     /**
-     * @var float|null
+     * @var int|null
      * @OA\Property()
      */
-    protected ?float $grossbalance = null;
+    protected ?int $grossbalance = null;
 
     /**
-     * @var float|null
+     * @var int|null
      * @OA\Property()
      */
-    protected ?float $uncleared = null;
+    protected ?int $uncleared = null;
 
     /**
-     * @var float|null
+     * @var int|null
      * @OA\Property()
      */
-    protected ?float $netbalance = null;
+    protected ?int $netbalance = null;
 
     /**
-     * @var float|null
+     * @var int|null
      * @OA\Property()
      */
-    protected ?float $price = null;
+    protected ?int $price = null;
 
     /**
      * @var string|null
@@ -79,10 +79,10 @@ class AccountEntity extends BaseModel
     protected string|Literal|null $lastUuid = null;
 
     /**
-     * @var float|null
+     * @var int|null
      * @OA\Property()
      */
-    protected ?float $minvalue = null;
+    protected ?int $minvalue = null;
 
     public function getAccountId(): ?int
     {
@@ -99,22 +99,22 @@ class AccountEntity extends BaseModel
         return $this->userid;
     }
 
-    public function getGrossBalance(): ?float
+    public function getGrossBalance(): ?int
     {
         return $this->grossbalance;
     }
 
-    public function getUnCleared(): ?float
+    public function getUnCleared(): ?int
     {
         return $this->uncleared;
     }
 
-    public function getNetBalance(): ?float
+    public function getNetBalance(): ?int
     {
         return $this->netbalance;
     }
 
-    public function getPrice(): ?float
+    public function getPrice(): ?int
     {
         return $this->price;
     }
@@ -129,7 +129,7 @@ class AccountEntity extends BaseModel
         return $this->entrydate;
     }
 
-    public function getMinValue(): ?float
+    public function getMinValue(): ?int
     {
         return $this->minvalue;
     }
@@ -149,22 +149,22 @@ class AccountEntity extends BaseModel
         $this->userid = $userid;
     }
 
-    public function setGrossBalance(?float $grossbalance): void
+    public function setGrossBalance(?int $grossbalance): void
     {
         $this->grossbalance = $grossbalance;
     }
 
-    public function setUncleared(?float $unCleared): void
+    public function setUncleared(?int $unCleared): void
     {
         $this->uncleared = $unCleared;
     }
 
-    public function setNetBalance(?float $netbalance): void
+    public function setNetBalance(?int $netbalance): void
     {
         $this->netbalance = $netbalance;
     }
 
-    public function setPrice(?float $price): void
+    public function setPrice(?int $price): void
     {
         $this->price = $price;
     }
@@ -179,7 +179,7 @@ class AccountEntity extends BaseModel
         $this->entrydate = $entryDate;
     }
 
-    public function setMinValue(?float $minvalue): void
+    public function setMinValue(?int $minvalue): void
     {
         $this->minvalue = $minvalue;
     }

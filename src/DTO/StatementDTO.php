@@ -11,28 +11,28 @@ use ByJG\MicroOrm\Literal\Literal;
 class StatementDTO
 {
     protected ?int $accountId = null;
-    protected ?float $amount = null;
+    protected ?int $amount = null;
 
     protected ?string $description = null;
     protected ?string $referenceId = null;
     protected ?string $referenceSource = null;
     protected ?string $code = null;
     protected string|Literal|null $uuid = null;
-    
+
     protected array $properties = [];
 
     /**
      * StatementDTO constructor.
      * @param int|null $accountId
-     * @param float|null $amount
+     * @param int|null $amount
      */
-    public function __construct(?int $accountId, ?float $amount)
+    public function __construct(?int $accountId, ?int $amount)
     {
         $this->accountId = $accountId;
         $this->amount = $amount;
     }
 
-    public static function create(int $accountId, float $amount): static
+    public static function create(int $accountId, int $amount): static
     {
         return new StatementDTO($accountId, $amount);
     }
@@ -52,7 +52,7 @@ class StatementDTO
         if (!empty($this->getAccountId())) {
             $statement->setAccountId($this->getAccountId());
         }
-        if (!empty($this->getAmount()) || $this->getAmount() === 0.0) {
+        if (!empty($this->getAmount()) || $this->getAmount() === 0) {
             $statement->setAmount($this->getAmount());
         }
         if (!empty($this->getDescription())) {
@@ -91,9 +91,9 @@ class StatementDTO
     }
 
     /**
-     * @return float|null
+     * @return int|null
      */
-    public function getAmount(): ?float
+    public function getAmount(): ?int
     {
         return $this->amount;
     }
@@ -136,7 +136,7 @@ class StatementDTO
         return $this;
     }
 
-    public function setAmount(float $amount): static
+    public function setAmount(int $amount): static
     {
         $this->amount = $amount;
         return $this;
