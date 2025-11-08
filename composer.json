@@ -1,6 +1,6 @@
 {
-  "name": "byjg/account-statements",
-  "description": "Very simple component to manage Account Statements in PHP",
+  "name": "byjg/wallets",
+  "description": "A robust PHP library for managing digital wallets and financial transactions with full audit trails, transaction chain integrity, and support for reserved funds.",
   "minimum-stability": "dev",
   "prefer-stable": true,
   "license": "MIT",
