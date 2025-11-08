@@ -262,7 +262,7 @@ class WalletEntity extends BaseModel
             || $this->getBalance() < $minValue
             || $this->getReserved() < $minValue
         ) {
-            throw new AmountException('Valor não pode ser menor que ' . $minValue);
+            throw new AmountException('Value cannot be less than ' . $minValue);
         }
     }
 }

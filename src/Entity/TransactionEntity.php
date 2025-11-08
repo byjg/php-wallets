@@ -424,7 +424,7 @@ class TransactionEntity extends BaseModel
     public function validate()
     {
         if ($this->getAmount() < 0) {
-            throw new AmountException('Amount não pode ser menor que zero');
+            throw new AmountException('Amount cannot be less than zero');
         }
 
         if (empty($this->wallet)) {
@@ -435,7 +435,7 @@ class TransactionEntity extends BaseModel
             || $this->getBalance() < $this->wallet->getMinValue()
             || $this->getReserved() < $this->wallet->getMinValue()
         ) {
-            throw new AmountException('Valor não pode ser menor que ' . $this->wallet->getMinValue());
+            throw new AmountException('Value cannot be less than ' . $this->wallet->getMinValue());
         }
     }
 

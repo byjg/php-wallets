@@ -96,7 +96,7 @@ class WalletService
     }
 
     /**
-     * Obtém uma lista  WalletEntity pelo Wallet Type ID
+     * Get a list of WalletEntity by Wallet Type ID
      *
      * @param string $walletTypeId
      * @return WalletEntity[]
@@ -111,7 +111,7 @@ class WalletService
     }
 
     /**
-     * Cria uma nova conta no sistema
+     * Create a new wallet in the system
      *
      * @throws WalletException
      * @throws WalletTypeException
@@ -130,12 +130,12 @@ class WalletService
      */
     public function createWallet(string $walletTypeId, string $userId, int $balance, int $scale = 2, int $minValue = 0, ?string $extra = null): int
     {
-        // Faz as validações
+        // Validate wallet type
         if ($this->walletTypeService->getById($walletTypeId) == null) {
-            throw new WalletTypeException('WalletTypeId ' . $walletTypeId . ' não existe');
+            throw new WalletTypeException('WalletTypeId ' . $walletTypeId . ' does not exist');
         }
 
-        // Define os dados
+        // Set wallet data
         $model = new WalletEntity();
         $model->setWalletTypeId($walletTypeId);
         $model->setUserId($userId);
@@ -146,14 +146,14 @@ class WalletService
         $model->setExtra($extra);
         $model->setMinValue($minValue);
 
-        // Persiste os dados.
-        
+        // Save wallet
+
         try {
             $result = $this->walletRepository->save($model);
             $walletId = $result->getWalletId();
         } catch (PDOException $ex) {
             if (str_contains($ex->getMessage(), "Duplicate entry")) {
-                throw new WalletException("Usuário $userId já possui uma conta do tipo $walletTypeId");
+                throw new WalletException("User $userId already has a wallet of type $walletTypeId");
             } else {
                 throw $ex;
             }
@@ -169,7 +169,7 @@ class WalletService
     }
 
     /**
-     * Reinicia o balanço
+     * Reset the balance
      *
      * @param int $walletId
      * @param int $newBalance

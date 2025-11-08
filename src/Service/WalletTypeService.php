@@ -27,10 +27,10 @@ class WalletTypeService
 
 
     /**
-     * Obtém um WalletType por ID.
-     * Se o ID não for passado, então devolve todos os WalletTypes.
+     * Get a WalletType by ID.
+     * If ID is not provided, returns all WalletTypes.
      *
-     * @param string $walletTypeId Opcional. Se não for passado obtém todos
+     * @param string $walletTypeId Optional. If not provided, returns all
      * @return WalletTypeEntity|WalletTypeEntity[]|null
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
@@ -40,10 +40,10 @@ class WalletTypeService
     }
 
     /**
-     * Salvar ou Atualizar um WalletType
+     * Save or Update a WalletType
      *
      * @param mixed $data
-     * @return string Id do objeto inserido atualizado
+     * @return string ID of the inserted/updated object
      * @throws WalletTypeException
      * @throws InvalidArgumentException
      * @throws OrmBeforeInvalidException
@@ -58,11 +58,11 @@ class WalletTypeService
         $walletTypeId = $object->getWalletTypeId();
 
         if (empty($object->getWalletTypeId())) {
-            throw new WalletTypeException('Id wallet type não pode ser em branco');
+            throw new WalletTypeException('Wallet type ID cannot be blank');
         }
 
         if (empty($object->getName())) {
-            throw new WalletTypeException('Nome não pode ser em branco');
+            throw new WalletTypeException('Name cannot be blank');
         }
 
         $this->walletTypeRepository->save($object);
