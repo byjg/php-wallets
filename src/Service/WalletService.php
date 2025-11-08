@@ -224,6 +224,9 @@ class WalletService
                 );
             }
 
+            // Store previous UUID before updating wallet
+            $previousUuid = $wallet->getLastUuid();
+
             // Update object Wallet
             $wallet->setBalance($newBalance);
             $wallet->setAvailable($newBalance - $reservedValues);
@@ -246,6 +249,9 @@ class WalletService
             $transaction->setScale($newScale);
             $transaction->setWalletTypeId($wallet->getWalletTypeId());
             $transaction->setUuid($dto->getUuid());
+            $transaction->setPreviousUuid($previousUuid);
+            $checksum = TransactionEntity::calculateChecksum($transaction);
+            $transaction->setChecksum($checksum);
             $this->transactionService->getRepository()->save($transaction);
             $this->walletRepository->getExecutor()->commitTransaction();
         } catch (Exception $ex) {

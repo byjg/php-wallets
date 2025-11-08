@@ -327,8 +327,16 @@ class TransactionService
             'date',               // Transaction timestamp
             'transactionparentid',// Parent transaction ID (for accept/reject operations)
             'uuid',               // Unique identifier for idempotency
-            'previousuuid'        // Previous transaction UUID (from wallet's last_uuid) for chain integrity
+            'previousuuid',       // Previous transaction UUID (from wallet's last_uuid) for chain integrity
+            'checksum'            // SHA-256 checksum of amount|balance|reserved|available|uuid|previousuuid
         ];
+
+        // Build checksum expression using Literal to calculate SHA2 hash in the database
+        // Format: LOWER(SHA2(CONCAT(amount, '|', balance, '|', reserved, '|', available, '|', uuid, '|', previousuuid), 256))
+        // Note: UUIDs are stored as binary, so convert them to uppercase formatted strings using UPPER(BIN_TO_UUID())
+        $checksumExpression =
+            "LOWER(SHA2(CONCAT($expressionAmount, '|', $expressionSumBalance, '|', reserved + $sumReserved, '|', $expressionSumAvailable, '|', UPPER(BIN_TO_UUID(:uuid)), '|', COALESCE(UPPER(BIN_TO_UUID(last_uuid)), '')), 256))"
+        ;
 
         // Define the SELECT fields that will provide values for the target columns
         // These are calculated from the current wallet state
@@ -348,7 +356,8 @@ class TransactionService
             $this->transactionRepository->getExecutor()->getHelper()->sqlDate('Y-m-d H:i:s'), // Current timestamp
             'null',                                     // No parent transaction (NULL)
             ':uuid',                                    // From DTO parameter
-            'last_uuid'                                 // Previous transaction UUID from wallet's last_uuid
+            'last_uuid',                                // Previous transaction UUID from wallet's last_uuid
+            $checksumExpression                         // Calculate SHA-256 checksum of amount|balance|reserved|available|uuid|previousuuid
         ];
 
         // Append any extra mapped fields provided via DTO properties (for extended entities)
@@ -520,6 +529,10 @@ class TransactionService
             // Set previousuuid from wallet's last_uuid to maintain chain integrity
             $transaction->setPreviousUuid($wallet->getLastUuid());
 
+            // Calculate and set checksum
+            $checksum = TransactionEntity::calculateChecksum($transaction);
+            $transaction->setChecksum($checksum);
+
             $result = $this->transactionRepository->save($transaction);
 
             // Update wallet's last_uuid to point to the new transaction
@@ -656,6 +669,10 @@ class TransactionService
 
             // Set previousuuid from wallet's last_uuid to maintain chain integrity
             $transaction->setPreviousUuid($wallet->getLastUuid());
+
+            // Calculate and set checksum
+            $checksum = TransactionEntity::calculateChecksum($transaction);
+            $transaction->setChecksum($checksum);
 
             $result = $this->transactionRepository->save($transaction);
 

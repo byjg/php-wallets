@@ -123,6 +123,7 @@ class WalletTransactionsTest extends TestCase
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
         $transaction->setPreviousUuid($actual->getPreviousUuid());
+        $transaction->setChecksum(TransactionEntity::calculateChecksum($actual));
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());
@@ -158,6 +159,7 @@ class WalletTransactionsTest extends TestCase
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
         $transaction->setPreviousUuid($actual->getPreviousUuid());
+        $transaction->setChecksum(TransactionEntity::calculateChecksum($actual));
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());
@@ -243,10 +245,12 @@ class WalletTransactionsTest extends TestCase
             $transaction[$i]->setTransactionId(null);
             $transaction[$i]->setUuid(null);
             $transaction[$i]->setPreviousUuid(null);
+            $transaction[$i]->setChecksum(null);
             $listAll[$i]->setDate(null);
             $listAll[$i]->setTransactionId(null);
             $listAll[$i]->setUuid(null);
             $listAll[$i]->setPreviousUuid(null);
+            $listAll[$i]->setChecksum(null);
         }
 
         // Testar método
@@ -284,6 +288,7 @@ class WalletTransactionsTest extends TestCase
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
         $transaction->setPreviousUuid($actual->getPreviousUuid());
+        $transaction->setChecksum(TransactionEntity::calculateChecksum($actual));
 
         $this->assertEquals($transaction->toArray(), $actual->toArray());
     }
@@ -334,6 +339,7 @@ class WalletTransactionsTest extends TestCase
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
         $transaction->setPreviousUuid($actual->getPreviousUuid());
+        $transaction->setChecksum(TransactionEntity::calculateChecksum($actual));
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());
@@ -379,6 +385,7 @@ class WalletTransactionsTest extends TestCase
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
         $transaction->setPreviousUuid($actual->getPreviousUuid());
+        $transaction->setChecksum(TransactionEntity::calculateChecksum($actual));
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());
@@ -540,7 +547,8 @@ class WalletTransactionsTest extends TestCase
             'referenceid' => null,
             'referencesource' => null,
             'uuid' => $transaction["uuid"],
-            'previousuuid' => null,
+            'previousuuid' => $transaction["previousuuid"],
+            'checksum' => $transaction["checksum"],
         ],
             $transaction
         );
@@ -576,6 +584,7 @@ class WalletTransactionsTest extends TestCase
         unset($transaction["date"]);
         unset($transaction["uuid"]);
         unset($transaction["previousuuid"]);
+        unset($transaction["checksum"]);
 
         $this->assertEquals(
             [
@@ -649,7 +658,8 @@ class WalletTransactionsTest extends TestCase
                 'referencesource' => null,
                 'code' => 'BAL',
                 "uuid" => $transaction["uuid"],
-                "previousuuid" => null,
+                "previousuuid" => $transaction["previousuuid"],
+                "checksum" => $transaction["checksum"],
             ],
             $transaction
         );
@@ -729,6 +739,7 @@ class WalletTransactionsTest extends TestCase
                     unset($value["date"]);
                     unset($value["uuid"]);
                     unset($value["previousuuid"]);
+                    unset($value["checksum"]);
                     return $value;
                 },
                 $transactionList
@@ -805,6 +816,7 @@ class WalletTransactionsTest extends TestCase
                     unset($value["date"]);
                     unset($value["uuid"]);
                     unset($value["previousuuid"]);
+                    unset($value["checksum"]);
                     return $value;
                 },
                 $transactionList
@@ -856,6 +868,7 @@ class WalletTransactionsTest extends TestCase
                     unset($value["date"]);
                     unset($value["uuid"]);
                     unset($value["previousuuid"]);
+                    unset($value["checksum"]);
                     return $value;
                 },
                 $transactionList
@@ -985,6 +998,7 @@ class WalletTransactionsTest extends TestCase
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
         $transaction->setPreviousUuid($actual->getPreviousUuid());
+        $transaction->setChecksum(TransactionEntity::calculateChecksum($actual));
 
         $this->assertEquals($transaction, $actual);
     }
