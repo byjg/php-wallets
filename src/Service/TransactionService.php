@@ -280,6 +280,27 @@ class TransactionService
         }
     }
 
+    /**
+     * Builds an INSERT-SELECT query that atomically creates a transaction record from wallet data.
+     *
+     * This method generates a single SQL query that:
+     * 1. Reads the current wallet state (with FOR UPDATE lock)
+     * 2. Calculates new balance/available/reserved values based on the operation
+     * 3. Inserts a new transaction record with the calculated values
+     *
+     * Using INSERT-SELECT ensures atomicity - the wallet snapshot and transaction creation
+     * happen in a single database operation, preventing race conditions.
+     *
+     * @param string $operation The transaction type (D=Deposit, W=Withdraw, DB=Deposit Blocked, WB=Withdraw Blocked, etc.)
+     * @param TransactionDTO $dto The transaction data transfer object containing wallet ID, amount, description, etc.
+     * @param string $expressionSumBalance SQL expression to calculate new balance (e.g., "balance + :amount" or "balance - :amount")
+     * @param string $expressionSumAvailable SQL expression to calculate new available amount (e.g., "available + :amount")
+     * @param string $expressionAmount SQL expression for the transaction amount (e.g., ":amount" or "-:amount")
+     * @param string $sumReserved Amount to add/subtract from reserved funds (e.g., ":amount" or "-:amount")
+     * @return InsertSelectQuery The query that will insert a transaction record by selecting from wallet table
+     * @throws InvalidArgumentException
+     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     */
     protected function getInsertTransactionQuery(
         string $operation,
         TransactionDTO $dto,
@@ -289,64 +310,72 @@ class TransactionService
         string $sumReserved
     ): InsertSelectQuery
     {
-        // Build base target columns and select fields
+        // Define the target columns in the transaction table that will receive the data
         $targetColumns = [
-            'walletid',
-            'wallettypeid',
-            'balance',
-            'available',
-            'reserved',
-            'scale',
-            'amount',
-            'description',
-            'code',
-            'referenceid',
-            'referencesource',
-            'typeid',
-            'date',
-            'transactionparentid',
-            'uuid'
+            'walletid',           // Wallet this transaction belongs to
+            'wallettypeid',       // Type of wallet (USD, BRL, etc.)
+            'balance',            // Wallet balance snapshot after this transaction
+            'available',          // Available funds snapshot after this transaction
+            'reserved',           // Reserved funds snapshot after this transaction
+            'scale',              // Decimal scale (e.g., 2 for cents, 0 for whole units)
+            'amount',             // Transaction amount (positive or negative)
+            'description',        // Human-readable description
+            'code',               // Transaction code for categorization
+            'referenceid',        // External reference ID
+            'referencesource',    // Source system for the reference
+            'typeid',             // Transaction type (D, W, DB, WB, B, R)
+            'date',               // Transaction timestamp
+            'transactionparentid',// Parent transaction ID (for accept/reject operations)
+            'uuid',               // Unique identifier for idempotency
+            'previousuuid'        // Previous transaction UUID (from wallet's last_uuid) for chain integrity
         ];
 
+        // Define the SELECT fields that will provide values for the target columns
+        // These are calculated from the current wallet state
         $selectFields = [
-            'walletid',
-            'wallettypeid',
-            $expressionSumBalance,
-            $expressionSumAvailable,
-            "reserved + $sumReserved",
-            'scale',
-            $expressionAmount,
-            ':description',
-            ':code',
-            ':referenceid',
-            ':referencesource',
-            ':operation',
-            $this->transactionRepository->getExecutor()->getHelper()->sqlDate('Y-m-d H:i:s'),
-            'null',
-            ':uuid'
+            'walletid',                                 // Copy wallet ID from wallet table
+            'wallettypeid',                             // Copy wallet type from wallet table
+            $expressionSumBalance,                      // Calculate new balance (e.g., balance + amount)
+            $expressionSumAvailable,                    // Calculate new available (e.g., available + amount)
+            "reserved + $sumReserved",                  // Calculate new reserved (e.g., reserved + amount)
+            'scale',                                    // Copy scale from wallet table
+            $expressionAmount,                          // Transaction amount (from parameter binding)
+            ':description',                             // From DTO parameter
+            ':code',                                    // From DTO parameter
+            ':referenceid',                             // From DTO parameter
+            ':referencesource',                         // From DTO parameter
+            ':operation',                               // Transaction type from parameter
+            $this->transactionRepository->getExecutor()->getHelper()->sqlDate('Y-m-d H:i:s'), // Current timestamp
+            'null',                                     // No parent transaction (NULL)
+            ':uuid',                                    // From DTO parameter
+            'last_uuid'                                 // Previous transaction UUID from wallet's last_uuid
         ];
 
         // Append any extra mapped fields provided via DTO properties (for extended entities)
+        // This allows custom transaction entities to add additional fields
         $this->appendExtraMappedFields($dto, $targetColumns, $selectFields);
 
+        // Build the SELECT query that reads from the wallet table
+        // This provides the source data for the INSERT
         $transactionQuery = Query::getInstance()
             ->table('wallet')
-            ->fields($selectFields)
-            ->where('walletid = :accid2', [
-                'accid2' => $dto->getWalletId(),
-                'description' => $dto->getDescription(),
-                'code' => $dto->getCode(),
-                'referenceid' => $dto->getReferenceId(),
-                'referencesource' => $dto->getReferenceSource(),
-                'operation' => $operation,
-                'uuid' => $dto->getUuid()
+            ->fields($selectFields)                     // Select the calculated fields
+            ->where('walletid = :accid2', [             // Filter to specific wallet
+                'accid2' => $dto->getWalletId(),        // Wallet ID to read from
+                'description' => $dto->getDescription(),// Bind description parameter
+                'code' => $dto->getCode(),              // Bind code parameter
+                'referenceid' => $dto->getReferenceId(),// Bind reference ID parameter
+                'referencesource' => $dto->getReferenceSource(), // Bind reference source parameter
+                'operation' => $operation,              // Bind operation type parameter
+                'uuid' => $dto->getUuid()               // Bind UUID parameter
             ])
-            ->forUpdate();
+            ->forUpdate();                              // Lock the wallet row to prevent concurrent modifications
 
+        // Create the INSERT-SELECT query that combines the target table with the SELECT query
         return InsertSelectQuery::getInstance(
-            $this->transactionRepository->getMapper()->getTable(),
-            $targetColumns
-        )->fromQuery($transactionQuery);
+            $this->transactionRepository->getMapper()->getTable(), // Target table (transaction)
+            $targetColumns                                         // Target columns
+        )->fromQuery($transactionQuery);                          // Source query (SELECT from wallet)
     }
 
     public function getWalletUpdateQuery(TransactionDTO $dto): UpdateQuery
@@ -487,7 +516,15 @@ class TransactionService
             $transaction->attachWallet($wallet);
             $transactionDto->setUuid($transactionDto->calculateUuid($this->transactionRepository->getExecutor()));
             $transactionDto->setToTransaction($transaction);
+
+            // Set previousuuid from wallet's last_uuid to maintain chain integrity
+            $transaction->setPreviousUuid($wallet->getLastUuid());
+
             $result = $this->transactionRepository->save($transaction);
+
+            // Update wallet's last_uuid to point to the new transaction
+            $wallet->setLastUuid($result->getUuid());
+            $this->walletRepository->save($wallet);
 
             $this->getRepository()->getExecutor()->commitTransaction();
 
@@ -616,7 +653,15 @@ class TransactionService
             $transaction->attachWallet($wallet);
             $transactionDto->setUuid($transactionDto->calculateUuid($this->transactionRepository->getExecutor()));
             $transactionDto->setToTransaction($transaction);
+
+            // Set previousuuid from wallet's last_uuid to maintain chain integrity
+            $transaction->setPreviousUuid($wallet->getLastUuid());
+
             $result = $this->transactionRepository->save($transaction);
+
+            // Update wallet's last_uuid to point to the new transaction
+            $wallet->setLastUuid($result->getUuid());
+            $this->walletRepository->save($wallet);
 
             $this->getRepository()->getExecutor()->commitTransaction();
 

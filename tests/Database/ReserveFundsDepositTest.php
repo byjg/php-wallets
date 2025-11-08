@@ -65,6 +65,7 @@ class ReserveFundsDepositTest extends TestCase
         $expectedTransaction->setTransactionParentId(null);
         $expectedTransaction->setDate($actual->getDate());
         $expectedTransaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
+        $expectedTransaction->setPreviousUuid($actual->getPreviousUuid());
 
         // Executar teste
         $this->assertEquals($expectedTransaction->toArray(), $actual->toArray());
@@ -107,6 +108,7 @@ class ReserveFundsDepositTest extends TestCase
         $transaction->setWalletTypeId('NEGTEST');
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
+        $transaction->setPreviousUuid($actual->getPreviousUuid());
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());
@@ -193,6 +195,7 @@ public function testAcceptFundsById_InvalidType(): void
         $transaction->setDate($actual->getDate());
         $transaction->setWalletTypeId('USDTEST');
         $transaction->setUuid($actual->getUuid());
+        $transaction->setPreviousUuid($actual->getPreviousUuid());
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());
@@ -336,6 +339,7 @@ public function testAcceptFundsById_InvalidType(): void
         $transaction->setDate($actual->getDate());
         $transaction->setWalletTypeId('USDTEST');
         $transaction->setUuid($actual->getUuid());
+        $transaction->setPreviousUuid($actual->getPreviousUuid());
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());

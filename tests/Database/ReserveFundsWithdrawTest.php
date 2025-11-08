@@ -64,6 +64,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $transaction->setWalletTypeId('USDTEST');
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
+        $transaction->setPreviousUuid($actual->getPreviousUuid());
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());
@@ -110,6 +111,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $transaction->setWalletTypeId('NEGTEST');
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
+        $transaction->setPreviousUuid($actual->getPreviousUuid());
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());
@@ -209,6 +211,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $transaction->setDate($actual->getDate());
         $transaction->setWalletTypeId('USDTEST');
         $transaction->setUuid($actual->getUuid());
+        $transaction->setPreviousUuid($actual->getPreviousUuid());
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());
@@ -299,6 +302,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $transaction->setDate($actual->getDate());
         $transaction->setWalletTypeId('USDTEST');
         $transaction->setUuid($actual->getUuid());
+        $transaction->setPreviousUuid($actual->getPreviousUuid());
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());

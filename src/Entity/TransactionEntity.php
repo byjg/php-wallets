@@ -121,6 +121,13 @@ class TransactionEntity extends BaseModel
     protected string|Literal|null $uuid = null;
 
     /**
+     * @var string|Literal|null
+     * @OA\Property()
+     */
+    #[FieldUuidAttribute()]
+    protected string|Literal|null $previousuuid = null;
+
+    /**
      * @var string|null
      * @OA\Property()
      */
@@ -423,5 +430,15 @@ class TransactionEntity extends BaseModel
         ) {
             throw new AmountException('Valor não pode ser menor que ' . $this->wallet->getMinValue());
         }
+    }
+
+    public function getPreviousUuid(): Literal|string|null
+    {
+        return $this->previousuuid;
+    }
+
+    public function setPreviousUuid(Literal|string|null $previousuuid): void
+    {
+        $this->previousuuid = $previousuuid;
     }
 }

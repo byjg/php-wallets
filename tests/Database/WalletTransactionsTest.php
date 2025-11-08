@@ -122,6 +122,7 @@ class WalletTransactionsTest extends TestCase
         $transaction->setWalletTypeId('USDTEST');
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
+        $transaction->setPreviousUuid($actual->getPreviousUuid());
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());
@@ -156,6 +157,7 @@ class WalletTransactionsTest extends TestCase
         $transaction->setWalletTypeId('USDTEST');
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
+        $transaction->setPreviousUuid($actual->getPreviousUuid());
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());
@@ -199,8 +201,8 @@ class WalletTransactionsTest extends TestCase
         $transaction[0]->setAvailable(1000);
         $transaction[0]->setScale(2);
         $transaction[0]->setReserved(0);
-        $transaction[0]->setReferenceId('');
-        $transaction[0]->setReferenceSource('');
+        $transaction[0]->setReferenceId(null);
+        $transaction[0]->setReferenceSource(null);
         $transaction[0]->setWalletTypeId('USDTEST');
 
         $transaction[] = new TransactionEntity;
@@ -240,9 +242,11 @@ class WalletTransactionsTest extends TestCase
             $transaction[$i]->setDate(null);
             $transaction[$i]->setTransactionId(null);
             $transaction[$i]->setUuid(null);
+            $transaction[$i]->setPreviousUuid(null);
             $listAll[$i]->setDate(null);
             $listAll[$i]->setTransactionId(null);
             $listAll[$i]->setUuid(null);
+            $listAll[$i]->setPreviousUuid(null);
         }
 
         // Testar método
@@ -279,6 +283,7 @@ class WalletTransactionsTest extends TestCase
         $transaction->setWalletTypeId('USDTEST');
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
+        $transaction->setPreviousUuid($actual->getPreviousUuid());
 
         $this->assertEquals($transaction->toArray(), $actual->toArray());
     }
@@ -328,6 +333,7 @@ class WalletTransactionsTest extends TestCase
         $transaction->setWalletTypeId('USDTEST');
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
+        $transaction->setPreviousUuid($actual->getPreviousUuid());
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());
@@ -372,6 +378,7 @@ class WalletTransactionsTest extends TestCase
         $transaction->setWalletTypeId('NEGTEST');
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
+        $transaction->setPreviousUuid($actual->getPreviousUuid());
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());
@@ -528,11 +535,12 @@ class WalletTransactionsTest extends TestCase
             'typeid' => 'B',
             'amount'=> 650,
             'description' => 'Reset Balance',
-            'transactionparentid' => '',
+            'transactionparentid' => null,
             'code' => 'BAL',
-            'referenceid' => '',
-            'referencesource' => '',
+            'referenceid' => null,
+            'referencesource' => null,
             'uuid' => $transaction["uuid"],
+            'previousuuid' => null,
         ],
             $transaction
         );
@@ -567,6 +575,7 @@ class WalletTransactionsTest extends TestCase
         $transaction = Serialize::from($transactionPartial)->toArray();
         unset($transaction["date"]);
         unset($transaction["uuid"]);
+        unset($transaction["previousuuid"]);
 
         $this->assertEquals(
             [
@@ -580,10 +589,10 @@ class WalletTransactionsTest extends TestCase
                 'typeid' => 'W',
                 'amount'=> 350,
                 'description' => 'Partial Balance',
-                'transactionparentid' => '',
-                'referenceid' => '',
-                'referencesource' => '',
-                'code' => ''
+                'transactionparentid' => null,
+                'referenceid' => null,
+                'referencesource' => null,
+                'code' => null
             ],
             $transaction
         );
@@ -635,11 +644,12 @@ class WalletTransactionsTest extends TestCase
                 'typeid' => 'B',
                 'amount'=> 0,
                 'description' => 'Reset Balance',
-                'transactionparentid' => '',
-                'referenceid' => '',
-                'referencesource' => '',
+                'transactionparentid' => null,
+                'referenceid' => null,
+                'referencesource' => null,
                 'code' => 'BAL',
                 "uuid" => $transaction["uuid"],
+                "previousuuid" => null,
             ],
             $transaction
         );
@@ -671,13 +681,13 @@ class WalletTransactionsTest extends TestCase
                     'reserved'=> 0,
                     'available'=> 1000,
                     'scale' => 2,
-                    'transactionid' => '2',
+                    'transactionid' => 2,
                     'typeid' => 'D',
                     'amount'=> 1000,
                     'description' => 'Opening Balance',
-                    'referenceid' => '',
-                    'referencesource' => '',
-                    'transactionparentid' => '',
+                    'referenceid' => null,
+                    'referencesource' => null,
+                    'transactionparentid' => null,
                     'code' => 'BAL'
                 ],
                 [
@@ -687,14 +697,14 @@ class WalletTransactionsTest extends TestCase
                     'reserved'=> 0,
                     'available'=> 1400,
                     'scale' => 2,
-                    'transactionid' => '3',
+                    'transactionid' => 3,
                     'typeid' => 'D',
                     'amount'=> 400,
-                    'description' => '',
-                    'referenceid' => '',
-                    'referencesource' => '',
-                    'transactionparentid' => '',
-                    'code' => ''
+                    'description' => null,
+                    'referenceid' => null,
+                    'referencesource' => null,
+                    'transactionparentid' => null,
+                    'code' => null
                 ],
                 [
                     'walletid' => $walletId,
@@ -703,14 +713,14 @@ class WalletTransactionsTest extends TestCase
                     'reserved'=> 0,
                     'available'=> 1100,
                     'scale' => 2,
-                    'transactionid' => '4',
+                    'transactionid' => 4,
                     'typeid' => 'W',
                     'amount'=> 300,
-                    'description' => '',
-                    'referenceid' => '',
-                    'referencesource' => '',
-                    'transactionparentid' => '',
-                    'code' => ''
+                    'description' => null,
+                    'referenceid' => null,
+                    'referencesource' => null,
+                    'transactionparentid' => null,
+                    'code' => null
                 ],
             ],
             array_map(
@@ -718,6 +728,7 @@ class WalletTransactionsTest extends TestCase
                     $value = $value->toArray();
                     unset($value["date"]);
                     unset($value["uuid"]);
+                    unset($value["previousuuid"]);
                     return $value;
                 },
                 $transactionList
@@ -778,13 +789,13 @@ class WalletTransactionsTest extends TestCase
                     'reserved'=> 0,
                     'available'=> 1400,
                     'scale' => 2,
-                    'transactionid' => '3',
+                    'transactionid' => 3,
                     'typeid' => 'D',
                     'amount'=> 400,
-                    'description' => '',
-                    'referenceid' => '',
-                    'referencesource' => '',
-                    'transactionparentid' => '',
+                    'description' => null,
+                    'referenceid' => null,
+                    'referencesource' => null,
+                    'transactionparentid' => null,
                     'code' => 'TEST'
                 ],
             ],
@@ -793,6 +804,7 @@ class WalletTransactionsTest extends TestCase
                     $value = $value->toArray();
                     unset($value["date"]);
                     unset($value["uuid"]);
+                    unset($value["previousuuid"]);
                     return $value;
                 },
                 $transactionList
@@ -828,14 +840,14 @@ class WalletTransactionsTest extends TestCase
                     'reserved'=> 0,
                     'available'=> 1100,
                     'scale' => 2,
-                    'transactionid' => '4',
+                    'transactionid' => 4,
                     'typeid' => 'W',
                     'amount'=> 300,
-                    'description' => '',
+                    'description' => null,
                     'referenceid' => 'REFID2',
                     'referencesource' => 'REFSRC',
-                    'transactionparentid' => '',
-                    'code' => ''
+                    'transactionparentid' => null,
+                    'code' => null
                 ],
             ],
             array_map(
@@ -843,6 +855,7 @@ class WalletTransactionsTest extends TestCase
                     $value = $value->toArray();
                     unset($value["date"]);
                     unset($value["uuid"]);
+                    unset($value["previousuuid"]);
                     return $value;
                 },
                 $transactionList
@@ -971,6 +984,7 @@ class WalletTransactionsTest extends TestCase
         $transaction->setExtraProperty('Extra');
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
+        $transaction->setPreviousUuid($actual->getPreviousUuid());
 
         $this->assertEquals($transaction, $actual);
     }
@@ -1438,5 +1452,105 @@ class WalletTransactionsTest extends TestCase
         // Also verify it works when actually creating a transaction
         $transaction = $this->transactionService->addFunds($dto);
         $this->assertEquals($expectedAmount, $transaction->getAmount());
+    }
+
+    public function testTransactionChainIntegrity(): void
+    {
+        // Create wallet (this creates the opening balance transaction)
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-CHAIN", 1000);
+
+        // Step 1: Add funds
+        $tx1 = $this->transactionService->addFunds(
+            TransactionDTO::create($walletId, 500)
+                ->setDescription('Add funds 1')
+        );
+
+        // Step 2: Reserve withdraw 1
+        $tx2 = $this->transactionService->reserveFundsForWithdraw(
+            TransactionDTO::create($walletId, 200)
+                ->setDescription('Reserve withdraw 1')
+        );
+
+        // Step 3: Add funds again
+        $tx3 = $this->transactionService->addFunds(
+            TransactionDTO::create($walletId, 300)
+                ->setDescription('Add funds 2')
+        );
+
+        // Step 4: Reserve add funds
+        $tx4 = $this->transactionService->reserveFundsForDeposit(
+            TransactionDTO::create($walletId, 400)
+                ->setDescription('Reserve deposit 1')
+        );
+
+        // Step 5: Confirm withdraw 1 (accept the reserved withdraw)
+        $tx5Id = $this->transactionService->acceptFundsById($tx2->getTransactionId());
+        $tx5 = $this->transactionService->getById($tx5Id);
+
+        // Step 6: Direct withdraw
+        $tx6 = $this->transactionService->withdrawFunds(
+            TransactionDTO::create($walletId, 100)
+                ->setDescription('Direct withdraw')
+        );
+
+        // Step 7: Confirm add funds (accept the reserved deposit)
+        $tx7Id = $this->transactionService->acceptFundsById($tx4->getTransactionId());
+        $tx7 = $this->transactionService->getById($tx7Id);
+
+        // Step 8: Withdraw again
+        $tx8 = $this->transactionService->withdrawFunds(
+            TransactionDTO::create($walletId, 150)
+                ->setDescription('Direct withdraw 2')
+        );
+
+        // Get all transactions in chronological order (order by transactionid)
+        $wallet = $this->walletService->getById($walletId);
+        $allTransactions = $this->transactionService->getRepository()->getAll(
+            null,
+            null,
+            'transactionid', // Order by transaction ID ascending
+            [["walletid = :walletid", ["walletid" => $walletId]]]
+        );
+
+        // Validate the chain integrity
+        // The first transaction (opening balance) should have previousuuid = null
+        $this->assertNull(
+            $allTransactions[0]->getPreviousUuid(),
+            'First transaction (opening balance) should have null previousuuid'
+        );
+
+        // Walk through the entire chain and verify each transaction's previousuuid
+        // points to the previous transaction's uuid
+        for ($i = 1; $i < count($allTransactions); $i++) {
+            $previousTx = $allTransactions[$i - 1];
+            $currentTx = $allTransactions[$i];
+
+            $this->assertEquals(
+                $previousTx->getUuid(),
+                $currentTx->getPreviousUuid(),
+                sprintf(
+                    'Transaction %d (ID: %d, Type: %s, Desc: %s) previousuuid should link to Transaction %d (ID: %d, UUID: %s)',
+                    $i,
+                    $currentTx->getTransactionId(),
+                    $currentTx->getTypeId(),
+                    $currentTx->getDescription(),
+                    $i - 1,
+                    $previousTx->getTransactionId(),
+                    $previousTx->getUuid()
+                )
+            );
+        }
+
+        // Final validation: wallet's last_uuid should equal the last transaction's uuid
+        $lastTransaction = $allTransactions[count($allTransactions) - 1];
+        $this->assertEquals(
+            $lastTransaction->getUuid(),
+            $wallet->getLastUuid(),
+            'Wallet last_uuid should equal the last transaction uuid'
+        );
+
+        // Verify we have the expected number of transactions:
+        // 1 opening balance + 8 operations = 9 total transactions
+        $this->assertCount(9, $allTransactions, 'Should have exactly 9 transactions in the chain');
     }
 }
