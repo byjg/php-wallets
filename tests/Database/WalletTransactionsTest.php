@@ -105,16 +105,16 @@ class WalletTransactionsTest extends TestCase
 
         // Objeto que é esperado
         $transaction = new TransactionEntity();
-        $transaction->setAmount('10.00');
+        $transaction->setAmount(10);
         $transaction->setDate('2015-01-24');
         $transaction->setDescription('Test');
-        $transaction->setBalance('990.00');
+        $transaction->setBalance(990);
         $transaction->setWalletId($walletId);
         $transaction->setTransactionId($actual->getTransactionId());
         $transaction->setTypeId('W');
-        $transaction->setAvailable('990.00');
-        $transaction->setPrice('1.00');
-        $transaction->setReserved('0.00');
+        $transaction->setAvailable(990);
+        $transaction->setPrice(1);
+        $transaction->setReserved(0);
         $transaction->setReferenceId('Referencia');
         $transaction->setReferenceSource('Source');
         $transaction->setCode('XYZ');
@@ -139,16 +139,16 @@ class WalletTransactionsTest extends TestCase
 
         // Objeto que é esperado
         $transaction = new TransactionEntity();
-        $transaction->setAmount('10.00');
+        $transaction->setAmount(10);
         $transaction->setDate('2015-01-24');
         $transaction->setDescription('Test');
-        $transaction->setBalance('10.00');
+        $transaction->setBalance(10);
         $transaction->setWalletId($walletId);
         $transaction->setTransactionId($actual->getTransactionId());;
         $transaction->setTypeId('D');
-        $transaction->setAvailable('10.00');
-        $transaction->setPrice('1.00');
-        $transaction->setReserved('0.00');
+        $transaction->setAvailable(10);
+        $transaction->setPrice(1);
+        $transaction->setReserved(0);
         $transaction->setReferenceId('Referencia');
         $transaction->setReferenceSource('Source');
         $transaction->setCode('XYZ');
@@ -187,47 +187,47 @@ class WalletTransactionsTest extends TestCase
 
         // Objetos que são esperados
         $transaction[] = new TransactionEntity;
-        $transaction[0]->setAmount('1000.00');
+        $transaction[0]->setAmount(1000);
         $transaction[0]->setDate('2015-01-24');
         $transaction[0]->setDescription('Opening Balance');
         $transaction[0]->setCode('BAL');
-        $transaction[0]->setBalance('1000.00');
+        $transaction[0]->setBalance(1000);
         $transaction[0]->setWalletId($walletId);
         $transaction[0]->setTransactionId(2);
         $transaction[0]->setTypeId('D');
-        $transaction[0]->setAvailable('1000.00');
-        $transaction[0]->setPrice('1.00');
-        $transaction[0]->setReserved('0.00');
+        $transaction[0]->setAvailable(1000);
+        $transaction[0]->setPrice(1);
+        $transaction[0]->setReserved(0);
         $transaction[0]->setReferenceId('');
         $transaction[0]->setReferenceSource('');
         $transaction[0]->setWalletTypeId('USDTEST');
 
         $transaction[] = new TransactionEntity;
-        $transaction[1]->setAmount('10.00');
+        $transaction[1]->setAmount(10);
         $transaction[1]->setDate('2015-01-24');
         $transaction[1]->setDescription('Test');
-        $transaction[1]->setBalance('990.00');
+        $transaction[1]->setBalance(990);
         $transaction[1]->setWalletId($walletId);
         $transaction[1]->setTransactionId($transactionResult->getTransactionId());
         $transaction[1]->setTypeId('W');
-        $transaction[1]->setAvailable('990.00');
-        $transaction[1]->setPrice('1.00');
-        $transaction[1]->setReserved('0.00');
+        $transaction[1]->setAvailable(990);
+        $transaction[1]->setPrice(1);
+        $transaction[1]->setReserved(0);
         $transaction[1]->setReferenceId('Referencia');
         $transaction[1]->setReferenceSource('Source');
         $transaction[1]->setWalletTypeId('USDTEST');
 
         $transaction[] = new TransactionEntity;
-        $transaction[2]->setAmount('50.00');
+        $transaction[2]->setAmount(50);
         $transaction[2]->setDate('2015-01-24');
         $transaction[2]->setDescription('Test');
-        $transaction[2]->setBalance('940.00');
+        $transaction[2]->setBalance(940);
         $transaction[2]->setWalletId($walletId);
         $transaction[2]->setTransactionId(4);
         $transaction[2]->setTypeId('W');
-        $transaction[2]->setAvailable('940.00');
-        $transaction[2]->setPrice('1.00');
-        $transaction[2]->setReserved('0.00');
+        $transaction[2]->setAvailable(940);
+        $transaction[2]->setPrice(1);
+        $transaction[2]->setReserved(0);
         $transaction[2]->setReferenceId('Referencia');
         $transaction[2]->setReferenceSource('Source');
         $transaction[2]->setWalletTypeId('USDTEST');
@@ -263,16 +263,16 @@ class WalletTransactionsTest extends TestCase
 
         // Check
         $transaction = new TransactionEntity;
-        $transaction->setAmount('250.00');
+        $transaction->setAmount(250);
         $transaction->setDate('2015-01-24');
         $transaction->setDescription('Test Add Funds');
-        $transaction->setBalance('1250.00');
+        $transaction->setBalance(1250);
         $transaction->setWalletId($walletId);
         $transaction->setTransactionId($actual->getTransactionId());
         $transaction->setTypeId('D');
-        $transaction->setAvailable('1250.00');
-        $transaction->setPrice('1.00');
-        $transaction->setReserved('0.00');
+        $transaction->setAvailable(1250);
+        $transaction->setPrice(1);
+        $transaction->setReserved(0);
         $transaction->setReferenceId('Referencia Add Funds');
         $transaction->setReferenceSource('Source Add Funds');
         $transaction->setWalletTypeId('USDTEST');
@@ -312,16 +312,16 @@ class WalletTransactionsTest extends TestCase
 
         // Objeto que é esperado
         $transaction = new TransactionEntity();
-        $transaction->setAmount('350.00');
+        $transaction->setAmount(350);
         $transaction->setDate('2015-01-24');
         $transaction->setDescription('Test Withdraw');
-        $transaction->setBalance('650.00');
+        $transaction->setBalance(650);
         $transaction->setWalletId($walletId);
         $transaction->setTransactionId($actual->getTransactionId());
         $transaction->setTypeId('W');
-        $transaction->setAvailable('650.00');
-        $transaction->setPrice('1.00');
-        $transaction->setReserved('0.00');
+        $transaction->setAvailable(650);
+        $transaction->setPrice(1);
+        $transaction->setReserved(0);
         $transaction->setReferenceId('Referencia Withdraw');
         $transaction->setReferenceSource('Source Withdraw');
         $transaction->setWalletTypeId('USDTEST');
@@ -356,16 +356,16 @@ class WalletTransactionsTest extends TestCase
 
         // Objeto que é esperado
         $transaction = new TransactionEntity();
-        $transaction->setAmount('1150.00');
+        $transaction->setAmount(1150);
         $transaction->setDate('2015-01-24');
         $transaction->setDescription('Test Withdraw');
-        $transaction->setBalance('-150.00');
+        $transaction->setBalance(-150);
         $transaction->setWalletId($walletId);
         $transaction->setTransactionId($actual->getTransactionId());
         $transaction->setTypeId('W');
-        $transaction->setAvailable('-150.00');
-        $transaction->setPrice('1.00');
-        $transaction->setReserved('0.00');
+        $transaction->setAvailable(-150);
+        $transaction->setPrice(1);
+        $transaction->setReserved(0);
         $transaction->setReferenceId('Referencia Withdraw');
         $transaction->setReferenceSource('Source Withdraw');
         $transaction->setWalletTypeId('NEGTEST');
@@ -432,7 +432,7 @@ class WalletTransactionsTest extends TestCase
             "price" => 1,
             "extra" => "Extra Information",
             "entrydate" => null,
-            "minvalue" => "0.00",
+            "minvalue" => 0,
             "last_uuid" => $wallet[0]->getLastUuid(),
         ]);
 
@@ -477,7 +477,7 @@ class WalletTransactionsTest extends TestCase
             "price" => 1,
             "extra" => "Extra Information",
             "entrydate" => null,
-            "minvalue" => "0.00",
+            "minvalue" => 0,
             "last_uuid" => $wallet[0]->getLastUuid(),
         ]);
 
@@ -505,12 +505,12 @@ class WalletTransactionsTest extends TestCase
             'walletid' => $walletId,
             'wallettypeid' => 'USDTEST',
             'userid' => "___TESTUSER-1",
-            'balance' => '650.00',
-            'reserved' => '0.00',
-            'available' => '650.00',
-            'price' => '1.00',
+            'balance'=> 650,
+            'reserved'=> 0,
+            'available'=> 650,
+            'price'=> 1,
             'extra' => '',
-            'minvalue' => '0.00',
+            'minvalue'=> 0,
             "lastUuid" => $transaction["uuid"],
         ],
             $wallet
@@ -519,13 +519,13 @@ class WalletTransactionsTest extends TestCase
         $this->assertEquals([
             'walletid' => $walletId,
             'wallettypeid' => 'USDTEST',
-            'balance' => '650.00',
-            'reserved' => '0.00',
-            'available' => '650.00',
-            'price' => '1.00',
+            'balance'=> 650,
+            'reserved'=> 0,
+            'available'=> 650,
+            'price'=> 1,
             'transactionid' => $transactionId,
             'typeid' => 'B',
-            'amount' => '650.00',
+            'amount'=> 650,
             'description' => 'Reset Balance',
             'transactionparentid' => '',
             'code' => 'BAL',
@@ -552,12 +552,12 @@ class WalletTransactionsTest extends TestCase
                 'walletid' => $walletId,
                 'wallettypeid' => 'USDTEST',
                 'userid' => "___TESTUSER-1",
-                'balance' => '650.00',
-                'reserved' => '0.00',
-                'available' => '650.00',
-                'price' => '1.00',
+                'balance'=> 650,
+                'reserved'=> 0,
+                'available'=> 650,
+                'price'=> 1,
                 'extra' => '',
-                'minvalue' => '0.00',
+                'minvalue'=> 0,
                 "lastUuid" => $transactionPartial->getUuid(),
             ],
             $wallet
@@ -571,13 +571,13 @@ class WalletTransactionsTest extends TestCase
             [
                 'walletid' => $walletId,
                 'wallettypeid' => 'USDTEST',
-                'balance' => '650.00',
-                'reserved' => '0.00',
-                'available' => '650.00',
-                'price' => '1.00',
+                'balance'=> 650,
+                'reserved'=> 0,
+                'available'=> 650,
+                'price'=> 1,
                 'transactionid' => $transactionPartial->getTransactionId(),
                 'typeid' => 'W',
-                'amount' => '350.00',
+                'amount'=> 350,
                 'description' => 'Partial Balance',
                 'transactionparentid' => '',
                 'referenceid' => '',
@@ -611,12 +611,12 @@ class WalletTransactionsTest extends TestCase
             'walletid' => $walletId,
             'wallettypeid' => 'USDTEST',
             'userid' => "___TESTUSER-1",
-            'balance' => '0.00',
-            'reserved' => '0.00',
-            'available' => '0.00',
-            'price' => '0.00',
+            'balance'=> 0,
+            'reserved'=> 0,
+            'available'=> 0,
+            'price'=> 0,
             'extra' => '',
-            'minvalue' => '0.00',
+            'minvalue'=> 0,
             "lastUuid" => $transaction["uuid"],
         ],
             $wallet
@@ -626,13 +626,13 @@ class WalletTransactionsTest extends TestCase
             [
                 'walletid' => $walletId,
                 'wallettypeid' => 'USDTEST',
-                'balance' => '0.00',
-                'reserved' => '0.00',
-                'available' => '0.00',
-                'price' => '0.00',
+                'balance'=> 0,
+                'reserved'=> 0,
+                'available'=> 0,
+                'price'=> 0,
                 'transactionid' => $transactionId,
                 'typeid' => 'B',
-                'amount' => '0.00',
+                'amount'=> 0,
                 'description' => 'Reset Balance',
                 'transactionparentid' => '',
                 'referenceid' => '',
@@ -666,13 +666,13 @@ class WalletTransactionsTest extends TestCase
                 [
                     'walletid' => $walletId,
                     'wallettypeid' => 'USDTEST',
-                    'balance' => '1000.00',
-                    'reserved' => '0.00',
-                    'available' => '1000.00',
-                    'price' => '1.00',
+                    'balance'=> 1000,
+                    'reserved'=> 0,
+                    'available'=> 1000,
+                    'price'=> 1,
                     'transactionid' => '2',
                     'typeid' => 'D',
-                    'amount' => '1000.00',
+                    'amount'=> 1000,
                     'description' => 'Opening Balance',
                     'referenceid' => '',
                     'referencesource' => '',
@@ -682,13 +682,13 @@ class WalletTransactionsTest extends TestCase
                 [
                     'walletid' => $walletId,
                     'wallettypeid' => 'USDTEST',
-                    'balance' => '1400.00',
-                    'reserved' => '0.00',
-                    'available' => '1400.00',
-                    'price' => '1.00',
+                    'balance'=> 1400,
+                    'reserved'=> 0,
+                    'available'=> 1400,
+                    'price'=> 1,
                     'transactionid' => '3',
                     'typeid' => 'D',
-                    'amount' => '400.00',
+                    'amount'=> 400,
                     'description' => '',
                     'referenceid' => '',
                     'referencesource' => '',
@@ -698,13 +698,13 @@ class WalletTransactionsTest extends TestCase
                 [
                     'walletid' => $walletId,
                     'wallettypeid' => 'USDTEST',
-                    'balance' => '1100.00',
-                    'reserved' => '0.00',
-                    'available' => '1100.00',
-                    'price' => '1.00',
+                    'balance'=> 1100,
+                    'reserved'=> 0,
+                    'available'=> 1100,
+                    'price'=> 1,
                     'transactionid' => '4',
                     'typeid' => 'W',
-                    'amount' => '300.00',
+                    'amount'=> 300,
                     'description' => '',
                     'referenceid' => '',
                     'referencesource' => '',
@@ -773,13 +773,13 @@ class WalletTransactionsTest extends TestCase
                 [
                     'walletid' => $walletId,
                     'wallettypeid' => 'USDTEST',
-                    'balance' => '1400.00',
-                    'reserved' => '0.00',
-                    'available' => '1400.00',
-                    'price' => '1.00',
+                    'balance'=> 1400,
+                    'reserved'=> 0,
+                    'available'=> 1400,
+                    'price'=> 1,
                     'transactionid' => '3',
                     'typeid' => 'D',
-                    'amount' => '400.00',
+                    'amount'=> 400,
                     'description' => '',
                     'referenceid' => '',
                     'referencesource' => '',
@@ -823,13 +823,13 @@ class WalletTransactionsTest extends TestCase
                 [
                     'walletid' => $walletId,
                     'wallettypeid' => 'USDTEST',
-                    'balance' => '1100.00',
-                    'reserved' => '0.00',
-                    'available' => '1100.00',
-                    'price' => '1.00',
+                    'balance'=> 1100,
+                    'reserved'=> 0,
+                    'available'=> 1100,
+                    'price'=> 1,
                     'transactionid' => '4',
                     'typeid' => 'W',
-                    'amount' => '300.00',
+                    'amount'=> 300,
                     'description' => '',
                     'referenceid' => 'REFID2',
                     'referencesource' => 'REFSRC',
@@ -954,16 +954,16 @@ class WalletTransactionsTest extends TestCase
 
         // Check
         $transaction = new TransactionExtended();
-        $transaction->setAmount('250.00');
+        $transaction->setAmount(250);
         $transaction->setDate('2015-01-24');
         $transaction->setDescription('Test Add Funds');
-        $transaction->setBalance('1250.00');
+        $transaction->setBalance(1250);
         $transaction->setWalletId($walletId);
         $transaction->setTransactionId($actual->getTransactionId());;
         $transaction->setTypeId('D');
-        $transaction->setAvailable('1250.00');
-        $transaction->setPrice('1.00');
-        $transaction->setReserved('0.00');
+        $transaction->setAvailable(1250);
+        $transaction->setPrice(1);
+        $transaction->setReserved(0);
         $transaction->setReferenceId('Referencia Add Funds');
         $transaction->setReferenceSource('Source Add Funds');
         $transaction->setWalletTypeId('USDTEST');

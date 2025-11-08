@@ -49,16 +49,16 @@ class ReserveFundsWithdrawTest extends TestCase
 
         // Objeto que é esperado
         $transaction = new TransactionEntity();
-        $transaction->setAmount('350.00');
+        $transaction->setAmount(350);
         $transaction->setDate('2015-01-24');
         $transaction->setDescription('Test Withdraw');
-        $transaction->setBalance('1000.00');
+        $transaction->setBalance(1000);
         $transaction->setWalletId($walletId);
         $transaction->setTransactionId($actual->getTransactionId());;
         $transaction->setTypeId('WB');
-        $transaction->setAvailable('650.00');
-        $transaction->setPrice('1.00');
-        $transaction->setReserved('350.00');
+        $transaction->setAvailable(650);
+        $transaction->setPrice(1);
+        $transaction->setReserved(350);
         $transaction->setReferenceId('Referencia Withdraw');
         $transaction->setReferenceSource('Source Withdraw');
         $transaction->setWalletTypeId('USDTEST');
@@ -95,16 +95,16 @@ class ReserveFundsWithdrawTest extends TestCase
 
         // Objeto que é esperado
         $transaction = new TransactionEntity();
-        $transaction->setAmount('1150.00');
+        $transaction->setAmount(1150);
         $transaction->setDate('2015-01-24');
         $transaction->setDescription('Test Withdraw');
-        $transaction->setBalance('1000.00');
+        $transaction->setBalance(1000);
         $transaction->setWalletId($walletId);
         $transaction->setTransactionId($actual->getTransactionId());
         $transaction->setTypeId('WB');
-        $transaction->setAvailable('-150.00');
-        $transaction->setPrice('1.00');
-        $transaction->setReserved('1150.00');
+        $transaction->setAvailable(-150);
+        $transaction->setPrice(1);
+        $transaction->setReserved(1150);
         $transaction->setReferenceId('Referencia Withdraw');
         $transaction->setReferenceSource('Source Withdraw');
         $transaction->setWalletTypeId('NEGTEST');
@@ -194,16 +194,16 @@ class ReserveFundsWithdrawTest extends TestCase
 
         // Objeto que é esperado
         $transaction = new TransactionEntity();
-        $transaction->setAmount('350.00');
+        $transaction->setAmount(350);
         $transaction->setDescription('Test Withdraw');
-        $transaction->setBalance('500.00');
+        $transaction->setBalance(500);
         $transaction->setWalletId($walletId);
         $transaction->setTransactionId($actualId);
         $transaction->setTransactionParentId($reserveTransaction->getTransactionId());
         $transaction->setTypeId('W');
-        $transaction->setAvailable('500.00');
-        $transaction->setPrice('1.00');
-        $transaction->setReserved('0.00');
+        $transaction->setAvailable(500);
+        $transaction->setPrice(1);
+        $transaction->setReserved(0);
         $transaction->setReferenceId('Referencia Withdraw');
         $transaction->setReferenceSource('Source Withdraw');
         $transaction->setDate($actual->getDate());
@@ -284,16 +284,16 @@ class ReserveFundsWithdrawTest extends TestCase
 
         // Objeto que é esperado
         $transaction = new TransactionEntity();
-        $transaction->setAmount('350.00');
+        $transaction->setAmount(350);
         $transaction->setDescription('Test Withdraw');
-        $transaction->setBalance('850.00');
+        $transaction->setBalance(850);
         $transaction->setWalletId($walletId);
         $transaction->setTransactionId($actualId);
         $transaction->setTransactionParentId($reserveTransaction->getTransactionId());
         $transaction->setTypeId('R');
-        $transaction->setAvailable('850.00');
-        $transaction->setPrice('1.00');
-        $transaction->setReserved('0.00');
+        $transaction->setAvailable(850);
+        $transaction->setPrice(1);
+        $transaction->setReserved(0);
         $transaction->setReferenceId('Referencia Withdraw');
         $transaction->setReferenceSource('Source Withdraw');
         $transaction->setDate($actual->getDate());

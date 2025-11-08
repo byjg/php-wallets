@@ -49,16 +49,16 @@ class ReserveFundsDepositTest extends TestCase
 
         // Objeto que é esperado
         $expectedTransaction = new TransactionEntity();
-        $expectedTransaction->setAmount('350.00');
+        $expectedTransaction->setAmount(350);
         $expectedTransaction->setDate('2015-01-24');
         $expectedTransaction->setDescription('Test Deposit');
-        $expectedTransaction->setBalance('1000.00');
+        $expectedTransaction->setBalance(1000);
         $expectedTransaction->setWalletId($walletId);
         $expectedTransaction->setTransactionId($actual->getTransactionId());
         $expectedTransaction->setTypeId('DB');
-        $expectedTransaction->setAvailable('1350.00');
-        $expectedTransaction->setPrice('1.00');
-        $expectedTransaction->setReserved('-350.00');
+        $expectedTransaction->setAvailable(1350);
+        $expectedTransaction->setPrice(1);
+        $expectedTransaction->setReserved(-350);
         $expectedTransaction->setReferenceId('Referencia Deposit');
         $expectedTransaction->setReferenceSource('Source Deposit');
         $expectedTransaction->setWalletTypeId('USDTEST');
@@ -92,16 +92,16 @@ class ReserveFundsDepositTest extends TestCase
 
         // Objeto que é esperado
         $transaction = new TransactionEntity();
-        $transaction->setAmount('300.00');
+        $transaction->setAmount(300);
         $transaction->setDate('2015-01-24');
         $transaction->setDescription('Test Deposit');
-        $transaction->setBalance('-200.00');
+        $transaction->setBalance(-200);
         $transaction->setWalletId($walletId);
         $transaction->setTransactionId($actual->getTransactionId());
         $transaction->setTypeId('DB');
-        $transaction->setAvailable('100.00');
-        $transaction->setPrice('1.00');
-        $transaction->setReserved('-300.00');
+        $transaction->setAvailable(100);
+        $transaction->setPrice(1);
+        $transaction->setReserved(-300);
         $transaction->setReferenceId('Referencia Deposit');
         $transaction->setReferenceSource('Source Deposit');
         $transaction->setWalletTypeId('NEGTEST');
@@ -178,16 +178,16 @@ public function testAcceptFundsById_InvalidType(): void
 
         // Objeto que é esperado
         $transaction = new TransactionEntity();
-        $transaction->setAmount('350.00');
+        $transaction->setAmount(350);
         $transaction->setDescription('Test Deposit');
-        $transaction->setBalance('1500.00');
+        $transaction->setBalance(1500);
         $transaction->setWalletId($walletId);
         $transaction->setTransactionId($actualId);
         $transaction->setTransactionParentId($reserveTransaction->getTransactionId());
         $transaction->setTypeId('D');
-        $transaction->setAvailable('1500.00');
-        $transaction->setPrice('1.00');
-        $transaction->setReserved('0.00');
+        $transaction->setAvailable(1500);
+        $transaction->setPrice(1);
+        $transaction->setReserved(0);
         $transaction->setReferenceId('Referencia Deposit');
         $transaction->setReferenceSource('Source Deposit');
         $transaction->setDate($actual->getDate());
@@ -241,7 +241,7 @@ public function testAcceptFundsById_InvalidType(): void
         );
 
         $transactionWithdrawDto = TransactionDTO::createEmpty()
-            ->setAmount(80.00)
+            ->setAmount(80)
             ->setDescription("Deposit")
             ->setReferenceSource("test-source");
 
@@ -256,18 +256,18 @@ public function testAcceptFundsById_InvalidType(): void
         );
 
         $walletAfter = $this->walletService->getById($walletId);
-        $this->assertEquals('920.00', $walletAfter->getBalance());
-        $this->assertEquals('920.00', $walletAfter->getAvailable());
-        $this->assertEquals('0.00', $walletAfter->getReserved());
+        $this->assertEquals(920, $walletAfter->getBalance());
+        $this->assertEquals(920, $walletAfter->getAvailable());
+        $this->assertEquals(0, $walletAfter->getReserved());
 
         $rejectedTransaction = $this->transactionService->getRepository()->getByParentId($reserveTransaction->getTransactionId());
         $this->assertNotNull($rejectedTransaction);
         $this->assertEquals(TransactionEntity::REJECT, $rejectedTransaction->getTypeId());
-        $this->assertEquals('100.00', $rejectedTransaction->getAmount());
+        $this->assertEquals(100, $rejectedTransaction->getAmount());
 
         /** @var TransactionEntity $finalDebitTransaction */
         $finalDebitTransaction = $this->transactionService->getById($finalDebitTransaction->getTransactionId());
-        $this->assertEquals('80.00', $finalDebitTransaction->getAmount());
+        $this->assertEquals(80, $finalDebitTransaction->getAmount());
         $this->assertEquals(TransactionEntity::WITHDRAW, $finalDebitTransaction->getTypeId());
         $this->assertEquals("Deposit", $finalDebitTransaction->getDescription());
     }
@@ -321,16 +321,16 @@ public function testAcceptFundsById_InvalidType(): void
 
         // Objeto que é esperado
         $transaction = new TransactionEntity();
-        $transaction->setAmount('350.00');
+        $transaction->setAmount(350);
         $transaction->setDescription('Test Reserve Deposit');
-        $transaction->setBalance('1150.00');
+        $transaction->setBalance(1150);
         $transaction->setWalletId($walletId);
         $transaction->setTransactionId($actualId);
         $transaction->setTransactionParentId($reserveTransaction->getTransactionId());
         $transaction->setTypeId('R');
-        $transaction->setAvailable('1150.00');
-        $transaction->setPrice('1.00');
-        $transaction->setReserved('0.00');
+        $transaction->setAvailable(1150);
+        $transaction->setPrice(1);
+        $transaction->setReserved(0);
         $transaction->setReferenceId('Referencia Reserve');
         $transaction->setReferenceSource('Source Reserve');
         $transaction->setDate($actual->getDate());
