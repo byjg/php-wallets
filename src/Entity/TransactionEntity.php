@@ -56,7 +56,7 @@ class TransactionEntity extends BaseModel
      * @var int|null
      * @OA\Property()
      */
-    protected ?int $price = null;
+    protected ?int $scale = null;
 
     /**
      * @var string|null
@@ -158,9 +158,9 @@ class TransactionEntity extends BaseModel
     /**
      * @return int|null
      */
-    public function getPrice(): ?int
+    public function getScale(): ?int
     {
-        return $this->price;
+        return $this->scale;
     }
 
     /**
@@ -263,9 +263,9 @@ class TransactionEntity extends BaseModel
         $this->amount = $amount;
     }
 
-    public function setPrice(?int $price): void
+    public function setScale(?int $scale): void
     {
-        $this->price = $price;
+        $this->scale = $scale;
     }
 
     public function setDate(?string $date): void
@@ -329,6 +329,62 @@ class TransactionEntity extends BaseModel
     }
 
     /**
+     * Get the amount as a float value based on scale.
+     * For example: with scale=2, amount=1234 returns 12.34
+     *
+     * @return float|null
+     */
+    public function getAmountFloat(): ?float
+    {
+        if ($this->amount === null || $this->scale === null) {
+            return null;
+        }
+        return $this->amount / pow(10, $this->scale);
+    }
+
+    /**
+     * Get the balance as a float value based on scale.
+     * For example: with scale=2, balance=1234 returns 12.34
+     *
+     * @return float|null
+     */
+    public function getBalanceFloat(): ?float
+    {
+        if ($this->balance === null || $this->scale === null) {
+            return null;
+        }
+        return $this->balance / pow(10, $this->scale);
+    }
+
+    /**
+     * Get the reserved as a float value based on scale.
+     * For example: with scale=2, reserved=1234 returns 12.34
+     *
+     * @return float|null
+     */
+    public function getReservedFloat(): ?float
+    {
+        if ($this->reserved === null || $this->scale === null) {
+            return null;
+        }
+        return $this->reserved / pow(10, $this->scale);
+    }
+
+    /**
+     * Get the available as a float value based on scale.
+     * For example: with scale=2, available=1234 returns 12.34
+     *
+     * @return float|null
+     */
+    public function getAvailableFloat(): ?float
+    {
+        if ($this->available === null || $this->scale === null) {
+            return null;
+        }
+        return $this->available / pow(10, $this->scale);
+    }
+
+    /**
      * @var WalletEntity|null
      */
     protected ?WalletEntity $wallet = null;
@@ -340,7 +396,7 @@ class TransactionEntity extends BaseModel
         $this->setBalance($wallet->getBalance());
         $this->setAvailable($wallet->getAvailable());
         $this->setReserved($wallet->getReserved());
-        $this->setPrice($wallet->getPrice());
+        $this->setScale($wallet->getScale());
 
         $this->wallet = $wallet;
     }

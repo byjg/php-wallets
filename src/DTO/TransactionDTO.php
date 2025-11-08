@@ -22,6 +22,7 @@ class TransactionDTO
     protected ?string $referenceId = null;
     protected ?string $referenceSource = null;
     protected ?string $code = null;
+    protected ?string $scale = null;
     protected string|Literal|null $uuid = null;
 
     protected array $properties = [];
@@ -75,6 +76,7 @@ class TransactionDTO
         if (!empty($this->getUuid())) {
             $transaction->setUuid($this->getUuid());
         }
+        if (!empty($this->get))
 
         foreach ($this->getProperties() as $name => $value) {
             if (method_exists($transaction, "set$name")) {
@@ -198,9 +200,10 @@ class TransactionDTO
         return $this->properties;
     }
 
-    public function setUuid(string|Literal|null $uuid): void
+    public function setUuid(string|Literal|null $uuid): static
     {
         $this->uuid = $uuid;
+        return $this;
     }
 
     public function getUuid(): string|Literal|null
@@ -217,5 +220,24 @@ class TransactionDTO
     public function calculateUuid(DatabaseExecutor $dbExecutor): mixed
     {
         return new Literal("X'" . $dbExecutor->getScalar("SELECT hex(uuid_to_bin(uuid()))") . "'");
+    }
+
+
+    public function setScale(?string $scale): static
+    {
+        $this->scale = $scale;
+        return $this;
+    }
+
+    public function getScale(): ?string
+    {
+        return $this->scale;
+    }
+
+    public function setAmountFloat(float $amount, int $scale = 2): static
+    {
+        $this->amount = round($amount * pow(10, $scale));
+        $this->scale = $scale;
+        return $this;
     }
 }

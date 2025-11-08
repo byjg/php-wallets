@@ -2,6 +2,8 @@
 
 namespace ByJG\Wallets\Service;
 
+use ByJG\AnyDataset\Core\Exception\DatabaseException;
+use ByJG\AnyDataset\Db\Exception\DbDriverNotConnected;
 use ByJG\AnyDataset\Db\IsolationLevelEnum;
 use ByJG\MicroOrm\Enum\ObserverEvent;
 use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
@@ -22,6 +24,8 @@ use ByJG\Wallets\Exception\TransactionException;
 use ByJG\Wallets\Exception\WalletException;
 use ByJG\Wallets\Repository\TransactionRepository;
 use ByJG\Wallets\Repository\WalletRepository;
+use ByJG\XmlUtil\Exception\FileException;
+use ByJG\XmlUtil\Exception\XmlUtilException;
 use Exception;
 
 class TransactionService
@@ -80,11 +84,15 @@ class TransactionService
      * @param TransactionDTO $dto Input data (wallet, amount, description, etc.)
      * @param bool $capAtZero When true and operation is WITHDRAW, caps the withdrawal so net balance never goes below zero
      * @return TransactionEntity
-     * @throws WalletException
      * @throws AmountException
-     * @throws InvalidArgumentException
+     * @throws OrmInvalidFieldsException
      * @throws TransactionException
+     * @throws WalletException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     * @throws FileException
+     * @throws XmlUtilException
      */
     protected function updateFunds(string $operation, TransactionDTO $dto, bool $capAtZero = false): TransactionEntity
     {
@@ -288,7 +296,7 @@ class TransactionService
             'balance',
             'available',
             'reserved',
-            'price',
+            'scale',
             'amount',
             'description',
             'code',
@@ -306,7 +314,7 @@ class TransactionService
             $expressionSumBalance,
             $expressionSumAvailable,
             "reserved + $sumReserved",
-            'price',
+            'scale',
             $expressionAmount,
             ':description',
             ':code',

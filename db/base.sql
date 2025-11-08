@@ -31,7 +31,7 @@ CREATE TABLE `wallet` (
   `balance` BIGINT DEFAULT 0,
   `reserved` BIGINT DEFAULT 0,
   `available` BIGINT DEFAULT 0,
-  `price` BIGINT NOT NULL DEFAULT 1,
+  `scale` BIGINT NOT NULL DEFAULT 2,
   `extra` text COLLATE utf8_bin,
   `minvalue` BIGINT NOT NULL DEFAULT 0,
   `last_uuid` binary(16) DEFAULT NULL,
@@ -70,7 +70,7 @@ CREATE TABLE `transaction` (
   `wallettypeid` varchar(20) COLLATE utf8_bin NOT NULL,
   `typeid` enum('B','D','W','DB','WB','R') COLLATE utf8_bin NOT NULL COMMENT 'B: Balance - Inicia um novo valor desprezando os antigos\nD: Deposit: Adiciona um valor imediatamente ao banco\nW: Withdrawal\nR: Reject\nWD: Withdrawal (blocked, reserved)\n',
   `amount` BIGINT NOT NULL,
-  `price` BIGINT DEFAULT 100,
+  `scale` BIGINT DEFAULT 2,
   `date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `balance` BIGINT DEFAULT NULL,
   `reserved` BIGINT DEFAULT NULL,
@@ -114,5 +114,5 @@ CREATE TABLE `transaction` (
 
 -- Schema updated to include all migrations through 00005-decimal-to-int
 -- Financial columns now use BIGINT to store values in smallest unit (cents)
--- Default price is 1
+-- Default scale is 2
 -- Column naming: balance (total), reserved (blocked), available (balance - reserved)

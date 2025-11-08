@@ -113,13 +113,6 @@ class WalletService
     /**
      * Cria uma nova conta no sistema
      *
-     * @param string $walletTypeId
-     * @param string $userId
-     * @param int $balance
-     * @param int $price
-     * @param int $minValue
-     * @param string|null $extra
-     * @return int
      * @throws WalletException
      * @throws WalletTypeException
      * @throws AmountException
@@ -135,7 +128,7 @@ class WalletService
      * @throws XmlUtilException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
-    public function createWallet(string $walletTypeId, string $userId, int $balance, int $price = 1, int $minValue = 0, ?string $extra = null): int
+    public function createWallet(string $walletTypeId, string $userId, int $balance, int $scale = 2, int $minValue = 0, ?string $extra = null): int
     {
         // Faz as validações
         if ($this->walletTypeService->getById($walletTypeId) == null) {
@@ -149,7 +142,7 @@ class WalletService
         $model->setBalance(0);
         $model->setAvailable(0);
         $model->setReserved(0);
-        $model->setPrice($price);
+        $model->setScale($scale);
         $model->setExtra($extra);
         $model->setMinValue($minValue);
 
@@ -180,7 +173,7 @@ class WalletService
      *
      * @param int $walletId
      * @param int $newBalance
-     * @param int $newPrice
+     * @param int $newScale
      * @param int $newMinValue
      * @param string $description
      * @return int|null
@@ -198,10 +191,10 @@ class WalletService
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
     public function overrideBalance(
-        int       $walletId,
-        int     $newBalance,
-        int $newPrice = 1,
-        int $newMinValue = 0,
+        int    $walletId,
+        int    $newBalance,
+        int    $newScale = 2,
+        int    $newMinValue = 0,
         string $description = "Reset Balance"
     ): ?int
     {
@@ -235,7 +228,7 @@ class WalletService
             $wallet->setBalance($newBalance);
             $wallet->setAvailable($newBalance - $reservedValues);
             $wallet->setReserved($reservedValues);
-            $wallet->setPrice($newPrice);
+            $wallet->setScale($newScale);
             $wallet->setMinValue($newMinValue);
             $wallet->setLastUuid($dto->getUuid());
             $this->walletRepository->save($wallet);
@@ -250,7 +243,7 @@ class WalletService
             $transaction->setBalance($newBalance);
             $transaction->setAvailable($newBalance - $reservedValues);
             $transaction->setReserved($reservedValues);
-            $transaction->setPrice($newPrice);
+            $transaction->setScale($newScale);
             $transaction->setWalletTypeId($wallet->getWalletTypeId());
             $transaction->setUuid($dto->getUuid());
             $this->transactionService->getRepository()->save($transaction);

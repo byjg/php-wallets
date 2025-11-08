@@ -57,7 +57,7 @@ class ReserveFundsDepositTest extends TestCase
         $expectedTransaction->setTransactionId($actual->getTransactionId());
         $expectedTransaction->setTypeId('DB');
         $expectedTransaction->setAvailable(1350);
-        $expectedTransaction->setPrice(1);
+        $expectedTransaction->setScale(2);
         $expectedTransaction->setReserved(-350);
         $expectedTransaction->setReferenceId('Referencia Deposit');
         $expectedTransaction->setReferenceSource('Source Deposit');
@@ -83,7 +83,7 @@ class ReserveFundsDepositTest extends TestCase
     public function testReserveForDepositFunds_Allow_Negative(): void
     {
         // Populate Data!
-        $walletId = $this->walletService->createWallet('NEGTEST', "___TESTUSER-1", -200, 1, -400);
+        $walletId = $this->walletService->createWallet('NEGTEST', "___TESTUSER-1", -200, 2, -400);
         $dto = TransactionDTO::create($walletId, 300)
             ->setDescription('Test Deposit')
             ->setReferenceId('Referencia Deposit')
@@ -100,7 +100,7 @@ class ReserveFundsDepositTest extends TestCase
         $transaction->setTransactionId($actual->getTransactionId());
         $transaction->setTypeId('DB');
         $transaction->setAvailable(100);
-        $transaction->setPrice(1);
+        $transaction->setScale(2);
         $transaction->setReserved(-300);
         $transaction->setReferenceId('Referencia Deposit');
         $transaction->setReferenceSource('Source Deposit');
@@ -186,7 +186,7 @@ public function testAcceptFundsById_InvalidType(): void
         $transaction->setTransactionParentId($reserveTransaction->getTransactionId());
         $transaction->setTypeId('D');
         $transaction->setAvailable(1500);
-        $transaction->setPrice(1);
+        $transaction->setScale(2);
         $transaction->setReserved(0);
         $transaction->setReferenceId('Referencia Deposit');
         $transaction->setReferenceSource('Source Deposit');
@@ -329,7 +329,7 @@ public function testAcceptFundsById_InvalidType(): void
         $transaction->setTransactionParentId($reserveTransaction->getTransactionId());
         $transaction->setTypeId('R');
         $transaction->setAvailable(1150);
-        $transaction->setPrice(1);
+        $transaction->setScale(2);
         $transaction->setReserved(0);
         $transaction->setReferenceId('Referencia Reserve');
         $transaction->setReferenceSource('Source Reserve');

@@ -57,7 +57,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $transaction->setTransactionId($actual->getTransactionId());;
         $transaction->setTypeId('WB');
         $transaction->setAvailable(650);
-        $transaction->setPrice(1);
+        $transaction->setScale(2);
         $transaction->setReserved(350);
         $transaction->setReferenceId('Referencia Withdraw');
         $transaction->setReferenceSource('Source Withdraw');
@@ -86,7 +86,7 @@ class ReserveFundsWithdrawTest extends TestCase
     public function testReserveForWithdrawFunds_Allow_Negative(): void
     {
         // Populate Data!
-        $walletId = $this->walletService->createWallet('NEGTEST', "___TESTUSER-1", 1000, 1, -400);
+        $walletId = $this->walletService->createWallet('NEGTEST', "___TESTUSER-1", 1000, 2, -400);
         $dto = TransactionDTO::create($walletId, 1150)
             ->setDescription('Test Withdraw')
             ->setReferenceId('Referencia Withdraw')
@@ -103,7 +103,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $transaction->setTransactionId($actual->getTransactionId());
         $transaction->setTypeId('WB');
         $transaction->setAvailable(-150);
-        $transaction->setPrice(1);
+        $transaction->setScale(2);
         $transaction->setReserved(1150);
         $transaction->setReferenceId('Referencia Withdraw');
         $transaction->setReferenceSource('Source Withdraw');
@@ -120,7 +120,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $this->expectException(AmountException::class);
 
         // Populate Data!
-        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000, 1, -400);
+        $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000, 2, -400);
         $this->transactionService->reserveFundsForWithdraw(
             TransactionDTO::create($walletId, 1401)
                 ->setDescription('Test Withdraw')
@@ -202,7 +202,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $transaction->setTransactionParentId($reserveTransaction->getTransactionId());
         $transaction->setTypeId('W');
         $transaction->setAvailable(500);
-        $transaction->setPrice(1);
+        $transaction->setScale(2);
         $transaction->setReserved(0);
         $transaction->setReferenceId('Referencia Withdraw');
         $transaction->setReferenceSource('Source Withdraw');
@@ -292,7 +292,7 @@ class ReserveFundsWithdrawTest extends TestCase
         $transaction->setTransactionParentId($reserveTransaction->getTransactionId());
         $transaction->setTypeId('R');
         $transaction->setAvailable(850);
-        $transaction->setPrice(1);
+        $transaction->setScale(2);
         $transaction->setReserved(0);
         $transaction->setReferenceId('Referencia Withdraw');
         $transaction->setReferenceSource('Source Withdraw');

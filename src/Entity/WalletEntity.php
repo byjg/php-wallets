@@ -60,7 +60,7 @@ class WalletEntity extends BaseModel
      * @var int|null
      * @OA\Property()
      */
-    protected ?int $price = null;
+    protected ?int $scale = null;
 
     /**
      * @var string|null
@@ -114,9 +114,9 @@ class WalletEntity extends BaseModel
         return $this->available;
     }
 
-    public function getPrice(): ?int
+    public function getScale(): ?int
     {
-        return $this->price;
+        return $this->scale;
     }
 
     public function getExtra(): ?string
@@ -164,9 +164,9 @@ class WalletEntity extends BaseModel
         $this->available = $available;
     }
 
-    public function setPrice(?int $price): void
+    public function setScale(?int $scale): void
     {
-        $this->price = $price;
+        $this->scale = $scale;
     }
 
     public function setExtra(?string $extra): void
@@ -192,6 +192,62 @@ class WalletEntity extends BaseModel
     public function setLastUuid(Literal|string|null $lastUuid): void
     {
         $this->lastUuid = $lastUuid;
+    }
+
+    /**
+     * Get the balance as a float value based on scale.
+     * For example: with scale=2, balance=1234 returns 12.34
+     *
+     * @return float|null
+     */
+    public function getBalanceFloat(): ?float
+    {
+        if ($this->balance === null || $this->scale === null) {
+            return null;
+        }
+        return $this->balance / pow(10, $this->scale);
+    }
+
+    /**
+     * Get the reserved as a float value based on scale.
+     * For example: with scale=2, reserved=1234 returns 12.34
+     *
+     * @return float|null
+     */
+    public function getReservedFloat(): ?float
+    {
+        if ($this->reserved === null || $this->scale === null) {
+            return null;
+        }
+        return $this->reserved / pow(10, $this->scale);
+    }
+
+    /**
+     * Get the available as a float value based on scale.
+     * For example: with scale=2, available=1234 returns 12.34
+     *
+     * @return float|null
+     */
+    public function getAvailableFloat(): ?float
+    {
+        if ($this->available === null || $this->scale === null) {
+            return null;
+        }
+        return $this->available / pow(10, $this->scale);
+    }
+
+    /**
+     * Get the minimum value as a float based on scale.
+     * For example: with scale=2, minvalue=-40000 returns -400.00
+     *
+     * @return float|null
+     */
+    public function getMinValueFloat(): ?float
+    {
+        if ($this->minvalue === null || $this->scale === null) {
+            return null;
+        }
+        return $this->minvalue / pow(10, $this->scale);
     }
 
     /**
