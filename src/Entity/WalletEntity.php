@@ -195,8 +195,8 @@ class WalletEntity extends BaseModel
     }
 
     /**
-     * Get the balance as a float value based on scale.
-     * For example: with scale=2, balance=1234 returns 12.34
+     * Get the balance as a float value based on a scale.
+     * For example, with scale=2, balance=1234 returns 12.34
      *
      * @return float|null
      */
@@ -209,8 +209,8 @@ class WalletEntity extends BaseModel
     }
 
     /**
-     * Get the reserved as a float value based on scale.
-     * For example: with scale=2, reserved=1234 returns 12.34
+     * Get the reserved as a float value based on a scale.
+     * For example, with scale=2, reserved=1234 returns 12.34
      *
      * @return float|null
      */
@@ -223,8 +223,8 @@ class WalletEntity extends BaseModel
     }
 
     /**
-     * Get the available as a float value based on scale.
-     * For example: with scale=2, available=1234 returns 12.34
+     * Get the available as a float value based on a scale.
+     * For example, with scale=2, available=1234 returns 12.34
      *
      * @return float|null
      */
@@ -237,8 +237,8 @@ class WalletEntity extends BaseModel
     }
 
     /**
-     * Get the minimum value as a float based on scale.
-     * For example: with scale=2, minvalue=-40000 returns -400.00
+     * Get the minimum value as a float based on a scale.
+     * For example, with scale=2, minvalue=-40000 returns -400.00
      *
      * @return float|null
      */
@@ -262,7 +262,7 @@ class WalletEntity extends BaseModel
             || $this->getBalance() < $minValue
             || $this->getReserved() < $minValue
         ) {
-            throw new AmountException('Value cannot be less than ' . $minValue);
+            throw new AmountException('Value cannot be less than ' . (string)$minValue);
         }
     }
 }

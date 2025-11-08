@@ -293,12 +293,6 @@ class WalletTransactionsTest extends TestCase
         $this->assertEquals($transaction->toArray(), $actual->toArray());
     }
 
-    /**
-     * @return (float|int)[][]
-     *
-     * @psalm-return list{list{250}, list{float}, list{float}, list{float}, list{float}, list{float}, list{float}, list{float}, list{float}, list{float}}
-     */
-
     public function testAddFunds_Invalid(): void
     {
         $this->expectException(AmountException::class);

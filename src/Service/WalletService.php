@@ -60,7 +60,7 @@ class WalletService
 
 
     /**
-     * Get an wallet by ID.
+     * Get a wallet by ID.
      *
      * @param int $walletId Optional id empty return all.
      * @return WalletEntity|WalletEntity[]
@@ -321,10 +321,15 @@ class WalletService
      * @param int $walletTarget
      * @param int $amount
      * @return array
-     * @throws WalletException
      * @throws AmountException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
      * @throws InvalidArgumentException
+     * @throws OrmInvalidFieldsException
      * @throws TransactionException
+     * @throws WalletException
+     * @throws XmlUtilException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
     public function transferFunds(int $walletSource, int $walletTarget, int $amount): array

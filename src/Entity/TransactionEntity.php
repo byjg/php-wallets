@@ -5,6 +5,7 @@ namespace ByJG\Wallets\Entity;
 use ByJG\MicroOrm\Attributes\FieldAttribute;
 use ByJG\MicroOrm\Attributes\FieldUuidAttribute;
 use ByJG\MicroOrm\Attributes\TableAttribute;
+use ByJG\MicroOrm\Exception\InvalidArgumentException;
 use ByJG\MicroOrm\Literal\HexUuidLiteral;
 use ByJG\MicroOrm\Literal\Literal;
 use ByJG\Serializer\BaseModel;
@@ -118,14 +119,14 @@ class TransactionEntity extends BaseModel
      * @var string|Literal|null
      * @OA\Property()
      */
-    #[FieldUuidAttribute()]
+    #[FieldUuidAttribute]
     protected string|Literal|null $uuid = null;
 
     /**
      * @var string|Literal|null
      * @OA\Property()
      */
-    #[FieldUuidAttribute()]
+    #[FieldUuidAttribute]
     protected string|Literal|null $previousuuid = null;
 
     /**
@@ -343,8 +344,8 @@ class TransactionEntity extends BaseModel
     }
 
     /**
-     * Get the amount as a float value based on scale.
-     * For example: with scale=2, amount=1234 returns 12.34
+     * Get the amount as a float value based on a scale.
+     * For example, with scale=2, amount=1234 returns 12.34
      *
      * @return float|null
      */
@@ -357,8 +358,8 @@ class TransactionEntity extends BaseModel
     }
 
     /**
-     * Get the balance as a float value based on scale.
-     * For example: with scale=2, balance=1234 returns 12.34
+     * Get the balance as a float value based on a scale.
+     * For example, with scale=2, balance=1234 returns 12.34
      *
      * @return float|null
      */
@@ -371,8 +372,8 @@ class TransactionEntity extends BaseModel
     }
 
     /**
-     * Get the reserved as a float value based on scale.
-     * For example: with scale=2, reserved=1234 returns 12.34
+     * Get the reserved as a float value based on a scale.
+     * For example, with scale=2, reserved=1234 returns 12.34
      *
      * @return float|null
      */
@@ -385,8 +386,8 @@ class TransactionEntity extends BaseModel
     }
 
     /**
-     * Get the available as a float value based on scale.
-     * For example: with scale=2, available=1234 returns 12.34
+     * Get the available as a float value based on a scale.
+     * For example, with scale=2, available=1234 returns 12.34
      *
      * @return float|null
      */
@@ -421,7 +422,7 @@ class TransactionEntity extends BaseModel
      *
      * @return void
      */
-    public function validate()
+    public function validate(): void
     {
         if ($this->getAmount() < 0) {
             throw new AmountException('Amount cannot be less than zero');
@@ -435,7 +436,7 @@ class TransactionEntity extends BaseModel
             || $this->getBalance() < $this->wallet->getMinValue()
             || $this->getReserved() < $this->wallet->getMinValue()
         ) {
-            throw new AmountException('Value cannot be less than ' . $this->wallet->getMinValue());
+            throw new AmountException('Value cannot be less than ' . (string)$this->wallet->getMinValue());
         }
     }
 
@@ -458,7 +459,10 @@ class TransactionEntity extends BaseModel
     {
         $this->checksum = $checksum;
     }
-    
+
+    /**
+     * @throws InvalidArgumentException
+     */
     public static function calculateChecksum(TransactionEntity|int $transactionEntityOrAmount, ?int $balance = null, ?int $reserved = null, ?int $available = null, ?string $uuid = null, ?string $previousUuid = null): string
     {
         if (!($transactionEntityOrAmount instanceof TransactionEntity)) {
@@ -483,6 +487,9 @@ class TransactionEntity extends BaseModel
         return hash('sha256', $data);
     }
 
+    /**
+     * @throws InvalidArgumentException
+     */
     public static function validateChecksum(TransactionEntity $transactionEntity, string $checksum): bool
     {
         return $checksum === self::calculateChecksum($transactionEntity);

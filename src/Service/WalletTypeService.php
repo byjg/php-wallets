@@ -2,14 +2,17 @@
 
 namespace ByJG\Wallets\Service;
 
+use ByJG\AnyDataset\Core\Exception\DatabaseException;
+use ByJG\AnyDataset\Db\Exception\DbDriverNotConnected;
 use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
 use ByJG\MicroOrm\Exception\OrmInvalidFieldsException;
 use ByJG\MicroOrm\Exception\RepositoryReadOnlyException;
 use ByJG\MicroOrm\Exception\UpdateConstraintException;
-use ByJG\Serializer\Exception\InvalidArgumentException;
 use ByJG\Wallets\Entity\WalletTypeEntity;
 use ByJG\Wallets\Exception\WalletTypeException;
 use ByJG\Wallets\Repository\WalletTypeRepository;
+use ByJG\XmlUtil\Exception\FileException;
+use ByJG\XmlUtil\Exception\XmlUtilException;
 
 class WalletTypeService
 {
@@ -32,7 +35,12 @@ class WalletTypeService
      *
      * @param string $walletTypeId Optional. If not provided, returns all
      * @return WalletTypeEntity|WalletTypeEntity[]|null
+     * @throws OrmInvalidFieldsException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     * @throws FileException
+     * @throws XmlUtilException
      */
     public function getById(string $walletTypeId): array|WalletTypeEntity|null
     {
@@ -44,12 +52,15 @@ class WalletTypeService
      *
      * @param mixed $data
      * @return string ID of the inserted/updated object
-     * @throws WalletTypeException
-     * @throws InvalidArgumentException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
      * @throws OrmBeforeInvalidException
      * @throws OrmInvalidFieldsException
      * @throws RepositoryReadOnlyException
      * @throws UpdateConstraintException
+     * @throws WalletTypeException
+     * @throws XmlUtilException
      * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
      */
     public function update(mixed $data): string

@@ -22,7 +22,7 @@ class TransactionDTO
     protected ?string $referenceId = null;
     protected ?string $referenceSource = null;
     protected ?string $code = null;
-    protected ?string $scale = null;
+    protected ?int $scale = null;
     protected string|Literal|null $uuid = null;
 
     protected array $properties = [];
@@ -223,20 +223,20 @@ class TransactionDTO
     }
 
 
-    public function setScale(?string $scale): static
+    public function setScale(?int $scale): static
     {
         $this->scale = $scale;
         return $this;
     }
 
-    public function getScale(): ?string
+    public function getScale(): ?int
     {
         return $this->scale;
     }
 
     public function setAmountFloat(float $amount, int $scale = 2): static
     {
-        $this->amount = round($amount * pow(10, $scale));
+        $this->amount = intval(round($amount * (float)pow(10, $scale)));
         $this->scale = $scale;
         return $this;
     }
