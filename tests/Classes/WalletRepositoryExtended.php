@@ -2,32 +2,32 @@
 
 namespace Tests\Classes;
 
-use ByJG\AccountStatements\Repository\AccountRepository;
-use ByJG\AnyDataset\Db\DbDriverInterface;
+use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\MicroOrm\Exception\InvalidArgumentException;
 use ByJG\MicroOrm\Exception\OrmModelInvalidException;
 use ByJG\MicroOrm\FieldMapping;
+use ByJG\Wallets\Repository\WalletRepository;
 use ReflectionException;
 
-class AccountRepositoryExtended extends AccountRepository
+class WalletRepositoryExtended extends WalletRepository
 {
 
     protected bool $reach = false;
 
     /**
-     * AccountRepository constructor.
+     * WalletRepository constructor.
      *
-     * @param DbDriverInterface $dbDriver
-     * @param string $accountEntity
+     * @param DatabaseExecutor $dbExecutor
+     * @param string $walletEntity
      * @param FieldMapping[] $fieldMappingList
      * @throws OrmModelInvalidException
      * @throws InvalidArgumentException
      * @throws ReflectionException
      */
-    public function __construct(DbDriverInterface $dbDriver, string $accountEntity, array $fieldMappingList = [])
+    public function __construct(DatabaseExecutor $dbExecutor, string $walletEntity, array $fieldMappingList = [])
     {
-        parent::__construct($dbDriver, $accountEntity, $fieldMappingList);
-        $this->getRepository()->addObserver(new ObserverAccount($this));
+        parent::__construct($dbExecutor, $walletEntity, $fieldMappingList);
+        $this->getRepository()->addObserver(new ObserverWallet($this));
     }
 
     public function getReach(): bool
