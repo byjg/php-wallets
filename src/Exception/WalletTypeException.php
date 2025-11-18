@@ -6,7 +6,7 @@ namespace ByJG\Wallets\Exception;
 
 use Exception;
 
-class AmountException extends Exception
+class WalletTypeException extends Exception
 {
 
 }
