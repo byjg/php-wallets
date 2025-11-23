@@ -40,12 +40,12 @@ class TransactionDTO
 
     public static function create(int $walletId, int $amount): static
     {
-        return new TransactionDTO($walletId, $amount);
+        return new static($walletId, $amount);
     }
 
     public static function createEmpty(): static
     {
-        return new TransactionDTO(null, null);
+        return new static(null, null);
     }
 
     public function hasWallet(): bool

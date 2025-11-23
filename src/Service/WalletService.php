@@ -304,6 +304,9 @@ class WalletService
     public function partialBalance(int $walletId, int $balance, string $description = "Partial Balance"): TransactionEntity
     {
         $wallet = $this->getById($walletId);
+        if (is_array($wallet)) {
+            throw new WalletException('Wallet not found');
+        }
 
         $amount = $balance - $wallet->getAvailable();
 

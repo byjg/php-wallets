@@ -114,7 +114,9 @@ class TransactionService
         $this->validateTransactionDto($dto);
 
         // 1) Compute numeric deltas for balances (used for notifications) and the SQL expressions (used for insert/select)
+        /** @psalm-suppress PossiblyNullArgument - validated by validateTransactionDto */
         [$balanceDelta, $reservedDelta, $availableDelta] = $this->computeBalanceDeltas($operation, $dto->getAmount());
+        /** @psalm-suppress PossiblyNullArgument - validated by validateTransactionDto */
         [$exprAmount, $exprBalance, $exprAvailable] = $this->buildAmountAndExpressions($operation, $dto->getAmount(), $capAtZero);
 
         // 2) Build the insert-select for the transaction and the wallet update based on the new transaction
@@ -139,6 +141,7 @@ class TransactionService
 
             // 4) Load the wallet just updated
             /** @var WalletEntity $wallet */
+            /** @psalm-suppress PossiblyNullArgument - validated by validateTransactionDto */
             $wallet = $this->walletRepository->getById($dto->getWalletId());
             if (empty($wallet)) {
                 throw new WalletException('Transaction Failed: Wallet not found');
@@ -151,6 +154,7 @@ class TransactionService
             }
 
             // 5) Load the transaction just created
+            /** @psalm-suppress PossiblyNullArgument - UUID set by validateTransactionDto */
             $transaction = $this->transactionRepository->getByUuid($dto->getUuid());
             if (empty($transaction)) {
                 throw new TransactionException('Transaction Failed: Transaction not found');
@@ -170,7 +174,9 @@ class TransactionService
             if (!$amountMatches) { $mismatches[] = 'amount'; }
             foreach ($dto->getProperties() as $propertyName => $propertyValue) {
                 $fieldMap = $this->transactionRepository->getMapper()->getFieldMap($propertyName);
+                /** @psalm-suppress PossiblyInvalidMethodCall - getFieldMap returns FieldMapping when property name provided */
                 if ($fieldMap && $fieldMap->isSyncWithDb()) {
+                    /** @psalm-suppress PossiblyInvalidMethodCall - getFieldMap returns FieldMapping when property name provided */
                     $fieldName = "get" . $fieldMap->getPropertyName();
                     if ($transaction->$fieldName() !== $propertyValue) {
                         $mismatches[] = $fieldName;
@@ -285,7 +291,9 @@ class TransactionService
         $mapper = $this->transactionRepository->getMapper();
         foreach ($dto->getProperties() as $propertyName => $propertyValue) {
             $fieldMap = $mapper->getFieldMap($propertyName);
+            /** @psalm-suppress PossiblyInvalidMethodCall - getFieldMap returns FieldMapping when property name provided */
             if ($fieldMap && $fieldMap->isSyncWithDb()) {
+                /** @psalm-suppress PossiblyInvalidMethodCall - getFieldMap returns FieldMapping when property name provided */
                 $fieldName = $fieldMap->getFieldName();
                 if (!in_array($fieldName, $targetColumns, true)) {
                     $targetColumns[] = $fieldName;
@@ -407,6 +415,7 @@ class TransactionService
      */
     public function getWalletUpdateQuery(TransactionDTO $dto): UpdateQuery
     {
+        /** @psalm-suppress PossiblyNullArgument - UUID set by validateTransactionDto */
         $uuid = new HexUuidLiteral($dto->getUuid());
 
         return UpdateQuery::getInstance()
@@ -610,6 +619,7 @@ class TransactionService
             // Get values and apply the updates
             $signal = $transaction->getTypeId() == TransactionEntity::DEPOSIT_BLOCKED ? 1 : -1;
 
+            /** @psalm-suppress PossiblyNullArgument - transaction validated by validateReservedTransaction */
             $wallet = $this->walletRepository->getById($transaction->getWalletId());
             $wallet->setReserved($wallet->getReserved() + ($transaction->getAmount() * $signal));
             $wallet->setBalance($wallet->getBalance() + ($transaction->getAmount() * $signal));
@@ -731,6 +741,7 @@ class TransactionService
             // Update Wallet - reverse the reservation
             $signal = $transaction->getTypeId() == TransactionEntity::DEPOSIT_BLOCKED ? -1 : +1;
 
+            /** @psalm-suppress PossiblyNullArgument - transaction validated by validateReservedTransaction */
             $wallet = $this->walletRepository->getById($transaction->getWalletId());
             $wallet->setReserved($wallet->getReserved() - ($transaction->getAmount() * $signal));
             $wallet->setAvailable($wallet->getAvailable() + ($transaction->getAmount() * $signal));
@@ -804,6 +815,9 @@ class TransactionService
      */
     public function isTransactionReserved(?int $transactionId = null): bool
     {
+        if ($transactionId === null) {
+            return false;
+        }
         return null === $this->transactionRepository->getByParentId($transactionId, true);
     }
 

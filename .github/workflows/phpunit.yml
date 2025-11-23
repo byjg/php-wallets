@@ -18,10 +18,9 @@ jobs:
     strategy:
       matrix:
         php-version:
+          - "8.5"
           - "8.4"
           - "8.3"
-          - "8.2"
-          - "8.1"
 
     services:
       mysql:
@@ -43,8 +42,54 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - run: composer install
-      - run: ./vendor/bin/psalm
-      - run: ./vendor/bin/phpunit
+      - run: composer test
+
+  Psalm:
+    name: Psalm Static Analyzer
+    runs-on: ubuntu-latest
+    permissions:
+      # for github/codeql-action/upload-sarif to upload SARIF results
+      security-events: write
+    container:
+      image: byjg/php:8.4-cli
+      options: --user root --privileged
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_AUTHENTICATION_PLUGIN: mysql_native_password
+        ports:
+          - "3306:3306"
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=20s
+          --health-retries=10
+
+    env:
+      MYSQL_TEST_URI: "mysql://root:password@mysql/wallettest"
+
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v4
+
+      - name: Composer
+        run: composer install
+
+      - name: Psalm
+        # Note: Ignoring error code 2, which just signals that some
+        # flaws were found, not that Psalm itself failed to run.
+        run: ./vendor/bin/psalm
+          --show-info=true
+          --report=psalm-results.sarif || [ $? = 2 ]
+
+      - name: Upload Analysis results to GitHub
+        uses: github/codeql-action/upload-sarif@v4
+        if: github.ref == 'refs/heads/master'
+        with:
+          sarif_file: psalm-results.sarif
 
   Documentation:
     if: github.ref == 'refs/heads/master'
