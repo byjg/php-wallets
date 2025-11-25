@@ -1,6 +1,6 @@
 <?php
 
-namespace ByJG\AccountStatements\Entity;
+namespace ByJG\Wallets\Entity;
 
 use ByJG\MicroOrm\Attributes\FieldAttribute;
 use ByJG\MicroOrm\Attributes\TableAttribute;
@@ -8,13 +8,13 @@ use ByJG\Serializer\BaseModel;
 
 /**
  * @OA\Definition(
- *   description="AccountType",
+ *   description="WalletType",
  * )
  *
- * @object:nodename accounttype
+ * @object:nodename wallettype
  */
-#[TableAttribute('accounttype')]
-class AccountTypeEntity extends BaseModel
+#[TableAttribute('wallettype')]
+class WalletTypeEntity extends BaseModel
 {
 
     /**
@@ -22,7 +22,7 @@ class AccountTypeEntity extends BaseModel
      * @OA\Property()
      */
     #[FieldAttribute(primaryKey: true)]
-    protected ?string $accounttypeid = null;
+    protected ?string $wallettypeid = null;
 
     /**
      * @var string|null
@@ -30,9 +30,9 @@ class AccountTypeEntity extends BaseModel
      */
     protected ?string $name = null;
     
-    public function getAccountTypeId(): ?string
+    public function getWalletTypeId(): ?string
     {
-        return $this->accounttypeid;
+        return $this->wallettypeid;
     }
 
     public function getName(): ?string
@@ -40,9 +40,9 @@ class AccountTypeEntity extends BaseModel
         return $this->name;
     }
 
-    public function setAccountTypeId(?string $accounttypeid): void
+    public function setWalletTypeId(?string $wallettypeid): void
     {
-        $this->accounttypeid = $accounttypeid;
+        $this->wallettypeid = $wallettypeid;
     }
 
     public function setName(?string $name): void

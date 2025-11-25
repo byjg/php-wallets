@@ -1,0 +1,831 @@
+<?php
+
+namespace ByJG\Wallets\Service;
+
+use ByJG\AnyDataset\Core\Exception\DatabaseException;
+use ByJG\AnyDataset\Db\Exception\DbDriverNotConnected;
+use ByJG\AnyDataset\Db\IsolationLevelEnum;
+use ByJG\MicroOrm\Enum\ObserverEvent;
+use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
+use ByJG\MicroOrm\Exception\OrmInvalidFieldsException;
+use ByJG\MicroOrm\Exception\RepositoryReadOnlyException;
+use ByJG\MicroOrm\Exception\UpdateConstraintException;
+use ByJG\MicroOrm\InsertSelectQuery;
+use ByJG\MicroOrm\Literal\HexUuidLiteral;
+use ByJG\MicroOrm\ORMSubject;
+use ByJG\MicroOrm\Query;
+use ByJG\MicroOrm\UpdateQuery;
+use ByJG\Serializer\Exception\InvalidArgumentException;
+use ByJG\Wallets\DTO\TransactionDTO;
+use ByJG\Wallets\Entity\TransactionEntity;
+use ByJG\Wallets\Entity\WalletEntity;
+use ByJG\Wallets\Exception\AmountException;
+use ByJG\Wallets\Exception\TransactionException;
+use ByJG\Wallets\Exception\WalletException;
+use ByJG\Wallets\Repository\TransactionRepository;
+use ByJG\Wallets\Repository\WalletRepository;
+use ByJG\XmlUtil\Exception\FileException;
+use ByJG\XmlUtil\Exception\XmlUtilException;
+use Exception;
+use PDOException;
+
+class TransactionService
+{
+    /**
+     * @var TransactionRepository
+     */
+    protected TransactionRepository $transactionRepository;
+
+    /**
+     * @var WalletRepository
+     */
+    protected WalletRepository $walletRepository;
+
+    /**
+     * TransactionService constructor.
+     * @param TransactionRepository $transactionRepository
+     * @param WalletRepository $walletRepository
+     */
+    public function __construct(TransactionRepository $transactionRepository, WalletRepository $walletRepository)
+    {
+        $this->transactionRepository = $transactionRepository;
+        $this->walletRepository = $walletRepository;
+    }
+
+    /**
+     * Get a Transaction By ID.
+     *
+     * @param int|string $transactionId Optional. empty, return all ids.
+     * @return mixed
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws OrmInvalidFieldsException
+     * @throws XmlUtilException
+     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     */
+    public function getById(int|string $transactionId): mixed
+    {
+        return $this->transactionRepository->getById($transactionId);
+    }
+
+    /**
+     * @throws AmountException
+     * @throws XmlUtilException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws TransactionException
+     */
+    protected function validateTransactionDto(TransactionDTO $dto): void
+    {
+        if (!$dto->hasWallet()) {
+            throw new TransactionException('Wallet is required');
+        }
+        if ($dto->getAmount() < 0) {
+            throw new AmountException('Amount needs to be greater than zero');
+        }
+
+        $dto->setUuid($dto->calculateUuid($this->transactionRepository->getExecutor()));
+    }
+
+    /**
+     * Central method to apply a balance-changing operation.
+     * - Creates a new transaction row reflecting the post-operation balances
+     * - Updates the wallet with the same balances and the last transaction id
+     *
+     * @param string $operation One of TransactionEntity::DEPOSIT, WITHDRAW, DEPOSIT_BLOCKED, WITHDRAW_BLOCKED
+     * @param TransactionDTO $dto Input data (wallet, amount, description, etc.)
+     * @param bool $capAtZero When true and operation is WITHDRAW, caps the withdrawal so the net balance never goes below zero
+     * @return TransactionEntity
+     * @throws AmountException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws InvalidArgumentException
+     * @throws OrmInvalidFieldsException
+     * @throws TransactionException
+     * @throws WalletException
+     * @throws XmlUtilException
+     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     */
+    protected function updateFunds(string $operation, TransactionDTO $dto, bool $capAtZero = false): TransactionEntity
+    {
+        $this->validateTransactionDto($dto);
+
+        // 1) Compute numeric deltas for balances (used for notifications) and the SQL expressions (used for insert/select)
+        /** @psalm-suppress PossiblyNullArgument - validated by validateTransactionDto */
+        [$balanceDelta, $reservedDelta, $availableDelta] = $this->computeBalanceDeltas($operation, $dto->getAmount());
+        /** @psalm-suppress PossiblyNullArgument - validated by validateTransactionDto */
+        [$exprAmount, $exprBalance, $exprAvailable] = $this->buildAmountAndExpressions($operation, $dto->getAmount(), $capAtZero);
+
+        // 2) Build the insert-select for the transaction and the wallet update based on the new transaction
+        $transactionInsert = $this->getInsertTransactionQuery(
+            $operation,
+            $dto,
+            $exprBalance,
+            $exprAvailable,
+            $exprAmount,
+            (string)$reservedDelta
+        );
+
+        $walletUpdate = $this->getWalletUpdateQuery($dto);
+
+        // 3) Execute both queries atomically
+        $this->getRepository()->getExecutor()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, allowJoin: true);
+        try {
+            $this->getRepository()->bulkExecute([
+                $transactionInsert,
+                $walletUpdate,
+            ]);
+
+            // 4) Load the wallet just updated
+            /** @var WalletEntity $wallet */
+            /** @psalm-suppress PossiblyNullArgument - validated by validateTransactionDto */
+            $wallet = $this->walletRepository->getById($dto->getWalletId());
+            if (empty($wallet)) {
+                throw new WalletException('Transaction Failed: Wallet not found');
+            }
+            if (empty($wallet->getLastUuid())) {
+                throw new WalletException('Transaction Failed: Wallet last_uuid is empty');
+            }
+            if (HexUuidLiteral::getFormattedUuid($wallet->getLastUuid()) !== HexUuidLiteral::getFormattedUuid($dto->getUuid())) {
+                throw new WalletException('Transaction Failed: Wallet last_uuid does not match the DTO');
+            }
+
+            // 5) Load the transaction just created
+            /** @psalm-suppress PossiblyNullArgument - UUID set by validateTransactionDto */
+            $transaction = $this->transactionRepository->getByUuid($dto->getUuid());
+            if (empty($transaction)) {
+                throw new TransactionException('Transaction Failed: Transaction not found');
+            }
+
+            // Validate that the persisted transaction matches the DTO intent (allowing capped withdraw amount)
+            $mismatches = [];
+            if ((int)$transaction->getWalletId() !== (int)$dto->getWalletId()) { $mismatches[] = 'walletId'; }
+            if ($transaction->getDescription() !== $dto->getDescription()) { $mismatches[] = 'description'; }
+            if ($transaction->getCode() !== $dto->getCode()) { $mismatches[] = 'code'; }
+            if ($transaction->getReferenceId() !== $dto->getReferenceId()) { $mismatches[] = 'referenceId'; }
+            if ($transaction->getReferenceSource() !== $dto->getReferenceSource()) { $mismatches[] = 'referenceSource'; }
+            if ($transaction->getTypeId() !== $operation) { $mismatches[] = 'typeId'; }
+            $amountMatches =
+                ($transaction->getAmount() === $dto->getAmount()) ||
+                ($capAtZero && $operation === TransactionEntity::WITHDRAW && $transaction->getAmount() <= $dto->getAmount());
+            if (!$amountMatches) { $mismatches[] = 'amount'; }
+            foreach ($dto->getProperties() as $propertyName => $propertyValue) {
+                $fieldMap = $this->transactionRepository->getMapper()->getFieldMap($propertyName);
+                /** @psalm-suppress PossiblyInvalidMethodCall - getFieldMap returns FieldMapping when property name provided */
+                if ($fieldMap && $fieldMap->isSyncWithDb()) {
+                    /** @psalm-suppress PossiblyInvalidMethodCall - getFieldMap returns FieldMapping when property name provided */
+                    $fieldName = "get" . $fieldMap->getPropertyName();
+                    if ($transaction->$fieldName() !== $propertyValue) {
+                        $mismatches[] = $fieldName;
+                    }
+                }
+            }
+            if (!empty($mismatches)) {
+                throw new TransactionException('Persisted transaction does not match the DTO fields: ' . implode(', ', $mismatches));
+            }
+
+            $this->getRepository()->getExecutor()->commitTransaction();
+        } catch (Exception $ex) {
+            if ($this->getRepository()->getExecutor()->hasActiveTransaction()) {
+                $this->getRepository()->getExecutor()->rollbackTransaction();
+            }
+            if ($ex instanceof PDOException && str_contains($ex->getMessage(), 'chk_value_nonnegative')) {
+                throw new AmountException('Cannot withdraw above the wallet balance');
+            }
+            throw $ex;
+        }
+
+        // 6) Notify observers of wallet change, providing an oldWallet with pre-change balances
+        $oldWallet = clone $wallet;
+        $oldWallet->setBalance($oldWallet->getBalance() - $balanceDelta);
+        $oldWallet->setReserved($oldWallet->getReserved() - $reservedDelta);
+        $oldWallet->setAvailable($oldWallet->getAvailable() - $availableDelta);
+
+        ORMSubject::getInstance()->notify(
+            $this->walletRepository->getMapper()->getTable(),
+            ObserverEvent::Update,
+            $wallet,
+            $oldWallet
+        );
+
+        // 7) Notify observers of transaction insert
+        ORMSubject::getInstance()->notify(
+            $this->transactionRepository->getMapper()->getTable(),
+            ObserverEvent::Insert,
+            $transaction,
+            null
+        );
+
+        // If capping occurred on withdrawal, the actual amount may differ from the DTO amount
+        $dto->setAmount(intval($transaction->getAmount()));
+
+        return $transaction;
+    }
+
+    // ---- Helpers: computations and query building ---------------------------------------------------------------
+
+    /**
+     * Compute numeric deltas for balances according to the operation and amount.
+     * Returns [grossDelta, reservedDelta, netDelta].
+     */
+    private function computeBalanceDeltas(string $operation, int $amount): array
+    {
+        $balanceDelta = $amount * match ($operation) {
+            TransactionEntity::DEPOSIT => 1,
+            TransactionEntity::WITHDRAW => -1,
+            default => 0,
+        };
+
+        $reservedDelta = $amount * match ($operation) {
+            TransactionEntity::DEPOSIT_BLOCKED => -1,
+            TransactionEntity::WITHDRAW_BLOCKED => 1,
+            default => 0,
+        };
+
+        $availableDelta = $amount * match ($operation) {
+            TransactionEntity::DEPOSIT, TransactionEntity::DEPOSIT_BLOCKED => 1,
+            TransactionEntity::WITHDRAW, TransactionEntity::WITHDRAW_BLOCKED => -1,
+            default => 0,
+        };
+
+        return [$balanceDelta, $reservedDelta, $availableDelta];
+    }
+
+    /**
+     * Build SQL literal expressions for amount, gross and net balances.
+     * When capping at zero (withdraw), it ensures the amount is reduced to avoid a negative net balance.
+     * Returns [exprAmount, exprGross, exprNet].
+     */
+    private function buildAmountAndExpressions(string $operation, int $amount, bool $capAtZero): array
+    {
+        $exprBalance = "balance + " . ($amount * match ($operation) {
+            TransactionEntity::DEPOSIT => 1,
+            TransactionEntity::WITHDRAW => -1,
+            default => 0,
+        });
+        $exprAvailable = "available + " . ($amount * match ($operation) {
+            TransactionEntity::DEPOSIT, TransactionEntity::DEPOSIT_BLOCKED => 1,
+            TransactionEntity::WITHDRAW, TransactionEntity::WITHDRAW_BLOCKED => -1,
+            default => 0,
+        });
+        $exprAmount = (string)$amount;
+
+        if ($capAtZero && $operation === TransactionEntity::WITHDRAW) {
+            // Cap withdraw so available never goes below zero
+            $exprAmount = "case when available - {$amount} < 0 then {$amount} + (available - {$amount}) else {$amount} end";
+            $exprBalance = "balance - $exprAmount";
+            $exprAvailable = "available - $exprAmount";
+        }
+
+        return [$exprAmount, $exprBalance, $exprAvailable];
+    }
+
+    /**
+     * Append extra mapped fields from the DTO properties (extended entities) into the target/select lists.
+     */
+    private function appendExtraMappedFields(TransactionDTO $dto, array &$targetColumns, array &$selectFields): void
+    {
+        $mapper = $this->transactionRepository->getMapper();
+        foreach ($dto->getProperties() as $propertyName => $propertyValue) {
+            $fieldMap = $mapper->getFieldMap($propertyName);
+            /** @psalm-suppress PossiblyInvalidMethodCall - getFieldMap returns FieldMapping when property name provided */
+            if ($fieldMap && $fieldMap->isSyncWithDb()) {
+                /** @psalm-suppress PossiblyInvalidMethodCall - getFieldMap returns FieldMapping when property name provided */
+                $fieldName = $fieldMap->getFieldName();
+                if (!in_array($fieldName, $targetColumns, true)) {
+                    $targetColumns[] = $fieldName;
+                    $selectFields[] = !is_null($propertyValue) ? "'" . $propertyValue . "'" : 'null';
+                }
+            }
+        }
+    }
+
+    /**
+     * Builds an INSERT-SELECT query that atomically creates a transaction record from wallet data.
+     *
+     * This method generates a single SQL query that:
+     * 1. Reads the current wallet state (with FOR UPDATE lock)
+     * 2. Calculates new balance/available/reserved values based on the operation
+     * 3. Inserts a new transaction record with the calculated values
+     *
+     * Using INSERT-SELECT ensures atomicity - the wallet snapshot and transaction creation
+     * happen in a single database operation, preventing race conditions.
+     *
+     * @param string $operation The transaction type (D=Deposit, W=Withdraw, DB=Deposit Blocked, WB=Withdraw Blocked, etc.)
+     * @param TransactionDTO $dto The transaction data transfer object containing wallet ID, amount, description, etc.
+     * @param string $expressionSumBalance SQL expression to calculate new balance (e.g., "balance + :amount" or "balance - :amount")
+     * @param string $expressionSumAvailable SQL expression to calculate new available amount (e.g., "available + :amount")
+     * @param string $expressionAmount SQL expression for the transaction amount (e.g., ":amount" or "-:amount")
+     * @param string $sumReserved Amount to add/subtract from reserved funds (e.g., ":amount" or "-:amount")
+     * @return InsertSelectQuery The query that will insert a transaction record by selecting from the wallet table
+     * @throws InvalidArgumentException
+     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     */
+    protected function getInsertTransactionQuery(
+        string $operation,
+        TransactionDTO $dto,
+        string $expressionSumBalance,
+        string $expressionSumAvailable,
+        string $expressionAmount,
+        string $sumReserved
+    ): InsertSelectQuery
+    {
+        // Define the target columns in the transaction table that will receive the data
+        $targetColumns = [
+            'walletid',           // Wallet this transaction belongs to
+            'wallettypeid',       // Type of wallet (USD, BRL, etc.)
+            'balance',            // Wallet balance snapshot after this transaction
+            'available',          // Available funds snapshot after this transaction
+            'reserved',           // Reserved funds snapshot after this transaction
+            'scale',              // Decimal scale (e.g., 2 for cents, 0 for whole units)
+            'amount',             // Transaction amount (positive or negative)
+            'description',        // Human-readable description
+            'code',               // Transaction code for categorization
+            'referenceid',        // External reference ID
+            'referencesource',    // Source system for the reference
+            'typeid',             // Transaction type (D, W, DB, WB, B, R)
+            'date',               // Transaction timestamp
+            'transactionparentid',// Parent transaction ID (for accept/reject operations)
+            'uuid',               // Unique identifier for idempotency
+            'previousuuid',       // Previous transaction UUID (from wallet's last_uuid) for chain integrity
+            'checksum'            // SHA-256 checksum of amount|balance|reserved|available|uuid|previousuuid
+        ];
+
+        // Build checksum expression using Literal to calculate SHA2 hash in the database
+        // Format: LOWER(SHA2(CONCAT(amount, '|', balance, '|', reserved, '|', available, '|', uuid, '|', previousuuid), 256))
+        // Note: UUIDs are stored as binary, so convert them to uppercase formatted strings using UPPER(BIN_TO_UUID())
+        $checksumExpression =
+            "LOWER(SHA2(CONCAT($expressionAmount, '|', $expressionSumBalance, '|', reserved + $sumReserved, '|', $expressionSumAvailable, '|', UPPER(BIN_TO_UUID(:uuid)), '|', COALESCE(UPPER(BIN_TO_UUID(last_uuid)), '')), 256))"
+        ;
+
+        // Define the SELECT fields that will provide values for the target columns
+        // These are calculated from the current wallet state
+        $selectFields = [
+            'walletid',                                 // Copy wallet ID from the wallet table
+            'wallettypeid',                             // Copy wallet type from the wallet table
+            $expressionSumBalance,                      // Calculate new balance (e.g., balance + amount)
+            $expressionSumAvailable,                    // Calculate new available (e.g., available + amount)
+            "reserved + $sumReserved",                  // Calculate new reserved (e.g., reserved + amount)
+            'scale',                                    // Copy scale from the wallet table
+            $expressionAmount,                          // Transaction amount (from parameter binding)
+            ':description',                             // From DTO parameter
+            ':code',                                    // From DTO parameter
+            ':referenceid',                             // From DTO parameter
+            ':referencesource',                         // From DTO parameter
+            ':operation',                               // Transaction type from parameter
+            $this->transactionRepository->getExecutor()->getHelper()->sqlDate('Y-m-d H:i:s'), // Current timestamp
+            'null',                                     // No parent transaction (NULL)
+            ':uuid',                                    // From DTO parameter
+            'last_uuid',                                // Previous transaction UUID from wallet's last_uuid
+            $checksumExpression                         // Calculate SHA-256 checksum of amount|balance|reserved|available|uuid|previousuuid
+        ];
+
+        // Append any extra mapped fields provided via DTO properties (for extended entities)
+        // This allows custom transaction entities to add additional fields
+        $this->appendExtraMappedFields($dto, $targetColumns, $selectFields);
+
+        // Build the SELECT query that reads from the wallet table
+        // This provides the source data for the INSERT
+        $transactionQuery = Query::getInstance()
+            ->table('wallet')
+            ->fields($selectFields)                     // Select the calculated fields
+            ->where('walletid = :accid2', [             // Filter to a specific wallet
+                'accid2' => $dto->getWalletId(),        // Wallet ID to read from
+                'description' => $dto->getDescription(),// Bind description parameter
+                'code' => $dto->getCode(),              // Bind code parameter
+                'referenceid' => $dto->getReferenceId(),// Bind reference ID parameter
+                'referencesource' => $dto->getReferenceSource(), // Bind reference source parameter
+                'operation' => $operation,              // Bind operation type parameter
+                'uuid' => $dto->getUuid()               // Bind UUID parameter
+            ])
+            ->forUpdate();                              // Lock the wallet row to prevent concurrent modifications
+
+        // Create the INSERT-SELECT query that combines the target table with the SELECT query
+        return InsertSelectQuery::getInstance(
+            $this->transactionRepository->getMapper()->getTable(), // Target table (transaction)
+            $targetColumns                                         // Target columns
+        )->fromQuery($transactionQuery);                          // Source query (SELECT from wallet)
+    }
+
+    /**
+     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     */
+    public function getWalletUpdateQuery(TransactionDTO $dto): UpdateQuery
+    {
+        /** @psalm-suppress PossiblyNullArgument - UUID set by validateTransactionDto */
+        $uuid = new HexUuidLiteral($dto->getUuid());
+
+        return UpdateQuery::getInstance()
+            ->table('wallet')
+            ->setLiteral('wallet.balance', 'st.balance')
+            ->setLiteral('wallet.reserved', 'st.reserved')
+            ->setLiteral('wallet.available', 'st.available')
+            ->setLiteral('wallet.last_uuid', $uuid)
+            ->where('wallet.walletid = :accid', ['accid' => $dto->getWalletId()])
+            ->join($this->transactionRepository->getMapper()->getTable(), 'st.walletid = wallet.walletid and st.uuid = ' . (string)$uuid, 'st');
+    }
+
+    /**
+     * Add funds to a wallet
+     *
+     * @param TransactionDTO $dto
+     * @return TransactionEntity Newly created transaction entity
+     * @throws AmountException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws InvalidArgumentException
+     * @throws OrmInvalidFieldsException
+     * @throws TransactionException
+     * @throws WalletException
+     * @throws XmlUtilException
+     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     */
+    public function addFunds(TransactionDTO $dto): TransactionEntity
+    {
+        return $this->updateFunds(TransactionEntity::DEPOSIT, $dto);
+    }
+
+    /**
+     * Withdraw funds from a wallet
+     *
+     * @param TransactionDTO $dto
+     * @param bool $capAtZero
+     * @return TransactionEntity Transaction ID
+     * @throws AmountException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws InvalidArgumentException
+     * @throws OrmInvalidFieldsException
+     * @throws TransactionException
+     * @throws WalletException
+     * @throws XmlUtilException
+     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     */
+    public function withdrawFunds(TransactionDTO $dto, bool $capAtZero = false): TransactionEntity
+    {
+        return $this->updateFunds(TransactionEntity::WITHDRAW, $dto, $capAtZero);
+    }
+
+    /**
+     * Reserve funds to future withdrawn. It affects the net balance but not the gross balance
+     *
+     * @param TransactionDTO $dto
+     * @return TransactionEntity Transaction ID
+     * @throws AmountException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws InvalidArgumentException
+     * @throws OrmInvalidFieldsException
+     * @throws TransactionException
+     * @throws WalletException
+     * @throws XmlUtilException
+     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     */
+    public function reserveFundsForWithdraw(TransactionDTO $dto): TransactionEntity
+    {
+        return $this->updateFunds(TransactionEntity::WITHDRAW_BLOCKED, $dto);
+    }
+
+    /**
+     * Reserve funds to future deposit. Update net balance but not gross balance.
+     *
+     * @param TransactionDTO $dto
+     * @return TransactionEntity Transaction ID
+     * @throws AmountException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws InvalidArgumentException
+     * @throws OrmInvalidFieldsException
+     * @throws TransactionException
+     * @throws WalletException
+     * @throws XmlUtilException
+     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     */
+    public function reserveFundsForDeposit(TransactionDTO $dto): TransactionEntity
+    {
+        return $this->updateFunds(TransactionEntity::DEPOSIT_BLOCKED, $dto);
+    }
+
+    /**
+     * Validate that a reserved transaction can be processed (accepted or rejected)
+     *
+     * @param int $transactionId
+     * @param TransactionDTO $transactionDto
+     * @return TransactionEntity
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws OrmInvalidFieldsException
+     * @throws TransactionException
+     * @throws XmlUtilException
+     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     */
+    private function validateReservedTransaction(int $transactionId, TransactionDTO $transactionDto): TransactionEntity
+    {
+        $transaction = $this->transactionRepository->getById($transactionId);
+        if (is_null($transaction)) {
+            throw new TransactionException('Transaction not found');
+        }
+
+        // Validate if the transaction can be processed
+        if ($transaction->getTypeId() != TransactionEntity::WITHDRAW_BLOCKED && $transaction->getTypeId() != TransactionEntity::DEPOSIT_BLOCKED) {
+            throw new TransactionException("The transaction id doesn't belongs to a reserved fund.");
+        }
+
+        // Validate if the transaction has been already processed
+        if ($this->transactionRepository->getByParentId($transactionId) != null) {
+            throw new TransactionException('The transaction has been processed already');
+        }
+
+        if ($transactionDto->hasWallet() && $transactionDto->getWalletId() != $transaction->getWalletId()) {
+            throw new TransactionException('The transaction wallet is different from the informed wallet in the DTO. Try createEmpty().');
+        }
+
+        return $transaction;
+    }
+
+    /**
+     * Create a new transaction from a reserved transaction
+     *
+     * @param TransactionEntity $originalTransaction
+     * @param WalletEntity $wallet
+     * @param TransactionDTO $transactionDto
+     * @param string $newTypeId
+     * @return TransactionEntity
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws XmlUtilException
+     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     */
+    private function createTransactionFromReserved(
+        TransactionEntity $originalTransaction,
+        WalletEntity $wallet,
+        TransactionDTO $transactionDto,
+        string $newTypeId
+    ): TransactionEntity {
+        $originalTransaction->setTransactionParentId($originalTransaction->getTransactionId());
+        $originalTransaction->setTransactionId(null); // Allow creating a new record
+        $originalTransaction->setDate(null);
+        $originalTransaction->setTypeId($newTypeId);
+        $originalTransaction->attachWallet($wallet);
+        $transactionDto->setUuid($transactionDto->calculateUuid($this->transactionRepository->getExecutor()));
+        $transactionDto->setToTransaction($originalTransaction);
+
+        // Set previousuuid from wallet's last_uuid to maintain chain integrity
+        $originalTransaction->setPreviousUuid($wallet->getLastUuid());
+
+        // Calculate and set checksum
+        $checksum = TransactionEntity::calculateChecksum($originalTransaction);
+        $originalTransaction->setChecksum($checksum);
+
+        return $originalTransaction;
+    }
+
+    /**
+     * Accept a reserved fund and update the gross balance
+     *
+     * @param int $transactionId
+     * @param TransactionDTO|null $transactionDto
+     * @return int Transaction ID
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws OrmBeforeInvalidException
+     * @throws OrmInvalidFieldsException
+     * @throws RepositoryReadOnlyException
+     * @throws TransactionException
+     * @throws UpdateConstraintException
+     * @throws XmlUtilException
+     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     */
+    public function acceptFundsById(int $transactionId, ?TransactionDTO $transactionDto = null): int
+    {
+        if (is_null($transactionDto)) {
+            $transactionDto = TransactionDTO::createEmpty();
+        }
+
+        $this->getRepository()->getExecutor()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, true);
+        try {
+            $transaction = $this->validateReservedTransaction($transactionId, $transactionDto);
+
+            // Get values and apply the updates
+            $signal = $transaction->getTypeId() == TransactionEntity::DEPOSIT_BLOCKED ? 1 : -1;
+
+            /** @psalm-suppress PossiblyNullArgument - transaction validated by validateReservedTransaction */
+            $wallet = $this->walletRepository->getById($transaction->getWalletId());
+            $wallet->setReserved($wallet->getReserved() + ($transaction->getAmount() * $signal));
+            $wallet->setBalance($wallet->getBalance() + ($transaction->getAmount() * $signal));
+            $wallet->setEntryDate(null);
+            $this->walletRepository->save($wallet);
+
+            // Create a new transaction (accept)
+            $newTypeId = $transaction->getTypeId() == TransactionEntity::WITHDRAW_BLOCKED
+                ? TransactionEntity::WITHDRAW
+                : TransactionEntity::DEPOSIT;
+
+            $newTransaction = $this->createTransactionFromReserved($transaction, $wallet, $transactionDto, $newTypeId);
+            $result = $this->transactionRepository->save($newTransaction);
+
+            // Update wallet's last_uuid to point to the new transaction
+            $wallet->setLastUuid($result->getUuid());
+            $this->walletRepository->save($wallet);
+
+            $this->getRepository()->getExecutor()->commitTransaction();
+
+            return $result->getTransactionId();
+        } catch (Exception $ex) {
+            $this->getRepository()->getExecutor()->rollbackTransaction();
+
+            throw $ex;
+        }
+    }
+
+    /**
+     * @param int $transactionId
+     * @param TransactionDTO $transactionDtoWithdraw
+     * @param TransactionDTO $transactionDtoRefund
+     * @return TransactionEntity
+     * @throws AmountException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws InvalidArgumentException
+     * @throws OrmBeforeInvalidException
+     * @throws OrmInvalidFieldsException
+     * @throws RepositoryReadOnlyException
+     * @throws TransactionException
+     * @throws UpdateConstraintException
+     * @throws WalletException
+     * @throws XmlUtilException
+     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     */
+    public function acceptPartialFundsById(int $transactionId, TransactionDTO $transactionDtoWithdraw, TransactionDTO $transactionDtoRefund): TransactionEntity
+    {
+        $partialAmount = $transactionDtoWithdraw->getAmount();
+
+        if ($partialAmount <= 0) {
+            throw new AmountException('Partial amount must be greater than zero.');
+        }
+
+        $this->getRepository()->getExecutor()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, true);
+        try {
+            $transaction = $this->transactionRepository->getById($transactionId);
+            if (is_null($transaction)) {
+                throw new TransactionException('acceptPartialFundsById: Transaction not found');
+            }
+            if ($transaction->getTypeId() != TransactionEntity::WITHDRAW_BLOCKED) {
+                throw new TransactionException("The transaction id doesn't belong to a reserved withdraw fund.");
+            }
+            if ($this->transactionRepository->getByParentId($transactionId) != null) {
+                throw new TransactionException('The transaction has been processed already');
+            }
+
+            $originalAmount = $transaction->getAmount();
+            if ($partialAmount <= 0 || $partialAmount >= $originalAmount) {
+                throw new AmountException(
+                    'Partial amount must be greater than zero and less than the original reserved amount.'
+                );
+            }
+
+            $this->rejectFundsById($transactionId, $transactionDtoRefund);
+
+            $transactionDtoWithdraw->setWalletId($transaction->getWalletId());
+
+            $finalDebitTransaction = $this->withdrawFunds($transactionDtoWithdraw);
+
+            $this->getRepository()->getExecutor()->commitTransaction();
+
+            return $finalDebitTransaction;
+
+        } catch (Exception $ex) {
+            $this->getRepository()->getExecutor()->rollbackTransaction();
+            throw $ex;
+        }
+    }
+
+    /**
+     * Reject a reserved fund and return the net balance
+     *
+     * @param int $transactionId
+     * @param TransactionDTO|null $transactionDto
+     * @return int Transaction ID
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws OrmBeforeInvalidException
+     * @throws OrmInvalidFieldsException
+     * @throws RepositoryReadOnlyException
+     * @throws TransactionException
+     * @throws UpdateConstraintException
+     * @throws XmlUtilException
+     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     */
+    public function rejectFundsById(int $transactionId, ?TransactionDTO $transactionDto = null): int
+    {
+        if (is_null($transactionDto)) {
+            $transactionDto = TransactionDTO::createEmpty();
+        }
+
+        $this->getRepository()->getExecutor()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, true);
+        try {
+            $transaction = $this->validateReservedTransaction($transactionId, $transactionDto);
+
+            // Update Wallet - reverse the reservation
+            $signal = $transaction->getTypeId() == TransactionEntity::DEPOSIT_BLOCKED ? -1 : +1;
+
+            /** @psalm-suppress PossiblyNullArgument - transaction validated by validateReservedTransaction */
+            $wallet = $this->walletRepository->getById($transaction->getWalletId());
+            $wallet->setReserved($wallet->getReserved() - ($transaction->getAmount() * $signal));
+            $wallet->setAvailable($wallet->getAvailable() + ($transaction->getAmount() * $signal));
+            $wallet->setEntryDate(null);
+            $this->walletRepository->save($wallet);
+
+            // Create a new transaction (reject)
+            $newTransaction = $this->createTransactionFromReserved(
+                $transaction,
+                $wallet,
+                $transactionDto,
+                TransactionEntity::REJECT
+            );
+            $result = $this->transactionRepository->save($newTransaction);
+
+            // Update wallet's last_uuid to point to the new transaction
+            $wallet->setLastUuid($result->getUuid());
+            $this->walletRepository->save($wallet);
+
+            $this->getRepository()->getExecutor()->commitTransaction();
+
+            return $result->getTransactionId();
+        } catch (Exception $ex) {
+            $this->getRepository()->getExecutor()->rollbackTransaction();
+
+            throw $ex;
+        }
+    }
+
+    /**
+     * Update all blocked (reserved) transactions
+     *
+     * @param int|null $walletId
+     * @return TransactionEntity[]
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws InvalidArgumentException
+     * @throws XmlUtilException
+     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     */
+    public function getReservedTransactions(?int $walletId = null): array
+    {
+        return $this->transactionRepository->getReservedTransactions($walletId);
+    }
+
+    /**
+     * @param int $walletId
+     * @param string $startDate
+     * @param string $endDate
+     * @return array
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws XmlUtilException
+     */
+    public function getByDate(int $walletId, string $startDate, string $endDate): array
+    {
+        return $this->transactionRepository->getByDate($walletId, $startDate, $endDate);
+    }
+
+    /**
+     * This transaction is blocked (reserved)
+     *
+     * @param int|null $transactionId
+     * @return bool
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws XmlUtilException
+     */
+    public function isTransactionReserved(?int $transactionId = null): bool
+    {
+        if ($transactionId === null) {
+            return false;
+        }
+        return null === $this->transactionRepository->getByParentId($transactionId, true);
+    }
+
+    /**
+     * @return TransactionRepository
+     */
+    public function getRepository(): TransactionRepository
+    {
+        return $this->transactionRepository;
+    }
+}

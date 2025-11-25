@@ -2,20 +2,7 @@
 
 namespace Tests;
 
-use ByJG\AccountStatements\Bll\AccountBLL;
-use ByJG\AccountStatements\Bll\AccountTypeBLL;
-use ByJG\AccountStatements\Bll\StatementBLL;
-use ByJG\AccountStatements\Entity\AccountEntity;
-use ByJG\AccountStatements\Entity\AccountTypeEntity;
-use ByJG\AccountStatements\Entity\StatementEntity;
-use ByJG\AccountStatements\Exception\AccountException;
-use ByJG\AccountStatements\Exception\AccountTypeException;
-use ByJG\AccountStatements\Exception\AmountException;
-use ByJG\AccountStatements\Exception\StatementException;
-use ByJG\AccountStatements\Repository\AccountRepository;
-use ByJG\AccountStatements\Repository\AccountTypeRepository;
-use ByJG\AccountStatements\Repository\StatementRepository;
-use ByJG\AnyDataset\Db\DbDriverInterface;
+use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\DbMigration\Database\MySqlDatabase;
 use ByJG\DbMigration\Migration;
 use ByJG\MicroOrm\Exception\InvalidArgumentException;
@@ -25,39 +12,52 @@ use ByJG\MicroOrm\Exception\OrmModelInvalidException;
 use ByJG\MicroOrm\Exception\RepositoryReadOnlyException;
 use ByJG\MicroOrm\Exception\UpdateConstraintException;
 use ByJG\Util\Uri;
+use ByJG\Wallets\Entity\TransactionEntity;
+use ByJG\Wallets\Entity\WalletEntity;
+use ByJG\Wallets\Entity\WalletTypeEntity;
+use ByJG\Wallets\Exception\AmountException;
+use ByJG\Wallets\Exception\TransactionException;
+use ByJG\Wallets\Exception\WalletException;
+use ByJG\Wallets\Exception\WalletTypeException;
+use ByJG\Wallets\Repository\TransactionRepository;
+use ByJG\Wallets\Repository\WalletRepository;
+use ByJG\Wallets\Repository\WalletTypeRepository;
+use ByJG\Wallets\Service\TransactionService;
+use ByJG\Wallets\Service\WalletService;
+use ByJG\Wallets\Service\WalletTypeService;
 use ReflectionException;
 
 trait BaseDALTrait
 {
 
     /**
-     * @var AccountBLL
+     * @var WalletService
      */
-    protected AccountBLL $accountBLL;
+    protected WalletService $walletService;
 
     /**
-     * @var AccountTypeBLL
+     * @var WalletTypeService
      */
-    protected AccountTypeBLL $accountTypeBLL;
+    protected WalletTypeService $walletTypeService;
 
     /**
-     * @var StatementBLL
+     * @var TransactionService
      */
-    protected StatementBLL $statementBLL;
+    protected TransactionService $transactionService;
 
     /**
      * @throws ReflectionException
      * @throws OrmModelInvalidException
      */
-    public function prepareObjects($accountEntity = AccountEntity::class, $accountTypeEntity = AccountTypeEntity::class, $statementEntity = StatementEntity::class): void
+    public function prepareObjects($walletEntity = WalletEntity::class, $walletTypeEntity = WalletTypeEntity::class, $transactionEntity = TransactionEntity::class): void
     {
-        $accountRepository = new AccountRepository($this->dbDriver, $accountEntity);
-        $accountTypeRepository = new AccountTypeRepository($this->dbDriver, $accountTypeEntity);
-        $statementRepository = new StatementRepository($this->dbDriver, $statementEntity);
+        $walletRepository = new WalletRepository($this->dbExecutor, $walletEntity);
+        $walletTypeRepository = new WalletTypeRepository($this->dbExecutor, $walletTypeEntity);
+        $transactionRepository = new TransactionRepository($this->dbExecutor, $transactionEntity);
 
-        $this->accountTypeBLL = new AccountTypeBLL($accountTypeRepository);
-        $this->statementBLL = new StatementBLL($statementRepository, $accountRepository);
-        $this->accountBLL = new AccountBLL($accountRepository, $this->accountTypeBLL, $this->statementBLL);
+        $this->walletTypeService = new WalletTypeService($walletTypeRepository);
+        $this->transactionService = new TransactionService($transactionRepository, $walletRepository);
+        $this->walletService = new WalletService($walletRepository, $this->walletTypeService, $this->transactionService);
     }
 
     /**
@@ -66,13 +66,13 @@ trait BaseDALTrait
     protected $uri;
 
     /**
-     * @var DbDriverInterface
+     * @var DatabaseExecutor
      */
-    protected $dbDriver;
+    protected $dbExecutor;
 
-    public function dbSetUp()
+    public function dbSetUp(): void
     {
-        $uriMySqlTest = getenv('MYSQL_TEST_URI') ? getenv('MYSQL_TEST_URI') : "mysql://root:password@127.0.0.1/accounttest";
+        $uriMySqlTest = getenv('MYSQL_TEST_URI') ? getenv('MYSQL_TEST_URI') : "mysql://root:password@127.0.0.1/wallettest";
         $this->uri = new Uri($uriMySqlTest);
 
         Migration::registerDatabase(MySqlDatabase::class);
@@ -82,69 +82,70 @@ trait BaseDALTrait
         // This will delete the constraint to validate the negative amount
         $maxVersion = null;
         /** @psalm-suppress InternalMethod */
-        if (strpos($this->getName(), "Allow_Negativ") !== false) {
-            $maxVersion = 3;
+        if (str_contains($this->name(), "Allow_Negativ")) {
+            $maxVersion = 0;
         }
         $migration->reset($maxVersion);
 
-        $migration->getDbDriver()->execute("CREATE TABLE statement_extended LIKE statement");
-        $migration->getDbDriver()->execute("alter table statement_extended add extra_property varchar(100) null;");
+        $dbDriver = $migration->getDbDriver();
+        $this->dbExecutor = DatabaseExecutor::using($dbDriver);
 
-        $this->dbDriver = $migration->getDbDriver();
+        $this->dbExecutor->execute("CREATE TABLE transaction_extended LIKE transaction");
+        $this->dbExecutor->execute("alter table transaction_extended add extra_property varchar(100) null;");
     }
 
     protected function dbClear(): void
     {
-        $this->dbDriver->execute(
-            'DELETE statement FROM `account` INNER JOIN statement ' .
-            "WHERE account.accountid = statement.accountid and account.userid like '___TESTUSER-%' and statementparentid is not null;"
+        $this->dbExecutor->execute(
+            'DELETE transaction FROM `wallet` INNER JOIN transaction ' .
+            "WHERE wallet.walletid = transaction.walletid and wallet.userid like '___TESTUSER-%' and transactionparentid is not null;"
         );
 
-        $this->dbDriver->execute(
-            'DELETE statement FROM `account` INNER JOIN statement ' .
-            "WHERE account.accountid = statement.accountid and account.userid like '___TESTUSER-%'"
+        $this->dbExecutor->execute(
+            'DELETE transaction FROM `wallet` INNER JOIN transaction ' .
+            "WHERE wallet.walletid = transaction.walletid and wallet.userid like '___TESTUSER-%'"
         );
 
-        $this->dbDriver->execute("DELETE FROM `account` where account.userid like '___TESTUSER-%'");
+        $this->dbExecutor->execute("DELETE FROM `wallet` where wallet.userid like '___TESTUSER-%'");
 
-        $this->dbDriver->execute("DELETE FROM `accounttype` WHERE accounttypeid like '___TEST'");
+        $this->dbExecutor->execute("DELETE FROM `wallettype` WHERE wallettypeid like '___TEST'");
     }
 
     /**
-     * @throws AccountException
-     * @throws AccountTypeException
+     * @throws WalletException
+     * @throws WalletTypeException
      * @throws AmountException
      * @throws InvalidArgumentException
      * @throws OrmBeforeInvalidException
      * @throws OrmInvalidFieldsException
-     * @throws StatementException
+     * @throws TransactionException
      * @throws RepositoryReadOnlyException
      * @throws UpdateConstraintException
      * @throws \ByJG\Serializer\Exception\InvalidArgumentException
      */
-    protected function createDummyData()
+    protected function createDummyData(): void
     {
-        $dto1 = new AccountTypeEntity();
-        $dto1->setAccountTypeId('USDTEST');
+        $dto1 = new WalletTypeEntity();
+        $dto1->setWalletTypeId('USDTEST');
         $dto1->setName('Test 1');
 
-        $dto2 = new AccountTypeEntity();
-        $dto2->setAccountTypeId('BRLTEST');
+        $dto2 = new WalletTypeEntity();
+        $dto2->setWalletTypeId('BRLTEST');
         $dto2->setName('Test 2');
 
-        $dto3 = new AccountTypeEntity();
-        $dto3->setAccountTypeId('ABCTEST');
+        $dto3 = new WalletTypeEntity();
+        $dto3->setWalletTypeId('ABCTEST');
         $dto3->setName('Test 3');
 
-        $dto4 = new AccountTypeEntity();
-        $dto4->setAccountTypeId('NEGTEST');
+        $dto4 = new WalletTypeEntity();
+        $dto4->setWalletTypeId('NEGTEST');
         $dto4->setName('Test 4');
 
-        $this->accountTypeBLL->update($dto1);
-        $this->accountTypeBLL->update($dto2);
-        $this->accountTypeBLL->update($dto3);
-        $this->accountTypeBLL->update($dto4);
+        $this->walletTypeService->update($dto1);
+        $this->walletTypeService->update($dto2);
+        $this->walletTypeService->update($dto3);
+        $this->walletTypeService->update($dto4);
 
-        $this->accountBLL->createAccount('BRLTEST', '___TESTUSER-1', 1000, 1);
+        $this->walletService->createWallet('BRLTEST', '___TESTUSER-1', 1000, 1);
     }
 }
