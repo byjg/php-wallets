@@ -1,4 +1,10 @@
+---
+tags: [php, finance]
+---
+
 # Wallets
+
+A robust PHP library for managing digital wallets and financial transactions with full audit trails, transaction chain integrity, and support for reserved funds.
 
 [![Sponsor](https://img.shields.io/badge/Sponsor-%23ea4aaa?logo=githubsponsors&logoColor=white&labelColor=0d1117)](https://github.com/sponsors/byjg)
 [![Build Status](https://github.com/byjg/php-wallets/actions/workflows/phpunit.yml/badge.svg?branch=master)](https://github.com/byjg/php-wallets/actions/workflows/phpunit.yml)
@@ -6,8 +12,6 @@
 [![GitHub source](https://img.shields.io/badge/Github-source-informational?logo=github)](https://github.com/byjg/php-wallets/)
 [![GitHub license](https://img.shields.io/github/license/byjg/php-wallets.svg)](https://opensource.byjg.com/opensource/licensing.html)
 [![GitHub release](https://img.shields.io/github/release/byjg/php-wallets.svg)](https://github.com/byjg/php-wallets/releases/)
-
-A robust PHP library for managing digital wallets and financial transactions with full audit trails, transaction chain integrity, and support for reserved funds.
 
 ## Features
 
@@ -91,12 +95,12 @@ echo "Available: " . ($wallet->getAvailable() / 100) . " USD\n";
 
 ## Documentation
 
-- [Getting Started](docs/getting-started.md) - Installation, database setup, and quick start guide
-- [Wallet Management](docs/wallet-management.md) - Create, retrieve, and manage wallets
-- [Transaction Operations](docs/transaction-operations.md) - Add, withdraw, and query transactions
-- [Reserved Funds](docs/reserved-funds.md) - Pre-authorize and manage pending transactions
-- [Extending Entities](docs/extending-entities.md) - Add custom fields to wallets and transactions
-- [Database Schema](docs/database-schema.md) - Complete database schema documentation
+- [Getting Started](getting-started) - Installation, database setup, and quick start guide
+- [Wallet Management](wallet-management) - Create, retrieve, and manage wallets
+- [Transaction Operations](transaction-operations) - Add, withdraw, and query transactions
+- [Reserved Funds](reserved-funds) - Pre-authorize and manage pending transactions
+- [Extending Entities](extending-entities) - Add custom fields to wallets and transactions
+- [Database Schema](database-schema) - Complete database schema documentation
 
 Full documentation is available at [https://opensource.byjg.com/docs/php/wallets](https://opensource.byjg.com/docs/php/wallets)
 
