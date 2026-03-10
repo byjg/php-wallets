@@ -1,4 +1,11 @@
+---
+sidebar_key: wallets
+tags: [php, finance]
+---
+
 # Wallets
+
+A robust PHP library for managing digital wallets and financial transactions with full audit trails, transaction chain integrity, and support for reserved funds.
 
 [![Sponsor](https://img.shields.io/badge/Sponsor-%23ea4aaa?logo=githubsponsors&logoColor=white&labelColor=0d1117)](https://github.com/sponsors/byjg)
 [![Build Status](https://github.com/byjg/php-wallets/actions/workflows/phpunit.yml/badge.svg?branch=master)](https://github.com/byjg/php-wallets/actions/workflows/phpunit.yml)
@@ -6,8 +13,6 @@
 [![GitHub source](https://img.shields.io/badge/Github-source-informational?logo=github)](https://github.com/byjg/php-wallets/)
 [![GitHub license](https://img.shields.io/github/license/byjg/php-wallets.svg)](https://opensource.byjg.com/opensource/licensing.html)
 [![GitHub release](https://img.shields.io/github/release/byjg/php-wallets.svg)](https://github.com/byjg/php-wallets/releases/)
-
-A robust PHP library for managing digital wallets and financial transactions with full audit trails, transaction chain integrity, and support for reserved funds.
 
 ## Features
 
