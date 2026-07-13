@@ -170,10 +170,19 @@ CREATE TABLE `transaction` (
 
 - `PRIMARY KEY (transactionid)` - Fast lookup by ID
 - `UNIQUE KEY idx_transaction_uuid (uuid)` - Ensures idempotency
+- `UNIQUE KEY idx_transaction_parentid_unique (transactionparentid)` - A reserved transaction can be accepted/rejected only once (migration 00002)
 - `KEY idx_transaction_previous_uuid (previousuuid)` - Chain integrity queries
 - `KEY fk_transaction_wallet1_idx (walletid)` - Get all transactions for wallet
 - `KEY idx_transaction_typeid_date (typeid, date)` - Filter by type and sort by date
 - `KEY fk_transaction_referenceid_idx (referencesource, referenceid)` - External references
+
+#### Immutability Trigger
+
+Migration 00002 also adds a `BEFORE UPDATE` trigger (`trg_transaction_no_update`) on the
+`transaction` table that rejects any UPDATE with the error
+`Ledger transactions are immutable and cannot be updated`. Corrections must always be
+made with new transactions (e.g., a reject or a compensating movement), never by
+editing history.
 
 ## Data Integrity
 

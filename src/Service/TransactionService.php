@@ -11,6 +11,7 @@ use ByJG\MicroOrm\Exception\RepositoryReadOnlyException;
 use ByJG\MicroOrm\Exception\UpdateConstraintException;
 use ByJG\MicroOrm\InsertSelectQuery;
 use ByJG\MicroOrm\Literal\HexUuidLiteral;
+use ByJG\MicroOrm\Literal\Literal;
 use ByJG\MicroOrm\Query;
 use ByJG\MicroOrm\UpdateQuery;
 use ByJG\Serializer\Exception\InvalidArgumentException;
@@ -24,8 +25,8 @@ use ByJG\Wallets\Repository\TransactionRepository;
 use ByJG\Wallets\Repository\WalletRepository;
 use ByJG\XmlUtil\Exception\FileException;
 use ByJG\XmlUtil\Exception\XmlUtilException;
-use Exception;
 use PDOException;
+use Throwable;
 
 class TransactionService
 {
@@ -68,6 +69,21 @@ class TransactionService
     }
 
     /**
+     * Get a Transaction by its UUID (e.g., a caller-supplied idempotency key).
+     *
+     * @param Literal|string $uuid
+     * @return TransactionEntity|null
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws XmlUtilException
+     */
+    public function getByUuid(Literal|string $uuid): ?TransactionEntity
+    {
+        return $this->transactionRepository->getByUuid($uuid);
+    }
+
+    /**
      * @throws AmountException
      * @throws XmlUtilException
      * @throws DatabaseException
@@ -84,7 +100,14 @@ class TransactionService
             throw new AmountException('Amount needs to be greater than zero');
         }
 
-        $dto->setUuid($dto->calculateUuid($this->transactionRepository->getExecutor()));
+        // A caller-supplied UUID acts as an idempotency key: a retry with the same UUID
+        // will not create a duplicate transaction (enforced by the unique index on uuid)
+        $uuid = $dto->getUuid();
+        if (empty($uuid)) {
+            $dto->setUuid($dto->calculateUuid($this->transactionRepository->getExecutor()));
+        } elseif (!($uuid instanceof Literal)) {
+            $dto->setUuid(new HexUuidLiteral($uuid));
+        }
     }
 
     /**
@@ -165,39 +188,29 @@ class TransactionService
             }
 
             // Validate that the persisted transaction matches the DTO intent (allowing capped withdraw amount)
-            $mismatches = [];
-            if ((int)$transaction->getWalletId() !== (int)$dto->getWalletId()) { $mismatches[] = 'walletId'; }
-            if ($transaction->getDescription() !== $dto->getDescription()) { $mismatches[] = 'description'; }
-            if ($transaction->getCode() !== $dto->getCode()) { $mismatches[] = 'code'; }
-            if ($transaction->getReferenceId() !== $dto->getReferenceId()) { $mismatches[] = 'referenceId'; }
-            if ($transaction->getReferenceSource() !== $dto->getReferenceSource()) { $mismatches[] = 'referenceSource'; }
-            if ($transaction->getTypeId() !== $operation) { $mismatches[] = 'typeId'; }
-            $amountMatches =
-                ($transaction->getAmount() === $dto->getAmount()) ||
-                ($capAtZero && $operation === TransactionEntity::WITHDRAW && $transaction->getAmount() <= $dto->getAmount());
-            if (!$amountMatches) { $mismatches[] = 'amount'; }
-            foreach ($dto->getProperties() as $propertyName => $propertyValue) {
-                $fieldMap = $this->transactionRepository->getMapper()->getFieldMap($propertyName);
-                /** @psalm-suppress PossiblyInvalidMethodCall - getFieldMap returns FieldMapping when property name provided */
-                if ($fieldMap && $fieldMap->isSyncWithDb()) {
-                    /** @psalm-suppress PossiblyInvalidMethodCall - getFieldMap returns FieldMapping when property name provided */
-                    $fieldName = "get" . $fieldMap->getPropertyName();
-                    if ($transaction->$fieldName() !== $propertyValue) {
-                        $mismatches[] = $fieldName;
-                    }
-                }
-            }
+            $mismatches = $this->getTransactionDtoMismatches($transaction, $dto, $operation, $capAtZero);
             if (!empty($mismatches)) {
                 throw new TransactionException('Persisted transaction does not match the DTO fields: ' . implode(', ', $mismatches));
             }
 
             $this->getRepository()->getExecutor()->commitTransaction();
-        } catch (Exception $ex) {
+        } catch (Throwable $ex) {
             if ($this->getRepository()->getExecutor()->hasActiveTransaction()) {
                 $this->getRepository()->getExecutor()->rollbackTransaction();
             }
             if ($ex instanceof PDOException && str_contains($ex->getMessage(), 'chk_value_nonnegative')) {
                 throw new AmountException('Cannot withdraw above the wallet balance');
+            }
+            if ($ex instanceof PDOException && str_contains($ex->getMessage(), 'idx_transaction_uuid')) {
+                // Idempotent replay: the caller-supplied UUID was already processed.
+                // Return the original transaction when it matches the DTO; otherwise fail loudly.
+                /** @psalm-suppress PossiblyNullArgument - UUID set by validateTransactionDto */
+                $existing = $this->transactionRepository->getByUuid($dto->getUuid());
+                if (!empty($existing) && empty($this->getTransactionDtoMismatches($existing, $dto, $operation, $capAtZero))) {
+                    $dto->setAmount(intval($existing->getAmount()));
+                    return $existing;
+                }
+                throw new TransactionException('The UUID was already used by a different transaction');
             }
             throw $ex;
         }
@@ -225,6 +238,39 @@ class TransactionService
         $dto->setAmount(intval($transaction->getAmount()));
 
         return $transaction;
+    }
+
+    /**
+     * Compare a persisted transaction against the DTO intent.
+     * Returns the list of fields that do not match (allowing a capped withdraw amount).
+     *
+     * @return string[]
+     */
+    private function getTransactionDtoMismatches(TransactionEntity $transaction, TransactionDTO $dto, string $operation, bool $capAtZero): array
+    {
+        $mismatches = [];
+        if ((int)$transaction->getWalletId() !== (int)$dto->getWalletId()) { $mismatches[] = 'walletId'; }
+        if ($transaction->getDescription() !== $dto->getDescription()) { $mismatches[] = 'description'; }
+        if ($transaction->getCode() !== $dto->getCode()) { $mismatches[] = 'code'; }
+        if ($transaction->getReferenceId() !== $dto->getReferenceId()) { $mismatches[] = 'referenceId'; }
+        if ($transaction->getReferenceSource() !== $dto->getReferenceSource()) { $mismatches[] = 'referenceSource'; }
+        if ($transaction->getTypeId() !== $operation) { $mismatches[] = 'typeId'; }
+        $amountMatches =
+            ($transaction->getAmount() === $dto->getAmount()) ||
+            ($capAtZero && $operation === TransactionEntity::WITHDRAW && $transaction->getAmount() <= $dto->getAmount());
+        if (!$amountMatches) { $mismatches[] = 'amount'; }
+        foreach ($dto->getProperties() as $propertyName => $propertyValue) {
+            $fieldMap = $this->transactionRepository->getMapper()->getFieldMap($propertyName);
+            /** @psalm-suppress PossiblyInvalidMethodCall - getFieldMap returns FieldMapping when property name provided */
+            if ($fieldMap && $fieldMap->isSyncWithDb()) {
+                /** @psalm-suppress PossiblyInvalidMethodCall - getFieldMap returns FieldMapping when property name provided */
+                $fieldName = "get" . $fieldMap->getPropertyName();
+                if ($transaction->$fieldName() !== $propertyValue) {
+                    $mismatches[] = $fieldName;
+                }
+            }
+        }
+        return $mismatches;
     }
 
     // ---- Helpers: computations and query building ---------------------------------------------------------------
@@ -578,7 +624,12 @@ class TransactionService
         $originalTransaction->setDate(null);
         $originalTransaction->setTypeId($newTypeId);
         $originalTransaction->attachWallet($wallet);
-        $transactionDto->setUuid($transactionDto->calculateUuid($this->transactionRepository->getExecutor()));
+        $uuid = $transactionDto->getUuid();
+        if (empty($uuid)) {
+            $transactionDto->setUuid($transactionDto->calculateUuid($this->transactionRepository->getExecutor()));
+        } elseif (!($uuid instanceof Literal)) {
+            $transactionDto->setUuid(new HexUuidLiteral($uuid));
+        }
         $transactionDto->setToTransaction($originalTransaction);
 
         // Set previousuuid from wallet's last_uuid to maintain chain integrity
@@ -626,9 +677,8 @@ class TransactionService
             $wallet->setReserved($wallet->getReserved() + ($transaction->getAmount() * $signal));
             $wallet->setBalance($wallet->getBalance() + ($transaction->getAmount() * $signal));
             $wallet->setEntryDate(null);
-            $this->walletRepository->save($wallet);
 
-            // Create a new transaction (accept)
+            // Create a new transaction (accept) - previousuuid comes from the wallet's current last_uuid
             $newTypeId = $transaction->getTypeId() == TransactionEntity::WITHDRAW_BLOCKED
                 ? TransactionEntity::WITHDRAW
                 : TransactionEntity::DEPOSIT;
@@ -636,18 +686,74 @@ class TransactionService
             $newTransaction = $this->createTransactionFromReserved($transaction, $wallet, $transactionDto, $newTypeId);
             $result = $this->transactionRepository->save($newTransaction);
 
-            // Update wallet's last_uuid to point to the new transaction
+            // Persist the balance changes and the new last_uuid in a single save
             $wallet->setLastUuid($result->getUuid());
             $this->walletRepository->save($wallet);
 
             $this->getRepository()->getExecutor()->commitTransaction();
 
             return $result->getTransactionId();
-        } catch (Exception $ex) {
+        } catch (Throwable $ex) {
             $this->getRepository()->getExecutor()->rollbackTransaction();
 
             throw $ex;
         }
+    }
+
+    /**
+     * Accept a reserved fund identified by its UUID (e.g., a caller-supplied idempotency key).
+     *
+     * @param Literal|string $uuid UUID of the reserved (WB/DB) transaction
+     * @param TransactionDTO|null $transactionDto
+     * @return int Transaction ID of the accept transaction
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws OrmBeforeInvalidException
+     * @throws OrmInvalidFieldsException
+     * @throws RepositoryReadOnlyException
+     * @throws TransactionException
+     * @throws UpdateConstraintException
+     * @throws XmlUtilException
+     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     */
+    public function acceptFundsByUuid(Literal|string $uuid, ?TransactionDTO $transactionDto = null): int
+    {
+        $transaction = $this->transactionRepository->getByUuid($uuid);
+        if (is_null($transaction)) {
+            throw new TransactionException('Transaction not found');
+        }
+
+        /** @psalm-suppress PossiblyNullArgument - a persisted transaction always has an id */
+        return $this->acceptFundsById($transaction->getTransactionId(), $transactionDto);
+    }
+
+    /**
+     * Reject a reserved fund identified by its UUID (e.g., a caller-supplied idempotency key).
+     *
+     * @param Literal|string $uuid UUID of the reserved (WB/DB) transaction
+     * @param TransactionDTO|null $transactionDto
+     * @return int Transaction ID of the reject transaction
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws OrmBeforeInvalidException
+     * @throws OrmInvalidFieldsException
+     * @throws RepositoryReadOnlyException
+     * @throws TransactionException
+     * @throws UpdateConstraintException
+     * @throws XmlUtilException
+     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     */
+    public function rejectFundsByUuid(Literal|string $uuid, ?TransactionDTO $transactionDto = null): int
+    {
+        $transaction = $this->transactionRepository->getByUuid($uuid);
+        if (is_null($transaction)) {
+            throw new TransactionException('Transaction not found');
+        }
+
+        /** @psalm-suppress PossiblyNullArgument - a persisted transaction always has an id */
+        return $this->rejectFundsById($transaction->getTransactionId(), $transactionDto);
     }
 
     /**
@@ -707,7 +813,7 @@ class TransactionService
 
             return $finalDebitTransaction;
 
-        } catch (Exception $ex) {
+        } catch (Throwable $ex) {
             $this->getRepository()->getExecutor()->rollbackTransaction();
             throw $ex;
         }
@@ -748,9 +854,8 @@ class TransactionService
             $wallet->setReserved($wallet->getReserved() - ($transaction->getAmount() * $signal));
             $wallet->setAvailable($wallet->getAvailable() + ($transaction->getAmount() * $signal));
             $wallet->setEntryDate(null);
-            $this->walletRepository->save($wallet);
 
-            // Create a new transaction (reject)
+            // Create a new transaction (reject) - previousuuid comes from the wallet's current last_uuid
             $newTransaction = $this->createTransactionFromReserved(
                 $transaction,
                 $wallet,
@@ -759,14 +864,14 @@ class TransactionService
             );
             $result = $this->transactionRepository->save($newTransaction);
 
-            // Update wallet's last_uuid to point to the new transaction
+            // Persist the balance changes and the new last_uuid in a single save
             $wallet->setLastUuid($result->getUuid());
             $this->walletRepository->save($wallet);
 
             $this->getRepository()->getExecutor()->commitTransaction();
 
             return $result->getTransactionId();
-        } catch (Exception $ex) {
+        } catch (Throwable $ex) {
             $this->getRepository()->getExecutor()->rollbackTransaction();
 
             throw $ex;

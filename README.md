@@ -255,11 +255,10 @@ vendor/bin/phpunit
 - `rejectFundsByUuid(string $uuid): int`
 - `acceptPartialFundsById(int $transactionId, TransactionDTO $transactionDTO, TransactionDTO $transactionRefundDTO): TransactionEntity`
 - `getById(int $transactionId): TransactionEntity`
-- `getByWallet(int $walletId, int $limit = null, int $offset = null): array`
-- `getByDate(int $walletId, string $startDate, string $endDate, int $limit = null, int $offset = null): array`
-- `getByReference(string $referenceSource, string $referenceId): array`
+- `getByDate(int $walletId, string $startDate, string $endDate): array`
 - `getByUuid(string $uuid): ?TransactionEntity`
-- `existsTransactionByUuid(string $uuid): bool`
+- `getRepository()->getByWalletId(int $walletId, int $limit = 20): array`
+- `getRepository()->getByReferenceId(int $walletId, string $referenceSource, string $referenceId): array`
 - `getReservedTransactions(int $walletId): array`
 
 ## Dependencies
