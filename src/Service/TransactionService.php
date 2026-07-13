@@ -5,14 +5,12 @@ namespace ByJG\Wallets\Service;
 use ByJG\AnyDataset\Core\Exception\DatabaseException;
 use ByJG\AnyDataset\Db\Exception\DbDriverNotConnected;
 use ByJG\AnyDataset\Db\IsolationLevelEnum;
-use ByJG\MicroOrm\Enum\ObserverEvent;
 use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
 use ByJG\MicroOrm\Exception\OrmInvalidFieldsException;
 use ByJG\MicroOrm\Exception\RepositoryReadOnlyException;
 use ByJG\MicroOrm\Exception\UpdateConstraintException;
 use ByJG\MicroOrm\InsertSelectQuery;
 use ByJG\MicroOrm\Literal\HexUuidLiteral;
-use ByJG\MicroOrm\ORMSubject;
 use ByJG\MicroOrm\Query;
 use ByJG\MicroOrm\UpdateQuery;
 use ByJG\Serializer\Exception\InvalidArgumentException;
@@ -131,15 +129,21 @@ class TransactionService
 
         $walletUpdate = $this->getWalletUpdateQuery($dto);
 
-        // 3) Execute both queries atomically
-        $this->getRepository()->getExecutor()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, allowJoin: true);
-        try {
-            $this->getRepository()->bulkExecute([
-                $transactionInsert,
-                $walletUpdate,
-            ]);
+        // 3) Build the statements upfront and defer their observer notification: the entities are
+        // attached after commit, so observers receive them instead of the raw SQL parameters
+        $executor = $this->getRepository()->getExecutor();
+        $transactionInsertStmt = $transactionInsert->build($executor->getDriver());
+        $transactionInsertStmt->getOrmContext()->defer();
+        $walletUpdateStmt = $walletUpdate->build($executor->getDriver());
+        $walletUpdateStmt->getOrmContext()->defer();
 
-            // 4) Load the wallet just updated
+        // 4) Execute both queries atomically
+        $executor->beginTransaction(IsolationLevelEnum::SERIALIZABLE, allowJoin: true);
+        try {
+            $executor->execute($transactionInsertStmt);
+            $executor->execute($walletUpdateStmt);
+
+            // 5) Load the wallet just updated
             /** @var WalletEntity $wallet */
             /** @psalm-suppress PossiblyNullArgument - validated by validateTransactionDto */
             $wallet = $this->walletRepository->getById($dto->getWalletId());
@@ -153,7 +157,7 @@ class TransactionService
                 throw new WalletException('Transaction Failed: Wallet last_uuid does not match the DTO');
             }
 
-            // 5) Load the transaction just created
+            // 6) Load the transaction just created
             /** @psalm-suppress PossiblyNullArgument - UUID set by validateTransactionDto */
             $transaction = $this->transactionRepository->getByUuid($dto->getUuid());
             if (empty($transaction)) {
@@ -198,26 +202,24 @@ class TransactionService
             throw $ex;
         }
 
-        // 6) Notify observers of wallet change, providing an oldWallet with pre-change balances
+        // 7) Notify observers of wallet change, providing an oldWallet with pre-change balances
         $oldWallet = clone $wallet;
         $oldWallet->setBalance($oldWallet->getBalance() - $balanceDelta);
         $oldWallet->setReserved($oldWallet->getReserved() - $reservedDelta);
         $oldWallet->setAvailable($oldWallet->getAvailable() - $availableDelta);
 
-        ORMSubject::getInstance()->notify(
-            $this->walletRepository->getMapper()->getTable(),
-            ObserverEvent::Update,
-            $wallet,
-            $oldWallet
-        );
+        $walletContext = $walletUpdateStmt->getOrmContext();
+        $walletContext->setEntities($wallet, $oldWallet);
+        foreach ($walletContext->drainPendingBridges() as $bridge) {
+            $bridge->notifyStatement($walletUpdateStmt);
+        }
 
-        // 7) Notify observers of transaction insert
-        ORMSubject::getInstance()->notify(
-            $this->transactionRepository->getMapper()->getTable(),
-            ObserverEvent::Insert,
-            $transaction,
-            null
-        );
+        // 8) Notify observers of transaction insert
+        $transactionContext = $transactionInsertStmt->getOrmContext();
+        $transactionContext->setEntities($transaction, null);
+        foreach ($transactionContext->drainPendingBridges() as $bridge) {
+            $bridge->notifyStatement($transactionInsertStmt);
+        }
 
         // If capping occurred on withdrawal, the actual amount may differ from the DTO amount
         $dto->setAmount(intval($transaction->getAmount()));
