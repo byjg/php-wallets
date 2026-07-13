@@ -5,8 +5,6 @@ namespace ByJG\Wallets\Entity;
 use ByJG\MicroOrm\Attributes\FieldAttribute;
 use ByJG\MicroOrm\Attributes\FieldUuidAttribute;
 use ByJG\MicroOrm\Attributes\TableAttribute;
-use ByJG\MicroOrm\Exception\InvalidArgumentException;
-use ByJG\MicroOrm\Literal\HexUuidLiteral;
 use ByJG\MicroOrm\Literal\Literal;
 use ByJG\Serializer\BaseModel;
 use ByJG\Wallets\Exception\AmountException;
@@ -140,6 +138,18 @@ class TransactionEntity extends BaseModel
      * @OA\Property()
      */
     protected ?string $checksum = null;
+
+    /**
+     * @var string|null
+     * @OA\Property()
+     */
+    protected ?string $previouschecksum = null;
+
+    /**
+     * @var int|null
+     * @OA\Property()
+     */
+    protected ?int $checksumversion = null;
 
     public function getTransactionId(): ?int
     {
@@ -460,38 +470,23 @@ class TransactionEntity extends BaseModel
         $this->checksum = $checksum;
     }
 
-    /**
-     * @throws InvalidArgumentException
-     */
-    public static function calculateChecksum(TransactionEntity|int $transactionEntityOrAmount, ?int $balance = null, ?int $reserved = null, ?int $available = null, ?string $uuid = null, ?string $previousUuid = null): string
+    public function getPreviousChecksum(): ?string
     {
-        if (!($transactionEntityOrAmount instanceof TransactionEntity)) {
-            $data = implode('|', [
-                $transactionEntityOrAmount,
-                $balance,
-                $reserved,
-                $available,
-                HexUuidLiteral::getFormattedUuid($uuid, throwErrorIfInvalid: false),
-                HexUuidLiteral::getFormattedUuid($previousUuid, throwErrorIfInvalid: false),
-            ]);
-        } else {
-            $data = implode('|', [
-                $transactionEntityOrAmount->getAmount(),
-                $transactionEntityOrAmount->getBalance(),
-                $transactionEntityOrAmount->getReserved(),
-                $transactionEntityOrAmount->getAvailable(),
-                HexUuidLiteral::getFormattedUuid($transactionEntityOrAmount->getUuid(), throwErrorIfInvalid: false),
-                HexUuidLiteral::getFormattedUuid($transactionEntityOrAmount->getPreviousUuid(), throwErrorIfInvalid: false),
-            ]);
-        }
-        return hash('sha256', $data);
+        return $this->previouschecksum;
     }
 
-    /**
-     * @throws InvalidArgumentException
-     */
-    public static function validateChecksum(TransactionEntity $transactionEntity, string $checksum): bool
+    public function setPreviousChecksum(?string $previouschecksum): void
     {
-        return $checksum === self::calculateChecksum($transactionEntity);
+        $this->previouschecksum = $previouschecksum;
+    }
+
+    public function getChecksumVersion(): ?int
+    {
+        return $this->checksumversion;
+    }
+
+    public function setChecksumVersion(?int $checksumversion): void
+    {
+        $this->checksumversion = $checksumversion;
     }
 }

@@ -10,6 +10,7 @@ use ByJG\MicroOrm\Exception\OrmInvalidFieldsException;
 use ByJG\MicroOrm\Exception\TransactionException;
 use ByJG\MicroOrm\Literal\HexUuidLiteral;
 use ByJG\Serializer\Serialize;
+use ByJG\Wallets\Checksum\ChecksumFactory;
 use ByJG\Wallets\DTO\TransactionDTO;
 use ByJG\Wallets\Entity\TransactionEntity;
 use ByJG\Wallets\Entity\WalletEntity;
@@ -123,7 +124,9 @@ class WalletTransactionsTest extends TestCase
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
         $transaction->setPreviousUuid($actual->getPreviousUuid());
-        $transaction->setChecksum(TransactionEntity::calculateChecksum($actual));
+        $transaction->setChecksum(ChecksumFactory::current()->calculate($actual));
+        $transaction->setPreviousChecksum($actual->getPreviousChecksum());
+        $transaction->setChecksumVersion(ChecksumFactory::current()->getVersion());
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());
@@ -159,7 +162,9 @@ class WalletTransactionsTest extends TestCase
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
         $transaction->setPreviousUuid($actual->getPreviousUuid());
-        $transaction->setChecksum(TransactionEntity::calculateChecksum($actual));
+        $transaction->setChecksum(ChecksumFactory::current()->calculate($actual));
+        $transaction->setPreviousChecksum($actual->getPreviousChecksum());
+        $transaction->setChecksumVersion(ChecksumFactory::current()->getVersion());
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());
@@ -246,11 +251,15 @@ class WalletTransactionsTest extends TestCase
             $transaction[$i]->setUuid(null);
             $transaction[$i]->setPreviousUuid(null);
             $transaction[$i]->setChecksum(null);
+            $transaction[$i]->setPreviousChecksum(null);
+            $transaction[$i]->setChecksumVersion(null);
             $listAll[$i]->setDate(null);
             $listAll[$i]->setTransactionId(null);
             $listAll[$i]->setUuid(null);
             $listAll[$i]->setPreviousUuid(null);
             $listAll[$i]->setChecksum(null);
+            $listAll[$i]->setPreviousChecksum(null);
+            $listAll[$i]->setChecksumVersion(null);
         }
 
         // Testar método
@@ -288,7 +297,9 @@ class WalletTransactionsTest extends TestCase
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
         $transaction->setPreviousUuid($actual->getPreviousUuid());
-        $transaction->setChecksum(TransactionEntity::calculateChecksum($actual));
+        $transaction->setChecksum(ChecksumFactory::current()->calculate($actual));
+        $transaction->setPreviousChecksum($actual->getPreviousChecksum());
+        $transaction->setChecksumVersion(ChecksumFactory::current()->getVersion());
 
         $this->assertEquals($transaction->toArray(), $actual->toArray());
     }
@@ -333,7 +344,9 @@ class WalletTransactionsTest extends TestCase
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
         $transaction->setPreviousUuid($actual->getPreviousUuid());
-        $transaction->setChecksum(TransactionEntity::calculateChecksum($actual));
+        $transaction->setChecksum(ChecksumFactory::current()->calculate($actual));
+        $transaction->setPreviousChecksum($actual->getPreviousChecksum());
+        $transaction->setChecksumVersion(ChecksumFactory::current()->getVersion());
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());
@@ -379,7 +392,9 @@ class WalletTransactionsTest extends TestCase
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
         $transaction->setPreviousUuid($actual->getPreviousUuid());
-        $transaction->setChecksum(TransactionEntity::calculateChecksum($actual));
+        $transaction->setChecksum(ChecksumFactory::current()->calculate($actual));
+        $transaction->setPreviousChecksum($actual->getPreviousChecksum());
+        $transaction->setChecksumVersion(ChecksumFactory::current()->getVersion());
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());
@@ -543,6 +558,8 @@ class WalletTransactionsTest extends TestCase
             'uuid' => $transaction["uuid"],
             'previousuuid' => $transaction["previousuuid"],
             'checksum' => $transaction["checksum"],
+            'previouschecksum' => $transaction["previouschecksum"],
+            'checksumversion' => 2,
         ],
             $transaction
         );
@@ -579,6 +596,8 @@ class WalletTransactionsTest extends TestCase
         unset($transaction["uuid"]);
         unset($transaction["previousuuid"]);
         unset($transaction["checksum"]);
+        unset($transaction["previouschecksum"]);
+        unset($transaction["checksumversion"]);
 
         $this->assertEquals(
             [
@@ -654,6 +673,8 @@ class WalletTransactionsTest extends TestCase
                 "uuid" => $transaction["uuid"],
                 "previousuuid" => $transaction["previousuuid"],
                 "checksum" => $transaction["checksum"],
+                "previouschecksum" => $transaction["previouschecksum"],
+                "checksumversion" => 2,
             ],
             $transaction
         );
@@ -734,6 +755,8 @@ class WalletTransactionsTest extends TestCase
                     unset($value["uuid"]);
                     unset($value["previousuuid"]);
                     unset($value["checksum"]);
+                    unset($value["previouschecksum"]);
+                    unset($value["checksumversion"]);
                     return $value;
                 },
                 $transactionList
@@ -811,6 +834,8 @@ class WalletTransactionsTest extends TestCase
                     unset($value["uuid"]);
                     unset($value["previousuuid"]);
                     unset($value["checksum"]);
+                    unset($value["previouschecksum"]);
+                    unset($value["checksumversion"]);
                     return $value;
                 },
                 $transactionList
@@ -863,6 +888,8 @@ class WalletTransactionsTest extends TestCase
                     unset($value["uuid"]);
                     unset($value["previousuuid"]);
                     unset($value["checksum"]);
+                    unset($value["previouschecksum"]);
+                    unset($value["checksumversion"]);
                     return $value;
                 },
                 $transactionList
@@ -992,7 +1019,9 @@ class WalletTransactionsTest extends TestCase
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
         $transaction->setPreviousUuid($actual->getPreviousUuid());
-        $transaction->setChecksum(TransactionEntity::calculateChecksum($actual));
+        $transaction->setChecksum(ChecksumFactory::current()->calculate($actual));
+        $transaction->setPreviousChecksum($actual->getPreviousChecksum());
+        $transaction->setChecksumVersion(ChecksumFactory::current()->getVersion());
 
         $this->assertEquals($transaction, $actual);
     }

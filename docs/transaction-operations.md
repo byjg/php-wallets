@@ -229,11 +229,13 @@ These represent wallet state **after** this transaction:
 
 ### Integrity Fields
 
-| Property       | Type             | Description                                    |
-|----------------|------------------|------------------------------------------------|
-| `uuid`         | binary(16)       | Unique transaction identifier for idempotency  |
-| `previousUuid` | binary(16)\|null | UUID of previous transaction (chain integrity) |
-| `checksum`     | string(64)       | SHA-256 hash of transaction data               |
+| Property           | Type             | Description                                        |
+|--------------------|------------------|----------------------------------------------------|
+| `uuid`             | binary(16)       | Unique transaction identifier for idempotency      |
+| `previousUuid`     | binary(16)\|null | UUID of previous transaction (chain integrity)     |
+| `checksum`         | string(64)       | SHA-256 hash of transaction data                   |
+| `previousChecksum` | string(64)\|null | Checksum of the previous transaction (hash chain)  |
+| `checksumVersion`  | int              | Algorithm that produced the checksum (1 = legacy)  |
 
 ## Helper Methods
 
@@ -251,22 +253,57 @@ $availableFloat = $transaction->getAvailableFloat(); // 125.25
 
 ### Checksum Validation
 
-```php
-// Calculate checksum for a transaction
-$checksum = TransactionEntity::calculateChecksum($transaction);
+Checksum algorithms are classes implementing `ChecksumInterface`. Every row records
+the algorithm that produced it (`checksumVersion`), and `ChecksumFactory` resolves
+the right one:
 
-// Validate checksum
-$isValid = TransactionEntity::validateChecksum($transaction, $checksum);
+```php
+use ByJG\Wallets\Checksum\ChecksumFactory;
+
+// Calculate a checksum with the current algorithm (v2)
+$checksum = ChecksumFactory::current()->calculate($transaction);
+
+// Validate a row with the algorithm that produced it
+$algorithm = ChecksumFactory::get($transaction->getChecksumVersion());
+$isValid = $algorithm->validate($transaction, $transaction->getChecksum());
 
 if (!$isValid) {
     throw new Exception('Transaction data integrity compromised!');
 }
 ```
 
-The checksum is calculated from:
+The current checksum (version 2) covers every business field, chained to the
+previous transaction's checksum:
+
 ```
-SHA256(amount|balance|reserved|available|uuid|previousuuid)
+SHA256(walletid|wallettypeid|typeid|amount|scale|balance|reserved|available|
+       code|description|referenceid|referencesource|transactionparentid|
+       uuid|previousuuid|previouschecksum|secret)
 ```
+
+Because each checksum includes the previous one, tampering with any row invalidates
+every subsequent checksum: rewriting history requires recomputing the whole chain
+forward. Rows created before the upgrade (`checksumVersion` = 1) keep validating with
+the legacy algorithm (`SHA256(amount|balance|reserved|available|uuid|previousuuid)`).
+
+### Checksum Secret
+
+Without a secret, an attacker with full database access can recompute the chain.
+Pass an installation secret to `TransactionService` to turn the checksum into a
+keyed hash that cannot be recomputed without it:
+
+```php
+$transactionService = new TransactionService(
+    $transactionRepository,
+    $walletRepository,
+    getenv('WALLET_CHECKSUM_SECRET')
+);
+```
+
+- Keep the secret out of the database (environment variable, secret manager).
+- Once transactions are created with a secret, the same secret must always be
+  provided; verification fails otherwise.
+- Legacy (v1) rows predate the secret and keep validating without it.
 
 ## Transaction Chain Integrity
 
@@ -286,9 +323,11 @@ This ensures:
 ### Verifying the Chain
 
 `verifyChain()` walks the chain from the wallet's `last_uuid` back to the genesis
-transaction, validating every checksum and confirming the wallet balances match the
-head transaction's snapshot. It detects tampered wallet state, tampered transaction
-data, deleted rows (broken links), forked/orphan rows, and cycles.
+transaction, validating every checksum (with the algorithm each row was created
+with) and confirming the wallet balances match the head transaction's snapshot.
+It detects tampered wallet state, tampered transaction data, deleted rows (broken
+links), forked/orphan rows, cycles, broken previous-checksum links and checksum
+version downgrades.
 
 ```php
 $result = $transactionService->verifyChain($walletId);
@@ -301,7 +340,12 @@ if (!$result->isValid()) {
 }
 
 echo $result->getTransactionsVerified(); // number of transactions walked
+echo $result->getLegacyChecksums();      // rows still carrying a pre-v2 checksum
 ```
+
+In a healthy wallet `getLegacyChecksums()` never grows — it only shrinks as old
+rows are superseded by new activity. An increase means a row was rewritten with a
+downgraded checksum.
 
 Run it from a scheduled reconciliation job so a corruption is detected as soon as
 it happens, not when a human audits the ledger.

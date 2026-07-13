@@ -15,6 +15,7 @@ use ByJG\MicroOrm\Exception\OrmInvalidFieldsException;
 use ByJG\MicroOrm\Exception\RepositoryReadOnlyException;
 use ByJG\MicroOrm\Exception\UpdateConstraintException;
 use ByJG\Serializer\Exception\InvalidArgumentException;
+use ByJG\Wallets\Checksum\ChecksumFactory;
 use ByJG\Wallets\DTO\TransactionDTO;
 use ByJG\Wallets\Entity\TransactionEntity;
 use ByJG\Wallets\Entity\WalletEntity;
@@ -251,8 +252,16 @@ class WalletService
             $transaction->setWalletTypeId($wallet->getWalletTypeId());
             $transaction->setUuid($dto->getUuid());
             $transaction->setPreviousUuid($previousUuid);
-            $checksum = TransactionEntity::calculateChecksum($transaction);
-            $transaction->setChecksum($checksum);
+
+            // Chain the checksums: the new checksum covers the previous transaction's checksum
+            $previousTransaction = empty($previousUuid)
+                ? null
+                : $this->transactionService->getByUuid($previousUuid);
+            $transaction->setPreviousChecksum($previousTransaction?->getChecksum());
+
+            $checksumAlgorithm = ChecksumFactory::current();
+            $transaction->setChecksumVersion($checksumAlgorithm->getVersion());
+            $transaction->setChecksum($checksumAlgorithm->calculate($transaction, $this->transactionService->getChecksumSecret()));
             $this->transactionService->getRepository()->save($transaction);
             $this->walletRepository->getExecutor()->commitTransaction();
         } catch (Throwable $ex) {

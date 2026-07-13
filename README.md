@@ -161,7 +161,12 @@ $tx2 = $transactionService->addFunds($dto2);  // previousuuid = $tx1->uuid
 $tx3 = $transactionService->withdrawFunds($dto3);  // previousuuid = $tx2->uuid
 ```
 
-Each transaction includes a SHA-256 checksum for data integrity verification.
+Each transaction includes a SHA-256 checksum covering every business field and
+chained to the previous transaction's checksum, so rewriting one row invalidates
+the whole subsequent chain. Optionally, pass an installation secret to
+`TransactionService` to make the checksums impossible to recompute with database
+access only. Use `verifyChain($walletId)` in a reconciliation job to validate the
+full chain. See [docs/transaction-operations.md](docs/transaction-operations.md).
 
 ## Use Cases
 

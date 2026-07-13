@@ -115,6 +115,8 @@ CREATE TABLE `transaction` (
   `uuid` BINARY(16) DEFAULT NULL,
   `previousuuid` BINARY(16) DEFAULT NULL,
   `checksum` VARCHAR(64) NOT NULL,
+  `previouschecksum` VARCHAR(64) DEFAULT NULL,
+  `checksumversion` TINYINT NOT NULL DEFAULT 1,
   PRIMARY KEY (`transactionid`),
   UNIQUE KEY `idx_transaction_uuid` (`uuid`),
   KEY `idx_transaction_previous_uuid` (`previousuuid`),
@@ -154,6 +156,8 @@ CREATE TABLE `transaction` (
 | `uuid`                | BINARY(16)   | Unique identifier for idempotency           |
 | `previousuuid`        | BINARY(16)   | UUID of previous transaction (chain)        |
 | `checksum`            | VARCHAR(64)  | SHA-256 hash for data integrity             |
+| `previouschecksum`    | VARCHAR(64)  | Checksum of previous transaction (migration 00003) |
+| `checksumversion`     | TINYINT      | Checksum algorithm version (migration 00003) |
 
 #### Transaction Types
 
@@ -203,16 +207,25 @@ This creates an **immutable audit trail** where:
 
 ### Checksum
 
-Each transaction includes a SHA-256 checksum calculated from:
+Each transaction includes a SHA-256 checksum. The current algorithm (version 2,
+migration 00003) covers every business field and chains to the previous
+transaction's checksum:
 
 ```
-SHA256(amount|balance|reserved|available|uuid|previousuuid)
+SHA256(walletid|wallettypeid|typeid|amount|scale|balance|reserved|available|
+       code|description|referenceid|referencesource|transactionparentid|
+       uuid|previousuuid|previouschecksum|secret)
 ```
+
+Rows created before the upgrade keep `checksumversion = 1` and validate with the
+legacy algorithm (`SHA256(amount|balance|reserved|available|uuid|previousuuid)`).
 
 This ensures:
-- Data integrity - detects any tampering
-- Verification - can validate historical transactions
-- Consistency - database values match checksum
+- Data integrity - detects tampering of any field
+- Chained history - rewriting one row invalidates every subsequent checksum
+- Optional keyed hash - with a configured secret, checksums cannot be recomputed
+  by an attacker with database access only (see `docs/transaction-operations.md`)
+- Verification - `TransactionService::verifyChain()` validates the whole chain
 
 ### UUID Format
 

@@ -15,6 +15,8 @@ use ByJG\MicroOrm\Literal\Literal;
 use ByJG\MicroOrm\Query;
 use ByJG\MicroOrm\UpdateQuery;
 use ByJG\Serializer\Exception\InvalidArgumentException;
+use ByJG\Wallets\Checksum\ChecksumFactory;
+use ByJG\Wallets\Checksum\ChecksumV2;
 use ByJG\Wallets\DTO\ChainVerificationResult;
 use ByJG\Wallets\DTO\TransactionDTO;
 use ByJG\Wallets\Entity\TransactionEntity;
@@ -42,14 +44,33 @@ class TransactionService
     protected WalletRepository $walletRepository;
 
     /**
+     * Secret appended to every checksum (empty string when not configured).
+     */
+    protected string $checksumSecret;
+
+    /**
      * TransactionService constructor.
      * @param TransactionRepository $transactionRepository
      * @param WalletRepository $walletRepository
+     * @param string|null $checksumSecret Optional installation secret mixed into every
+     *        transaction checksum, so an attacker with database access only cannot
+     *        recompute valid checksums. Once transactions are created with a secret,
+     *        the same secret must always be provided; verification fails otherwise.
      */
-    public function __construct(TransactionRepository $transactionRepository, WalletRepository $walletRepository)
+    public function __construct(TransactionRepository $transactionRepository, WalletRepository $walletRepository, ?string $checksumSecret = null)
     {
         $this->transactionRepository = $transactionRepository;
         $this->walletRepository = $walletRepository;
+        $this->checksumSecret = $checksumSecret ?? '';
+    }
+
+    /**
+     * The secret used to calculate transaction checksums (empty string when not configured).
+     * Shared with WalletService so both services produce identical checksums.
+     */
+    public function getChecksumSecret(): string
+    {
+        return $this->checksumSecret;
     }
 
     /**
@@ -400,15 +421,23 @@ class TransactionService
             'transactionparentid',// Parent transaction ID (for accept/reject operations)
             'uuid',               // Unique identifier for idempotency
             'previousuuid',       // Previous transaction UUID (from wallet's last_uuid) for chain integrity
-            'checksum'            // SHA-256 checksum of amount|balance|reserved|available|uuid|previousuuid
+            'checksum',           // SHA-256 checksum (v2) of every business field + previous checksum + secret
+            'previouschecksum',   // Previous transaction checksum, chaining the hashes
+            'checksumversion'     // Algorithm that produced the checksum (see ChecksumInterface::getVersion())
         ];
 
-        // Build checksum expression using Literal to calculate SHA2 hash in the database
-        // Format: LOWER(SHA2(CONCAT(amount, '|', balance, '|', reserved, '|', available, '|', uuid, '|', previousuuid), 256))
-        // Note: UUIDs are stored as binary, so convert them to uppercase formatted strings using UPPER(BIN_TO_UUID())
-        $checksumExpression =
-            "LOWER(SHA2(CONCAT($expressionAmount, '|', $expressionSumBalance, '|', reserved + $sumReserved, '|', $expressionSumAvailable, '|', UPPER(BIN_TO_UUID(:uuid)), '|', COALESCE(UPPER(BIN_TO_UUID(last_uuid)), '')), 256))"
-        ;
+        // The checksum expressions are built by the current algorithm so the SQL hash
+        // stays in sync with the PHP-side calculation
+        $transactionTable = $this->transactionRepository->getMapper()->getTable();
+        $checksumAlgorithm = ChecksumFactory::current();
+        $previousChecksumExpression = $checksumAlgorithm->buildPreviousChecksumSqlExpression($transactionTable);
+        $checksumExpression = $checksumAlgorithm->buildSqlExpression(
+            $expressionAmount,
+            $expressionSumBalance,
+            "reserved + $sumReserved",
+            $expressionSumAvailable,
+            $transactionTable
+        );
 
         // Define the SELECT fields that will provide values for the target columns
         // These are calculated from the current wallet state
@@ -429,7 +458,9 @@ class TransactionService
             'null',                                     // No parent transaction (NULL)
             ':uuid',                                    // From DTO parameter
             'last_uuid',                                // Previous transaction UUID from wallet's last_uuid
-            $checksumExpression                         // Calculate SHA-256 checksum of amount|balance|reserved|available|uuid|previousuuid
+            $checksumExpression,                        // Calculate SHA-256 checksum (v2) in the database
+            $previousChecksumExpression,                // Previous transaction checksum from the wallet head
+            (string)$checksumAlgorithm->getVersion()    // Checksum algorithm version
         ];
 
         // Append any extra mapped fields provided via DTO properties (for extended entities)
@@ -448,7 +479,8 @@ class TransactionService
                 'referenceid' => $dto->getReferenceId(),// Bind reference ID parameter
                 'referencesource' => $dto->getReferenceSource(), // Bind reference source parameter
                 'operation' => $operation,              // Bind operation type parameter
-                'uuid' => $dto->getUuid()               // Bind UUID parameter
+                'uuid' => $dto->getUuid(),              // Bind UUID parameter
+                'checksumsecret' => $this->checksumSecret // Bind checksum secret parameter
             ])
             ->forUpdate();                              // Lock the wallet row to prevent concurrent modifications
 
@@ -636,9 +668,15 @@ class TransactionService
         // Set previousuuid from wallet's last_uuid to maintain chain integrity
         $originalTransaction->setPreviousUuid($wallet->getLastUuid());
 
+        // Chain the checksums: the new checksum covers the previous transaction's checksum
+        $lastUuid = $wallet->getLastUuid();
+        $previousTransaction = empty($lastUuid) ? null : $this->transactionRepository->getByUuid($lastUuid);
+        $originalTransaction->setPreviousChecksum($previousTransaction?->getChecksum());
+
         // Calculate and set checksum
-        $checksum = TransactionEntity::calculateChecksum($originalTransaction);
-        $originalTransaction->setChecksum($checksum);
+        $checksumAlgorithm = ChecksumFactory::current();
+        $originalTransaction->setChecksumVersion($checksumAlgorithm->getVersion());
+        $originalTransaction->setChecksum($checksumAlgorithm->calculate($originalTransaction, $this->checksumSecret));
 
         return $originalTransaction;
     }
@@ -996,6 +1034,7 @@ class TransactionService
 
         // Walk the chain from the head back to the genesis transaction
         $verified = 0;
+        $legacyChecksums = 0;
         $visited = [];
         $current = $head;
         $currentUuid = $headUuid;
@@ -1006,8 +1045,18 @@ class TransactionService
             }
             $visited[$currentUuid] = true;
 
-            if (!TransactionEntity::validateChecksum($current, (string)$current->getChecksum())) {
-                $errors[] = "Checksum mismatch on transaction {$current->getTransactionId()} (UUID $currentUuid)";
+            $currentVersion = $current->getChecksumVersion() ?? 1;
+            if ($currentVersion < ChecksumV2::VERSION) {
+                $legacyChecksums++;
+            }
+
+            try {
+                $checksumAlgorithm = ChecksumFactory::get($current->getChecksumVersion());
+                if (!$checksumAlgorithm->validate($current, (string)$current->getChecksum(), $this->checksumSecret)) {
+                    $errors[] = "Checksum mismatch on transaction {$current->getTransactionId()} (UUID $currentUuid)";
+                }
+            } catch (TransactionException) {
+                $errors[] = "Unknown checksum version $currentVersion on transaction {$current->getTransactionId()} (UUID $currentUuid)";
             }
             $verified++;
 
@@ -1019,6 +1068,17 @@ class TransactionService
                 $next = $byUuid[$previousUuid] ?? null;
                 if ($next === null) {
                     $errors[] = "Broken chain: transaction UUID $currentUuid references previous UUID $previousUuid which does not exist in wallet $walletId";
+                } else {
+                    // The stored copy of the previous checksum must match the previous row
+                    if ($currentVersion >= ChecksumV2::VERSION
+                        && $current->getPreviousChecksum() !== $next->getChecksum()
+                    ) {
+                        $errors[] = "Previous checksum mismatch: transaction {$current->getTransactionId()} does not chain to the checksum of transaction {$next->getTransactionId()}";
+                    }
+                    // In a healthy ledger the checksum version never decreases over time
+                    if (($next->getChecksumVersion() ?? 1) > $currentVersion) {
+                        $errors[] = "Checksum version downgrade on transaction {$current->getTransactionId()}: version $currentVersion is older than version {$next->getChecksumVersion()} of the previous transaction {$next->getTransactionId()}";
+                    }
                 }
                 $current = $next;
                 $currentUuid = $previousUuid;
@@ -1031,7 +1091,7 @@ class TransactionService
             $errors[] = "$orphans transaction(s) of wallet $walletId are not reachable from the wallet head (orphan or forked rows)";
         }
 
-        return new ChainVerificationResult($walletId, $errors, $verified);
+        return new ChainVerificationResult($walletId, $errors, $verified, $legacyChecksums);
     }
 
     /**

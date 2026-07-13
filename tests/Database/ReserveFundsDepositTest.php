@@ -3,6 +3,7 @@
 namespace Tests\Database;
 
 use ByJG\MicroOrm\Literal\HexUuidLiteral;
+use ByJG\Wallets\Checksum\ChecksumFactory;
 use ByJG\Wallets\DTO\TransactionDTO;
 use ByJG\Wallets\Entity\TransactionEntity;
 use ByJG\Wallets\Exception\AmountException;
@@ -66,7 +67,9 @@ class ReserveFundsDepositTest extends TestCase
         $expectedTransaction->setDate($actual->getDate());
         $expectedTransaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
         $expectedTransaction->setPreviousUuid($actual->getPreviousUuid());
-        $expectedTransaction->setChecksum(TransactionEntity::calculateChecksum($actual));
+        $expectedTransaction->setChecksum(ChecksumFactory::current()->calculate($actual));
+        $expectedTransaction->setPreviousChecksum($actual->getPreviousChecksum());
+        $expectedTransaction->setChecksumVersion(ChecksumFactory::current()->getVersion());
 
         // Executar teste
         $this->assertEquals($expectedTransaction->toArray(), $actual->toArray());
@@ -110,7 +113,9 @@ class ReserveFundsDepositTest extends TestCase
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
         $transaction->setPreviousUuid($actual->getPreviousUuid());
-        $transaction->setChecksum(TransactionEntity::calculateChecksum($actual));
+        $transaction->setChecksum(ChecksumFactory::current()->calculate($actual));
+        $transaction->setPreviousChecksum($actual->getPreviousChecksum());
+        $transaction->setChecksumVersion(ChecksumFactory::current()->getVersion());
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());
@@ -198,7 +203,9 @@ public function testAcceptFundsById_InvalidType(): void
         $transaction->setWalletTypeId('USDTEST');
         $transaction->setUuid($actual->getUuid());
         $transaction->setPreviousUuid($actual->getPreviousUuid());
-        $transaction->setChecksum(TransactionEntity::calculateChecksum($actual));
+        $transaction->setChecksum(ChecksumFactory::current()->calculate($actual));
+        $transaction->setPreviousChecksum($actual->getPreviousChecksum());
+        $transaction->setChecksumVersion(ChecksumFactory::current()->getVersion());
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());
@@ -343,7 +350,9 @@ public function testAcceptFundsById_InvalidType(): void
         $transaction->setWalletTypeId('USDTEST');
         $transaction->setUuid($actual->getUuid());
         $transaction->setPreviousUuid($actual->getPreviousUuid());
-        $transaction->setChecksum(TransactionEntity::calculateChecksum($actual));
+        $transaction->setChecksum(ChecksumFactory::current()->calculate($actual));
+        $transaction->setPreviousChecksum($actual->getPreviousChecksum());
+        $transaction->setChecksumVersion(ChecksumFactory::current()->getVersion());
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());

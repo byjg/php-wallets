@@ -79,16 +79,17 @@ trait BaseDALTrait
 
         $migration = new Migration($this->uri, __DIR__ . "/../db");
         $migration->prepareEnvironment();
-        // This will delete the constraint to validate the negative amount
-        $maxVersion = null;
-        /** @psalm-suppress InternalMethod */
-        if (str_contains($this->name(), "Allow_Negativ")) {
-            $maxVersion = 0;
-        }
-        $migration->reset($maxVersion);
+        $migration->reset();
 
         $dbDriver = $migration->getDbDriver();
         $this->dbExecutor = DatabaseExecutor::using($dbDriver);
+
+        // Drop the CHECK constraints so the negative amount can be validated
+        /** @psalm-suppress InternalMethod */
+        if (str_contains($this->name(), "Allow_Negativ")) {
+            $this->dbExecutor->execute("ALTER TABLE transaction DROP CONSTRAINT transaction_chk_value_nonnegative");
+            $this->dbExecutor->execute("ALTER TABLE wallet DROP CONSTRAINT wallet_chk_value_nonnegative");
+        }
 
         $this->dbExecutor->execute("CREATE TABLE transaction_extended LIKE transaction");
         $this->dbExecutor->execute("alter table transaction_extended add extra_property varchar(100) null;");

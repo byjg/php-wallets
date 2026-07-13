@@ -3,6 +3,7 @@
 namespace Tests\Database;
 
 use ByJG\MicroOrm\Literal\HexUuidLiteral;
+use ByJG\Wallets\Checksum\ChecksumFactory;
 use ByJG\Wallets\DTO\TransactionDTO;
 use ByJG\Wallets\Entity\TransactionEntity;
 use ByJG\Wallets\Exception\AmountException;
@@ -65,7 +66,9 @@ class ReserveFundsWithdrawTest extends TestCase
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
         $transaction->setPreviousUuid($actual->getPreviousUuid());
-        $transaction->setChecksum(TransactionEntity::calculateChecksum($actual));
+        $transaction->setChecksum(ChecksumFactory::current()->calculate($actual));
+        $transaction->setPreviousChecksum($actual->getPreviousChecksum());
+        $transaction->setChecksumVersion(ChecksumFactory::current()->getVersion());
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());
@@ -113,7 +116,9 @@ class ReserveFundsWithdrawTest extends TestCase
         $transaction->setDate($actual->getDate());
         $transaction->setUuid(HexUuidLiteral::getFormattedUuid($dto->getUuid()));
         $transaction->setPreviousUuid($actual->getPreviousUuid());
-        $transaction->setChecksum(TransactionEntity::calculateChecksum($actual));
+        $transaction->setChecksum(ChecksumFactory::current()->calculate($actual));
+        $transaction->setPreviousChecksum($actual->getPreviousChecksum());
+        $transaction->setChecksumVersion(ChecksumFactory::current()->getVersion());
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());
@@ -214,7 +219,9 @@ class ReserveFundsWithdrawTest extends TestCase
         $transaction->setWalletTypeId('USDTEST');
         $transaction->setUuid($actual->getUuid());
         $transaction->setPreviousUuid($actual->getPreviousUuid());
-        $transaction->setChecksum(TransactionEntity::calculateChecksum($actual));
+        $transaction->setChecksum(ChecksumFactory::current()->calculate($actual));
+        $transaction->setPreviousChecksum($actual->getPreviousChecksum());
+        $transaction->setChecksumVersion(ChecksumFactory::current()->getVersion());
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());
@@ -306,7 +313,9 @@ class ReserveFundsWithdrawTest extends TestCase
         $transaction->setWalletTypeId('USDTEST');
         $transaction->setUuid($actual->getUuid());
         $transaction->setPreviousUuid($actual->getPreviousUuid());
-        $transaction->setChecksum(TransactionEntity::calculateChecksum($actual));
+        $transaction->setChecksum(ChecksumFactory::current()->calculate($actual));
+        $transaction->setPreviousChecksum($actual->getPreviousChecksum());
+        $transaction->setChecksumVersion(ChecksumFactory::current()->getVersion());
 
         // Executar teste
         $this->assertEquals($transaction->toArray(), $actual->toArray());

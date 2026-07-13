@@ -9,8 +9,10 @@ aligned with the `byjg/micro-orm` major version.
 
 This release also hardens the ledger reliability guarantees: transfers between wallets are now
 atomic, caller-supplied UUIDs act as idempotency keys, reserved transactions can be
-accepted/rejected by UUID, transaction rows are immutable at the database level, and a reserved
-transaction can be processed only once (enforced by a unique index).
+accepted/rejected by UUID, transaction rows are immutable at the database level, a reserved
+transaction can be processed only once (enforced by a unique index), and transaction checksums
+are now chained hashes covering every business field, optionally keyed with an installation
+secret.
 
 The public API of the Wallets library is backward compatible with 6.x; new methods were added.
 Observers registered with `Repository::addObserver()` keep receiving the same payloads as in 6.x:
@@ -29,6 +31,8 @@ old data, and the transaction `Insert` event still carries the rehydrated `Trans
 | **Reserved transaction processing** | Single processing enforced by application logic only | Also enforced by a unique index on `transactionparentid` (migration 00002) | Direct SQL writes can no longer double-process a reservation |
 | **Wallet observer events on accept/reject** | Two `Update` notifications (balance save + `last_uuid` save) | One `Update` notification | `acceptFundsById()`/`rejectFundsById()` now persist the wallet with a single save |
 | **`transferFunds()` failure behavior** | Withdraw could commit even when the deposit failed | All-or-nothing | Both movements run inside a single database transaction |
+| **Checksum API** | `TransactionEntity::calculateChecksum()` / `validateChecksum()` static methods | `ByJG\Wallets\Checksum` classes (`ChecksumInterface`, `ChecksumV1`, `ChecksumV2`, `ChecksumFactory`) | The entity statics were removed; resolve the algorithm with `ChecksumFactory::get($row->getChecksumVersion())` or `ChecksumFactory::current()` |
+| **Checksum algorithm** | Hash of `amount\|balance\|reserved\|available\|uuid\|previousuuid` | Chained hash of every business field + previous checksum + optional secret (migration 00003) | Old rows keep `checksumversion = 1` and validate with the legacy algorithm |
 
 ## New Features
 
@@ -57,6 +61,32 @@ confirming the wallet balances equal the head transaction's snapshot, and detect
 cycles and orphan rows. Run it from a scheduled job to detect ledger corruption as soon as it
 happens.
 
+### Chained, versioned checksums with an optional secret (checksum v2)
+
+The transaction checksum now covers every business field (wallet, type, amount, scale,
+balances, code, description, references, parent id, UUIDs) and is chained to the previous
+transaction's checksum (stored in the new `previouschecksum` column): tampering with any row
+invalidates every subsequent checksum, so rewriting history requires recomputing the whole
+chain forward.
+
+Optionally, pass an installation secret to the `TransactionService` constructor to turn the
+checksum into a keyed hash that cannot be recomputed by an attacker with database access only:
+
+```php
+$transactionService = new TransactionService(
+    $transactionRepository,
+    $walletRepository,
+    getenv('WALLET_CHECKSUM_SECRET')
+);
+```
+
+Checksum algorithms are classes in the `ByJG\Wallets\Checksum` namespace implementing
+`ChecksumInterface`. Each row records the algorithm that produced it in the new
+`checksumversion` column, so rows created before the upgrade (version 1) keep validating with
+the legacy algorithm. `verifyChain()` validates each row with its own algorithm, checks the
+previous-checksum links, flags checksum version downgrades, and reports the number of legacy
+rows via `ChainVerificationResult::getLegacyChecksums()` (a number that must never grow).
+
 ### Atomic transfers
 
 `WalletService::transferFunds()` now runs the withdrawal and the deposit inside a single
@@ -79,20 +109,29 @@ money moves. Transfers to the same wallet are rejected with a `WalletException`.
   the custom-properties loop dead code, silently dropping extended-entity properties in the
   accept/reject flows. Fixed.
 
-## Database Schema Changes (migration 00002)
+## Database Schema Changes (migrations 00002 and 00003)
 
 ```sql
+-- Migration 00002
 ALTER TABLE `transaction`
     ADD CONSTRAINT `idx_transaction_parentid_unique` UNIQUE (`transactionparentid`);
 
 CREATE TRIGGER `trg_transaction_no_update` BEFORE UPDATE ON `transaction`
 FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Ledger transactions are immutable and cannot be updated';
+
+-- Migration 00003
+ALTER TABLE `transaction`
+    ADD COLUMN `previouschecksum` varchar(64) NULL AFTER `checksum`,
+    ADD COLUMN `checksumversion` tinyint NOT NULL DEFAULT 1 AFTER `previouschecksum`;
 ```
 
 - The unique index guarantees at the database level that a reserved transaction is accepted or
   rejected only once, even if the application logic is bypassed.
 - The trigger rejects any `UPDATE` on the transaction ledger. `DELETE` is not blocked by the
   schema; restrict it with database grants in production.
+- `previouschecksum` chains each checksum to the previous transaction's checksum, and
+  `checksumversion` records the algorithm that produced the row (existing rows default to the
+  legacy version 1).
 
 ### Observer scope: global → per connection
 
@@ -137,9 +176,10 @@ is registered on a repository whose connection performs the writes you want to o
 `acceptFundsById()`/`rejectFundsById()` now emit a single wallet `Update` notification instead of
 two; adjust observers (or tests) that counted on the second event.
 
-### Step 4: Apply the Database Migration
+### Step 4: Apply the Database Migrations
 
-Migration 00002 adds the unique index on `transactionparentid` and the immutability trigger:
+Migration 00002 adds the unique index on `transactionparentid` and the immutability trigger;
+migration 00003 adds the `previouschecksum` and `checksumversion` columns:
 
 ```bash
 migrate update
@@ -147,9 +187,27 @@ migrate update
 
 Before applying, make sure no existing data violates the new unique index (each
 `transactionparentid` value must appear at most once) and that nothing in your application issues
-`UPDATE` statements against the `transaction` table.
+`UPDATE` statements against the `transaction` table. Existing rows keep `checksumversion = 1`
+and continue validating with the legacy algorithm; new rows are created with the chained v2
+checksum automatically.
 
-### Step 5: Test Your Application
+### Step 5: Update Checksum API Usage (If Applicable)
+
+If your code called `TransactionEntity::calculateChecksum()` or
+`TransactionEntity::validateChecksum()`, use the `ByJG\Wallets\Checksum` classes instead:
+
+```php
+use ByJG\Wallets\Checksum\ChecksumFactory;
+
+$checksum = ChecksumFactory::current()->calculate($transaction);
+$isValid = ChecksumFactory::get($transaction->getChecksumVersion())
+    ->validate($transaction, $transaction->getChecksum());
+```
+
+Optionally configure a checksum secret (see the New Features section) — recommended for
+production, since without it an attacker with database access can recompute the chain.
+
+### Step 6: Test Your Application
 
 ```bash
 vendor/bin/phpunit
