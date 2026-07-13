@@ -49,6 +49,14 @@ When no UUID is supplied, one is generated automatically, as before.
 Combined with idempotency keys, the whole reserve/accept lifecycle can be driven with identifiers
 the caller generated and owns, without storing the internal transaction ids.
 
+### Chain verification for reconciliation jobs
+
+`TransactionService::verifyChain(int $walletId): ChainVerificationResult` walks the transaction
+chain from `wallet.last_uuid` back to the genesis transaction, validating every checksum,
+confirming the wallet balances equal the head transaction's snapshot, and detecting broken links,
+cycles and orphan rows. Run it from a scheduled job to detect ledger corruption as soon as it
+happens.
+
 ### Atomic transfers
 
 `WalletService::transferFunds()` now runs the withdrawal and the deposit inside a single

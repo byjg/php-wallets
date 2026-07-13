@@ -15,6 +15,7 @@ use ByJG\MicroOrm\Literal\Literal;
 use ByJG\MicroOrm\Query;
 use ByJG\MicroOrm\UpdateQuery;
 use ByJG\Serializer\Exception\InvalidArgumentException;
+use ByJG\Wallets\DTO\ChainVerificationResult;
 use ByJG\Wallets\DTO\TransactionDTO;
 use ByJG\Wallets\Entity\TransactionEntity;
 use ByJG\Wallets\Entity\WalletEntity;
@@ -926,6 +927,111 @@ class TransactionService
             return false;
         }
         return null === $this->transactionRepository->getByParentId($transactionId, true);
+    }
+
+    /**
+     * Verify the integrity of a wallet's transaction chain.
+     *
+     * Walks the chain from wallet.last_uuid back through each transaction's previousuuid,
+     * validating every checksum, confirming the wallet balances match the head transaction's
+     * snapshot, and detecting broken links, cycles and orphan rows (rows not reachable from
+     * the head). Intended for scheduled reconciliation jobs.
+     *
+     * @param int $walletId
+     * @return ChainVerificationResult
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws OrmInvalidFieldsException
+     * @throws WalletException
+     * @throws XmlUtilException
+     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     */
+    public function verifyChain(int $walletId): ChainVerificationResult
+    {
+        $wallet = $this->walletRepository->getById($walletId);
+        if (empty($wallet)) {
+            throw new WalletException('Wallet not found');
+        }
+
+        $errors = [];
+
+        // Index every transaction of the wallet by its formatted UUID
+        $transactions = $this->transactionRepository->getAllByWalletId($walletId);
+        $byUuid = [];
+        foreach ($transactions as $transaction) {
+            $uuid = HexUuidLiteral::getFormattedUuid($transaction->getUuid(), throwErrorIfInvalid: false);
+            if ($uuid === null) {
+                $errors[] = "Transaction {$transaction->getTransactionId()} has no UUID";
+                continue;
+            }
+            $byUuid[$uuid] = $transaction;
+        }
+
+        $headUuid = HexUuidLiteral::getFormattedUuid($wallet->getLastUuid(), throwErrorIfInvalid: false);
+        if ($headUuid === null) {
+            if (!empty($transactions)) {
+                $errors[] = 'Wallet last_uuid is empty but the wallet has transactions';
+            }
+            return new ChainVerificationResult($walletId, $errors, 0);
+        }
+
+        $head = $byUuid[$headUuid] ?? null;
+        if ($head === null) {
+            $errors[] = "Wallet last_uuid $headUuid does not match any transaction of the wallet";
+            return new ChainVerificationResult($walletId, $errors, 0);
+        }
+
+        // The wallet state must equal the head transaction's snapshot
+        if ($wallet->getBalance() !== $head->getBalance()
+            || $wallet->getReserved() !== $head->getReserved()
+            || $wallet->getAvailable() !== $head->getAvailable()
+        ) {
+            $errors[] = sprintf(
+                'Wallet state (balance=%d, reserved=%d, available=%d) does not match the head transaction %d snapshot (balance=%d, reserved=%d, available=%d)',
+                (int)$wallet->getBalance(), (int)$wallet->getReserved(), (int)$wallet->getAvailable(),
+                (int)$head->getTransactionId(), (int)$head->getBalance(), (int)$head->getReserved(), (int)$head->getAvailable()
+            );
+        }
+
+        // Walk the chain from the head back to the genesis transaction
+        $verified = 0;
+        $visited = [];
+        $current = $head;
+        $currentUuid = $headUuid;
+        while ($current !== null) {
+            if (isset($visited[$currentUuid])) {
+                $errors[] = "Chain cycle detected at transaction UUID $currentUuid";
+                break;
+            }
+            $visited[$currentUuid] = true;
+
+            if (!TransactionEntity::validateChecksum($current, (string)$current->getChecksum())) {
+                $errors[] = "Checksum mismatch on transaction {$current->getTransactionId()} (UUID $currentUuid)";
+            }
+            $verified++;
+
+            $previousUuid = HexUuidLiteral::getFormattedUuid($current->getPreviousUuid(), throwErrorIfInvalid: false);
+            if ($previousUuid === null) {
+                // Reached the genesis transaction
+                $current = null;
+            } else {
+                $next = $byUuid[$previousUuid] ?? null;
+                if ($next === null) {
+                    $errors[] = "Broken chain: transaction UUID $currentUuid references previous UUID $previousUuid which does not exist in wallet $walletId";
+                }
+                $current = $next;
+                $currentUuid = $previousUuid;
+            }
+        }
+
+        // Every transaction of the wallet must be reachable from the head
+        if ($verified !== count($byUuid)) {
+            $orphans = count($byUuid) - $verified;
+            $errors[] = "$orphans transaction(s) of wallet $walletId are not reachable from the wallet head (orphan or forked rows)";
+        }
+
+        return new ChainVerificationResult($walletId, $errors, $verified);
     }
 
     /**

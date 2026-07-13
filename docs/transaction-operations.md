@@ -283,6 +283,29 @@ This ensures:
 2. **Tamper detection** - any modification breaks the chain
 3. **Auditability** - can verify entire transaction history
 
+### Verifying the Chain
+
+`verifyChain()` walks the chain from the wallet's `last_uuid` back to the genesis
+transaction, validating every checksum and confirming the wallet balances match the
+head transaction's snapshot. It detects tampered wallet state, tampered transaction
+data, deleted rows (broken links), forked/orphan rows, and cycles.
+
+```php
+$result = $transactionService->verifyChain($walletId);
+
+if (!$result->isValid()) {
+    foreach ($result->getErrors() as $error) {
+        // e.g. "Checksum mismatch on transaction 42 (UUID ...)"
+        alertOperations($error);
+    }
+}
+
+echo $result->getTransactionsVerified(); // number of transactions walked
+```
+
+Run it from a scheduled reconciliation job so a corruption is detected as soon as
+it happens, not when a human audits the ledger.
+
 ## Idempotency
 
 Supply your own UUID as an idempotency key to prevent duplicate transactions.

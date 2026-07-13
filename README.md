@@ -260,6 +260,7 @@ vendor/bin/phpunit
 - `getRepository()->getByWalletId(int $walletId, int $limit = 20): array`
 - `getRepository()->getByReferenceId(int $walletId, string $referenceSource, string $referenceId): array`
 - `getReservedTransactions(int $walletId): array`
+- `verifyChain(int $walletId): ChainVerificationResult`
 
 ## Dependencies
 
