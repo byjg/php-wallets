@@ -9,11 +9,13 @@ namespace ByJG\Wallets\Service;
 
 use ByJG\AnyDataset\Core\Exception\DatabaseException;
 use ByJG\AnyDataset\Db\Exception\DbDriverNotConnected;
+use ByJG\AnyDataset\Db\IsolationLevelEnum;
 use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
 use ByJG\MicroOrm\Exception\OrmInvalidFieldsException;
 use ByJG\MicroOrm\Exception\RepositoryReadOnlyException;
 use ByJG\MicroOrm\Exception\UpdateConstraintException;
 use ByJG\Serializer\Exception\InvalidArgumentException;
+use ByJG\Wallets\Checksum\ChecksumFactory;
 use ByJG\Wallets\DTO\TransactionDTO;
 use ByJG\Wallets\Entity\TransactionEntity;
 use ByJG\Wallets\Entity\WalletEntity;
@@ -24,8 +26,8 @@ use ByJG\Wallets\Exception\WalletTypeException;
 use ByJG\Wallets\Repository\WalletRepository;
 use ByJG\XmlUtil\Exception\FileException;
 use ByJG\XmlUtil\Exception\XmlUtilException;
-use Exception;
 use PDOException;
+use Throwable;
 
 class WalletService
 {
@@ -250,11 +252,20 @@ class WalletService
             $transaction->setWalletTypeId($wallet->getWalletTypeId());
             $transaction->setUuid($dto->getUuid());
             $transaction->setPreviousUuid($previousUuid);
-            $checksum = TransactionEntity::calculateChecksum($transaction);
-            $transaction->setChecksum($checksum);
+
+            // Chain the checksums: the new checksum covers the previous transaction's checksum
+            $previousTransaction = empty($previousUuid)
+                ? null
+                : $this->transactionService->getByUuid($previousUuid);
+            $transaction->setPreviousChecksum($previousTransaction?->getChecksum());
+
+            $checksumAlgorithm = ChecksumFactory::current();
+            $transaction->setChecksumVersion($checksumAlgorithm->getVersion());
+            $transaction->setChecksum($checksumAlgorithm->calculate($transaction, $this->transactionService->getChecksumSecret()));
             $this->transactionService->getRepository()->save($transaction);
+            $this->transactionService->recordOutbox($transaction);
             $this->walletRepository->getExecutor()->commitTransaction();
-        } catch (Exception $ex) {
+        } catch (Throwable $ex) {
             $this->walletRepository->getExecutor()->rollbackTransaction();
             throw $ex;
         }
@@ -337,6 +348,10 @@ class WalletService
      */
     public function transferFunds(int $walletSource, int $walletTarget, int $amount): array
     {
+        if ($walletSource === $walletTarget) {
+            throw new WalletException('Source and target wallets must be different');
+        }
+
         $refSource = bin2hex(openssl_random_pseudo_bytes(16));
 
         $transactionSourceDTO = TransactionDTO::createEmpty();
@@ -355,8 +370,30 @@ class WalletService
         $transactionTargetDTO->setReferenceId($refSource);
         $transactionTargetDTO->setDescription('Transfer from wallet id ' . $walletSource);
 
-        $transactionSource = $this->transactionService->withdrawFunds($transactionSourceDTO);
-        $transactionTarget = $this->transactionService->addFunds($transactionTargetDTO);
+        // Withdraw and deposit are all-or-nothing: both run inside a single database transaction
+        $executor = $this->walletRepository->getExecutor();
+        $executor->beginTransaction(IsolationLevelEnum::SERIALIZABLE, allowJoin: true);
+        try {
+            // Lock both wallets in a consistent order to avoid deadlocks between concurrent transfers
+            $lockOrder = $walletSource < $walletTarget
+                ? [$walletSource, $walletTarget]
+                : [$walletTarget, $walletSource];
+            foreach ($lockOrder as $lockWalletId) {
+                if (empty($this->walletRepository->getById($lockWalletId))) {
+                    throw new WalletException("Wallet $lockWalletId not found");
+                }
+            }
+
+            $transactionSource = $this->transactionService->withdrawFunds($transactionSourceDTO);
+            $transactionTarget = $this->transactionService->addFunds($transactionTargetDTO);
+
+            $executor->commitTransaction();
+        } catch (Throwable $ex) {
+            if ($executor->hasActiveTransaction()) {
+                $executor->rollbackTransaction();
+            }
+            throw $ex;
+        }
 
         return [ $transactionSource, $transactionTarget ];
     }

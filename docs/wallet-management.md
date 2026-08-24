@@ -147,6 +147,11 @@ Transfer creates:
 - **Deposit (D)** in target wallet with code `T_FROM`
 - Linked via `referenceid` and `referencesource`
 
+The transfer is **atomic**: the withdrawal and the deposit run inside a single
+database transaction, with both wallets locked in a consistent order. If either
+operation fails, both are rolled back - money can never leave the source wallet
+without arriving at the target.
+
 ## Wallet Properties
 
 ### WalletEntity Properties
