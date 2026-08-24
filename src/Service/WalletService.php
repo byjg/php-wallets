@@ -263,6 +263,7 @@ class WalletService
             $transaction->setChecksumVersion($checksumAlgorithm->getVersion());
             $transaction->setChecksum($checksumAlgorithm->calculate($transaction, $this->transactionService->getChecksumSecret()));
             $this->transactionService->getRepository()->save($transaction);
+            $this->transactionService->recordOutbox($transaction);
             $this->walletRepository->getExecutor()->commitTransaction();
         } catch (Throwable $ex) {
             $this->walletRepository->getExecutor()->rollbackTransaction();

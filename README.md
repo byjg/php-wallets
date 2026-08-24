@@ -26,6 +26,7 @@ A robust PHP library for managing digital wallets and financial transactions wit
 - **Audit trail** - Complete transaction history with balance snapshots
 - **Idempotent operations** - UUID-based transaction deduplication
 - **Extensible** - Easily extend wallets and transactions with custom fields
+- **Transactional outbox** - Guaranteed at-least-once event delivery to message brokers
 
 ## Installation
 
@@ -101,6 +102,7 @@ echo "Available: " . ($wallet->getAvailable() / 100) . " USD\n";
 - [Transaction Operations](docs/transaction-operations.md) - Add, withdraw, and query transactions
 - [Reserved Funds](docs/reserved-funds.md) - Pre-authorize and manage pending transactions
 - [Extending Entities](docs/extending-entities.md) - Add custom fields to wallets and transactions
+- [Transactional Outbox](docs/outbox.md) - Guaranteed event delivery to message brokers
 - [Database Schema](docs/database-schema.md) - Complete database schema documentation
 
 Full documentation is available at [https://opensource.byjg.com/docs/php/wallets](https://opensource.byjg.com/docs/php/wallets)
@@ -266,6 +268,15 @@ vendor/bin/phpunit
 - `getRepository()->getByReferenceId(int $walletId, string $referenceSource, string $referenceId): array`
 - `getReservedTransactions(int $walletId): array`
 - `verifyChain(int $walletId): ChainVerificationResult`
+- `recordOutbox(TransactionEntity $transaction): void` (no-op unless the outbox is enabled)
+
+Constructor: `new TransactionService($transactionRepo, $walletRepo, ?string $checksumSecret = null, ?OutboxRepository $outboxRepository = null)`
+
+### OutboxService
+
+- `dispatch(int $limit = 100): OutboxDispatchResult` - deliver pending outbox entries to your `OutboxProcessorInterface`
+- `purgeProcessed(?int $olderThanDays = null): int`
+- `countPending(): int`
 
 ## Dependencies
 

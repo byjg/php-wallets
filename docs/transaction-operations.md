@@ -350,6 +350,10 @@ downgraded checksum.
 Run it from a scheduled reconciliation job so a corruption is detected as soon as
 it happens, not when a human audits the ledger.
 
+> Observer callbacks are in-process and best-effort: an event can be lost if PHP dies
+> after the commit. For guaranteed delivery to a message broker, enable the
+> [transactional outbox](outbox.md).
+
 ## Idempotency
 
 Supply your own UUID as an idempotency key to prevent duplicate transactions.

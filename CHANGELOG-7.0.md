@@ -10,9 +10,10 @@ aligned with the `byjg/micro-orm` major version.
 This release also hardens the ledger reliability guarantees: transfers between wallets are now
 atomic, caller-supplied UUIDs act as idempotency keys, reserved transactions can be
 accepted/rejected by UUID, transaction rows are immutable at the database level, a reserved
-transaction can be processed only once (enforced by a unique index), and transaction checksums
+transaction can be processed only once (enforced by a unique index), transaction checksums
 are now chained hashes covering every business field, optionally keyed with an installation
-secret.
+secret, and an opt-in transactional outbox guarantees at-least-once event delivery to
+message brokers.
 
 The public API of the Wallets library is backward compatible with 6.x; new methods were added.
 Observers registered with `Repository::addObserver()` keep receiving the same payloads as in 6.x:
@@ -87,6 +88,20 @@ the legacy algorithm. `verifyChain()` validates each row with its own algorithm,
 previous-checksum links, flags checksum version downgrades, and reports the number of legacy
 rows via `ChainVerificationResult::getLegacyChecksums()` (a number that must never grow).
 
+### Transactional outbox (opt-in)
+
+When an `OutboxRepository` is passed as the 4th constructor argument of
+`TransactionService`, every created ledger transaction also writes a `transaction.created`
+entry to the new `outbox` table **inside the same database transaction**: if the money
+moved, the event exists; if the operation rolled back, no ghost event. The existing
+in-process observers are unchanged - the outbox is the guaranteed channel next to them.
+
+`OutboxService::dispatch()` (run from a worker loop or cron) delivers pending entries to a
+user-implemented `OutboxProcessorInterface` (typically a message-broker publisher) with
+at-least-once semantics: a processor exception keeps the entry pending (attempts counter,
+last error recorded) and it is retried on the next run. `purgeProcessed()` and
+`countPending()` cover housekeeping and monitoring. See `docs/outbox.md`.
+
 ### Atomic transfers
 
 `WalletService::transferFunds()` now runs the withdrawal and the deposit inside a single
@@ -109,7 +124,7 @@ money moves. Transfers to the same wallet are rejected with a `WalletException`.
   the custom-properties loop dead code, silently dropping extended-entity properties in the
   accept/reject flows. Fixed.
 
-## Database Schema Changes (migrations 00002 and 00003)
+## Database Schema Changes (migrations 00002 to 00004)
 
 ```sql
 -- Migration 00002
@@ -132,6 +147,28 @@ ALTER TABLE `transaction`
 - `previouschecksum` chains each checksum to the previous transaction's checksum, and
   `checksumversion` records the algorithm that produced the row (existing rows default to the
   legacy version 1).
+
+```sql
+-- Migration 00004
+CREATE TABLE `outbox` (
+  `outboxid` int(11) NOT NULL AUTO_INCREMENT,
+  `transactionid` int(11) NOT NULL,
+  `uuid` binary(16) NOT NULL,
+  `event` varchar(40) NOT NULL,
+  `status` enum('pending','processed') NOT NULL DEFAULT 'pending',
+  `attempts` int NOT NULL DEFAULT 0,
+  `lasterror` varchar(500) DEFAULT NULL,
+  `createdat` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `processedat` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`outboxid`),
+  KEY `idx_outbox_status` (`status`, `outboxid`),
+  KEY `idx_outbox_transactionid` (`transactionid`)
+);
+```
+
+- The `outbox` table stays empty unless the outbox is enabled. There is intentionally no
+  foreign key to `transaction` (extended entities may use a different ledger table) and no
+  immutability trigger (the dispatcher updates the delivery status).
 
 ### Observer scope: global → per connection
 
@@ -179,7 +216,8 @@ two; adjust observers (or tests) that counted on the second event.
 ### Step 4: Apply the Database Migrations
 
 Migration 00002 adds the unique index on `transactionparentid` and the immutability trigger;
-migration 00003 adds the `previouschecksum` and `checksumversion` columns:
+migration 00003 adds the `previouschecksum` and `checksumversion` columns; migration 00004
+creates the `outbox` table (inert unless the outbox is enabled):
 
 ```bash
 migrate update

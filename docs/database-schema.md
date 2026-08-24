@@ -188,6 +188,29 @@ Migration 00002 also adds a `BEFORE UPDATE` trigger (`trg_transaction_no_update`
 made with new transactions (e.g., a reject or a compensating movement), never by
 editing history.
 
+### Table: `outbox` (migration 00004)
+
+Transactional-outbox entries: one row per created ledger transaction, written inside
+the same database transaction as the ledger row and delivered to a message broker by
+`OutboxService::dispatch()`. The table stays empty unless the outbox is enabled
+(see [Transactional Outbox](outbox.md)).
+
+| Column          | Type                        | Description                                     |
+|-----------------|-----------------------------|-------------------------------------------------|
+| `outboxid`      | INT(11) AUTO_INCREMENT      | Entry id (FIFO dispatch order)                  |
+| `transactionid` | INT(11)                     | The ledger transaction the event is about       |
+| `uuid`          | BINARY(16)                  | The transaction UUID (consumer idempotency key) |
+| `event`         | VARCHAR(40)                 | Event name (`transaction.created`)              |
+| `status`        | ENUM('pending','processed') | Delivery status                                 |
+| `attempts`      | INT                         | Delivery attempts so far                        |
+| `lasterror`     | VARCHAR(500)                | Last processor error (null after success)       |
+| `createdat`     | TIMESTAMP                   | When the ledger transaction committed           |
+| `processedat`   | TIMESTAMP NULL              | When the entry was delivered                    |
+
+No foreign key to `transaction` (extended entities may use a different ledger table)
+and no immutability trigger (the dispatcher updates the delivery status). Indexes:
+`(status, outboxid)` for the pending scan and `(transactionid)`.
+
 ## Data Integrity
 
 ### Transaction Chain

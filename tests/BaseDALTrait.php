@@ -19,6 +19,7 @@ use ByJG\Wallets\Exception\AmountException;
 use ByJG\Wallets\Exception\TransactionException;
 use ByJG\Wallets\Exception\WalletException;
 use ByJG\Wallets\Exception\WalletTypeException;
+use ByJG\Wallets\Repository\OutboxRepository;
 use ByJG\Wallets\Repository\TransactionRepository;
 use ByJG\Wallets\Repository\WalletRepository;
 use ByJG\Wallets\Repository\WalletTypeRepository;
@@ -46,17 +47,23 @@ trait BaseDALTrait
     protected TransactionService $transactionService;
 
     /**
+     * @var OutboxRepository|null
+     */
+    protected ?OutboxRepository $outboxRepository = null;
+
+    /**
      * @throws ReflectionException
      * @throws OrmModelInvalidException
      */
-    public function prepareObjects($walletEntity = WalletEntity::class, $walletTypeEntity = WalletTypeEntity::class, $transactionEntity = TransactionEntity::class): void
+    public function prepareObjects($walletEntity = WalletEntity::class, $walletTypeEntity = WalletTypeEntity::class, $transactionEntity = TransactionEntity::class, ?OutboxRepository $outboxRepository = null): void
     {
         $walletRepository = new WalletRepository($this->dbExecutor, $walletEntity);
         $walletTypeRepository = new WalletTypeRepository($this->dbExecutor, $walletTypeEntity);
         $transactionRepository = new TransactionRepository($this->dbExecutor, $transactionEntity);
 
+        $this->outboxRepository = $outboxRepository;
         $this->walletTypeService = new WalletTypeService($walletTypeRepository);
-        $this->transactionService = new TransactionService($transactionRepository, $walletRepository);
+        $this->transactionService = new TransactionService($transactionRepository, $walletRepository, null, $outboxRepository);
         $this->walletService = new WalletService($walletRepository, $this->walletTypeService, $this->transactionService);
     }
 
@@ -97,6 +104,14 @@ trait BaseDALTrait
 
     protected function dbClear(): void
     {
+        // Outbox entries reference transactions (FK), so they go first
+        $this->dbExecutor->execute(
+            'DELETE outbox FROM outbox ' .
+            'INNER JOIN transaction ON outbox.transactionid = transaction.transactionid ' .
+            'INNER JOIN wallet ON wallet.walletid = transaction.walletid ' .
+            "WHERE wallet.userid like '___TESTUSER-%'"
+        );
+
         $this->dbExecutor->execute(
             'DELETE transaction FROM `wallet` INNER JOIN transaction ' .
             "WHERE wallet.walletid = transaction.walletid and wallet.userid like '___TESTUSER-%' and transactionparentid is not null;"

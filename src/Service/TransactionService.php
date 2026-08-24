@@ -19,11 +19,13 @@ use ByJG\Wallets\Checksum\ChecksumFactory;
 use ByJG\Wallets\Checksum\ChecksumV2;
 use ByJG\Wallets\DTO\ChainVerificationResult;
 use ByJG\Wallets\DTO\TransactionDTO;
+use ByJG\Wallets\Entity\OutboxEntity;
 use ByJG\Wallets\Entity\TransactionEntity;
 use ByJG\Wallets\Entity\WalletEntity;
 use ByJG\Wallets\Exception\AmountException;
 use ByJG\Wallets\Exception\TransactionException;
 use ByJG\Wallets\Exception\WalletException;
+use ByJG\Wallets\Repository\OutboxRepository;
 use ByJG\Wallets\Repository\TransactionRepository;
 use ByJG\Wallets\Repository\WalletRepository;
 use ByJG\XmlUtil\Exception\FileException;
@@ -49,6 +51,11 @@ class TransactionService
     protected string $checksumSecret;
 
     /**
+     * Transactional outbox (disabled when null).
+     */
+    protected ?OutboxRepository $outboxRepository;
+
+    /**
      * TransactionService constructor.
      * @param TransactionRepository $transactionRepository
      * @param WalletRepository $walletRepository
@@ -56,12 +63,43 @@ class TransactionService
      *        transaction checksum, so an attacker with database access only cannot
      *        recompute valid checksums. Once transactions are created with a secret,
      *        the same secret must always be provided; verification fails otherwise.
+     * @param OutboxRepository|null $outboxRepository Optional transactional outbox: when
+     *        provided, every created ledger transaction also writes an outbox entry in
+     *        the same database transaction, for guaranteed delivery to a message broker
+     *        via OutboxService::dispatch().
      */
-    public function __construct(TransactionRepository $transactionRepository, WalletRepository $walletRepository, ?string $checksumSecret = null)
+    public function __construct(TransactionRepository $transactionRepository, WalletRepository $walletRepository, ?string $checksumSecret = null, ?OutboxRepository $outboxRepository = null)
     {
         $this->transactionRepository = $transactionRepository;
         $this->walletRepository = $walletRepository;
         $this->checksumSecret = $checksumSecret ?? '';
+        $this->outboxRepository = $outboxRepository;
+    }
+
+    /**
+     * Record a transactional-outbox event for a created ledger transaction.
+     * No-op when the outbox was not enabled (constructor param). Must be called
+     * inside the same database transaction that created the ledger row, so the
+     * event exists if and only if the transaction committed.
+     *
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws XmlUtilException
+     */
+    public function recordOutbox(TransactionEntity $transaction): void
+    {
+        if ($this->outboxRepository === null) {
+            return;
+        }
+
+        $entry = new OutboxEntity();
+        $entry->setTransactionId($transaction->getTransactionId());
+        $entry->setUuid($transaction->getUuid());
+        $entry->setEvent(OutboxEntity::EVENT_TRANSACTION_CREATED);
+        $entry->setStatus(OutboxEntity::STATUS_PENDING);
+        $entry->setAttempts(0);
+        $this->outboxRepository->save($entry);
     }
 
     /**
@@ -214,6 +252,8 @@ class TransactionService
             if (!empty($mismatches)) {
                 throw new TransactionException('Persisted transaction does not match the DTO fields: ' . implode(', ', $mismatches));
             }
+
+            $this->recordOutbox($transaction);
 
             $this->getRepository()->getExecutor()->commitTransaction();
         } catch (Throwable $ex) {
@@ -724,6 +764,7 @@ class TransactionService
 
             $newTransaction = $this->createTransactionFromReserved($transaction, $wallet, $transactionDto, $newTypeId);
             $result = $this->transactionRepository->save($newTransaction);
+            $this->recordOutbox($result);
 
             // Persist the balance changes and the new last_uuid in a single save
             $wallet->setLastUuid($result->getUuid());
@@ -731,7 +772,7 @@ class TransactionService
 
             $this->getRepository()->getExecutor()->commitTransaction();
 
-            return $result->getTransactionId();
+            return intval($result->getTransactionId());
         } catch (Throwable $ex) {
             $this->getRepository()->getExecutor()->rollbackTransaction();
 
@@ -902,6 +943,7 @@ class TransactionService
                 TransactionEntity::REJECT
             );
             $result = $this->transactionRepository->save($newTransaction);
+            $this->recordOutbox($result);
 
             // Persist the balance changes and the new last_uuid in a single save
             $wallet->setLastUuid($result->getUuid());
@@ -909,7 +951,7 @@ class TransactionService
 
             $this->getRepository()->getExecutor()->commitTransaction();
 
-            return $result->getTransactionId();
+            return intval($result->getTransactionId());
         } catch (Throwable $ex) {
             $this->getRepository()->getExecutor()->rollbackTransaction();
 
