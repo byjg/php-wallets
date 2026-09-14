@@ -11,7 +11,7 @@ A robust PHP library for managing digital wallets and financial transactions wit
 [![Build Status](https://github.com/byjg/php-wallets/actions/workflows/phpunit.yml/badge.svg?branch=master)](https://github.com/byjg/php-wallets/actions/workflows/phpunit.yml)
 [![Opensource ByJG](https://img.shields.io/badge/opensource-byjg-success.svg)](http://opensource.byjg.com)
 [![GitHub source](https://img.shields.io/badge/Github-source-informational?logo=github)](https://github.com/byjg/php-wallets/)
-[![GitHub license](https://img.shields.io/github/license/byjg/php-wallets.svg)](https://opensource.byjg.com/opensource/licensing.html)
+[![GitHub license](https://img.shields.io/github/license/byjg/php-wallets.svg)](https://opensource.byjg.com/license/)
 [![GitHub release](https://img.shields.io/github/release/byjg/php-wallets.svg)](https://github.com/byjg/php-wallets/releases/)
 
 ## Features
@@ -277,15 +277,6 @@ Constructor: `new TransactionService($transactionRepo, $walletRepo, ?string $che
 - `dispatch(int $limit = 100): OutboxDispatchResult` - deliver pending outbox entries to your `OutboxProcessorInterface`
 - `purgeProcessed(?int $olderThanDays = null): int`
 - `countPending(): int`
-
-## Dependencies
-
-```mermaid
-flowchart TD
-    byjg/wallets --> ext-pdo
-    byjg/wallets --> ext-openssl
-    byjg/wallets --> byjg/micro-orm
-```
 
 ----
 [Open source ByJG](http://opensource.byjg.com)
