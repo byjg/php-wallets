@@ -10,3 +10,4 @@ phpunit.coverage.xml
 phpunit.report.xml
 *.bak
 /.claude/settings.local.json
+.vscode
