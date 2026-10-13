@@ -153,7 +153,7 @@ if ($transaction instanceof TransactionExtended) {
 
 ### 5. Set Custom Fields During Transaction
 
-You can also set custom fields when creating transactions by using observers or by extending the service:
+You can also set custom fields when creating transactions by extending the service:
 
 ```php
 class TransactionServiceExtended extends TransactionService
@@ -315,9 +315,9 @@ if ($wallet instanceof \App\Entity\WalletExtended) {
 }
 ```
 
-## Using Observers for Auto-Population
+## Using Observers to React to Changes
 
-You can use MicroORM observers to automatically populate custom fields:
+You can use MicroORM observers to react to wallet and transaction changes (audit logs, notifications, cache invalidation, etc.):
 
 ### Create Observer
 
@@ -326,51 +326,42 @@ You can use MicroORM observers to automatically populate custom fields:
 
 namespace App\Observer;
 
-use ByJG\MicroOrm\Observer\ObserverInterface;
-use App\Entity\TransactionExtended;
+use ByJG\MicroOrm\Enum\ObserverEvent;
+use ByJG\MicroOrm\Interface\ObserverProcessorInterface;
+use ByJG\MicroOrm\ObserverData;
+use Throwable;
 
-class TransactionObserver implements ObserverInterface
+class TransactionObserver implements ObserverProcessorInterface
 {
-    public function beforeInsert(object $instance): void
+    public function getObservedTable(): string
     {
-        if ($instance instanceof TransactionExtended) {
-            // Auto-populate metadata on insert
-            if (empty($instance->getMetadata())) {
-                $instance->setMetadata(json_encode([
-                    'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-                    'timestamp' => time(),
-                    'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
-                ]));
-            }
+        // Table to watch for changes
+        return 'transaction';
+    }
+
+    public function process(ObserverData $observerData): void
+    {
+        if ($observerData->getEvent() === ObserverEvent::Insert) {
+            // For transactions created by the TransactionService,
+            // getData() carries the rehydrated TransactionEntity
+            $transaction = $observerData->getData();
+            // e.g. write an audit log or send a notification
         }
     }
 
-    public function afterInsert(object $instance): void
+    public function onError(Throwable $exception, ObserverData $observerData): void
     {
-        // Called after insert
-    }
-
-    public function beforeUpdate(object $instance): void
-    {
-        // Called before update
-    }
-
-    public function afterUpdate(object $instance): void
-    {
-        // Called after update
-    }
-
-    public function beforeDelete(object $instance): void
-    {
-        // Called before delete
-    }
-
-    public function afterDelete(object $instance): void
-    {
-        // Called after delete
+        // Called when process() throws; rethrow to propagate
+        throw $exception;
     }
 }
 ```
+
+Observers are notified after the write is committed. When the transaction is created by
+`TransactionService` (`addFunds`, `withdrawFunds`, reserve/accept/reject operations),
+`getData()` contains the entity; the wallet observer also receives the pre-change wallet in
+`getOldData()`. Since MicroORM 7.0 observers are scoped to the database connection of the
+repository where they were registered.
 
 ### Register Observer
 

@@ -9,9 +9,10 @@ A robust PHP library for managing digital wallets and financial transactions wit
 
 [![Sponsor](https://img.shields.io/badge/Sponsor-%23ea4aaa?logo=githubsponsors&logoColor=white&labelColor=0d1117)](https://github.com/sponsors/byjg)
 [![Build Status](https://github.com/byjg/php-wallets/actions/workflows/phpunit.yml/badge.svg?branch=master)](https://github.com/byjg/php-wallets/actions/workflows/phpunit.yml)
-[![Opensource ByJG](https://img.shields.io/badge/opensource-byjg-success.svg)](http://opensource.byjg.com)
+[![Opensource ByJG](https://img.shields.io/badge/opensource-byjg-success.svg)](https://opensource.byjg.com)
+[![Install MCP Server](https://img.shields.io/badge/Install-MCP_Server-8A2BE2?logo=modelcontextprotocol&logoColor=white)](https://opensource.byjg.com/docs/ai/mcpserver-byjg-docs/)
 [![GitHub source](https://img.shields.io/badge/Github-source-informational?logo=github)](https://github.com/byjg/php-wallets/)
-[![GitHub license](https://img.shields.io/github/license/byjg/php-wallets.svg)](https://opensource.byjg.com/opensource/licensing.html)
+[![GitHub license](https://img.shields.io/github/license/byjg/php-wallets.svg)](https://opensource.byjg.com/license/)
 [![GitHub release](https://img.shields.io/github/release/byjg/php-wallets.svg)](https://github.com/byjg/php-wallets/releases/)
 
 ## Features
@@ -26,6 +27,7 @@ A robust PHP library for managing digital wallets and financial transactions wit
 - **Audit trail** - Complete transaction history with balance snapshots
 - **Idempotent operations** - UUID-based transaction deduplication
 - **Extensible** - Easily extend wallets and transactions with custom fields
+- **Transactional outbox** - Guaranteed at-least-once event delivery to message brokers
 
 ## Installation
 
@@ -101,6 +103,7 @@ echo "Available: " . ($wallet->getAvailable() / 100) . " USD\n";
 - [Transaction Operations](docs/transaction-operations.md) - Add, withdraw, and query transactions
 - [Reserved Funds](docs/reserved-funds.md) - Pre-authorize and manage pending transactions
 - [Extending Entities](docs/extending-entities.md) - Add custom fields to wallets and transactions
+- [Transactional Outbox](docs/outbox.md) - Guaranteed event delivery to message brokers
 - [Database Schema](docs/database-schema.md) - Complete database schema documentation
 
 Full documentation is available at [https://opensource.byjg.com/docs/php/wallets](https://opensource.byjg.com/docs/php/wallets)
@@ -161,7 +164,12 @@ $tx2 = $transactionService->addFunds($dto2);  // previousuuid = $tx1->uuid
 $tx3 = $transactionService->withdrawFunds($dto3);  // previousuuid = $tx2->uuid
 ```
 
-Each transaction includes a SHA-256 checksum for data integrity verification.
+Each transaction includes a SHA-256 checksum covering every business field and
+chained to the previous transaction's checksum, so rewriting one row invalidates
+the whole subsequent chain. Optionally, pass an installation secret to
+`TransactionService` to make the checksums impossible to recompute with database
+access only. Use `verifyChain($walletId)` in a reconciliation job to validate the
+full chain. See [docs/transaction-operations.md](docs/transaction-operations.md).
 
 ## Use Cases
 
@@ -215,7 +223,7 @@ $transactionService->addFunds(
 // $transactionService->acceptFundsById($betReserve->getTransactionId());
 ```
 
-## Testing
+## Running Tests
 
 ```bash
 # Start MySQL container
@@ -255,21 +263,21 @@ vendor/bin/phpunit
 - `rejectFundsByUuid(string $uuid): int`
 - `acceptPartialFundsById(int $transactionId, TransactionDTO $transactionDTO, TransactionDTO $transactionRefundDTO): TransactionEntity`
 - `getById(int $transactionId): TransactionEntity`
-- `getByWallet(int $walletId, int $limit = null, int $offset = null): array`
-- `getByDate(int $walletId, string $startDate, string $endDate, int $limit = null, int $offset = null): array`
-- `getByReference(string $referenceSource, string $referenceId): array`
+- `getByDate(int $walletId, string $startDate, string $endDate): array`
 - `getByUuid(string $uuid): ?TransactionEntity`
-- `existsTransactionByUuid(string $uuid): bool`
+- `getRepository()->getByWalletId(int $walletId, int $limit = 20): array`
+- `getRepository()->getByReferenceId(int $walletId, string $referenceSource, string $referenceId): array`
 - `getReservedTransactions(int $walletId): array`
+- `verifyChain(int $walletId): ChainVerificationResult`
+- `recordOutbox(TransactionEntity $transaction): void` (no-op unless the outbox is enabled)
 
-## Dependencies
+Constructor: `new TransactionService($transactionRepo, $walletRepo, ?string $checksumSecret = null, ?OutboxRepository $outboxRepository = null)`
 
-```mermaid
-flowchart TD
-    byjg/wallets --> ext-pdo
-    byjg/wallets --> ext-openssl
-    byjg/wallets --> byjg/micro-orm
-```
+### OutboxService
+
+- `dispatch(int $limit = 100): OutboxDispatchResult` - deliver pending outbox entries to your `OutboxProcessorInterface`
+- `purgeProcessed(?int $olderThanDays = null): int`
+- `countPending(): int`
 
 ----
-[Open source ByJG](http://opensource.byjg.com)
+[Open source ByJG](https://opensource.byjg.com)

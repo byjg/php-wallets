@@ -133,6 +133,31 @@ class TransactionRepository extends BaseRepository
     }
 
     /**
+     * Get ALL transactions of a wallet, without pagination, in chronological order.
+     * Intended for reconciliation jobs (e.g., chain verification).
+     *
+     * Ordered by transactionid instead of date: the date column has second precision,
+     * so bursts of transactions would have a nondeterministic relative order.
+     *
+     * @param int $walletId
+     * @return TransactionEntity[]
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws FileException
+     * @throws XmlUtilException
+     */
+    public function getAllByWalletId(int $walletId): array
+    {
+        $query = Query::getInstance()
+            ->table($this->repository->getMapper()->getTable())
+            ->where("walletid = :id", ["id" => $walletId])
+            ->orderBy(["transactionid"])
+        ;
+
+        return $this->repository->getByQuery($query);
+    }
+
+    /**
      * @param int|null $walletId
      * @return array
      * @throws InvalidArgumentException

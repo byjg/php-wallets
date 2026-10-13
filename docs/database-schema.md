@@ -115,6 +115,8 @@ CREATE TABLE `transaction` (
   `uuid` BINARY(16) DEFAULT NULL,
   `previousuuid` BINARY(16) DEFAULT NULL,
   `checksum` VARCHAR(64) NOT NULL,
+  `previouschecksum` VARCHAR(64) DEFAULT NULL,
+  `checksumversion` TINYINT NOT NULL DEFAULT 1,
   PRIMARY KEY (`transactionid`),
   UNIQUE KEY `idx_transaction_uuid` (`uuid`),
   KEY `idx_transaction_previous_uuid` (`previousuuid`),
@@ -154,6 +156,8 @@ CREATE TABLE `transaction` (
 | `uuid`                | BINARY(16)   | Unique identifier for idempotency           |
 | `previousuuid`        | BINARY(16)   | UUID of previous transaction (chain)        |
 | `checksum`            | VARCHAR(64)  | SHA-256 hash for data integrity             |
+| `previouschecksum`    | VARCHAR(64)  | Checksum of previous transaction (migration 00003) |
+| `checksumversion`     | TINYINT      | Checksum algorithm version (migration 00003) |
 
 #### Transaction Types
 
@@ -170,10 +174,42 @@ CREATE TABLE `transaction` (
 
 - `PRIMARY KEY (transactionid)` - Fast lookup by ID
 - `UNIQUE KEY idx_transaction_uuid (uuid)` - Ensures idempotency
+- `UNIQUE KEY idx_transaction_parentid_unique (transactionparentid)` - A reserved transaction can be accepted/rejected only once (migration 00002)
 - `KEY idx_transaction_previous_uuid (previousuuid)` - Chain integrity queries
 - `KEY fk_transaction_wallet1_idx (walletid)` - Get all transactions for wallet
 - `KEY idx_transaction_typeid_date (typeid, date)` - Filter by type and sort by date
 - `KEY fk_transaction_referenceid_idx (referencesource, referenceid)` - External references
+
+#### Immutability Trigger
+
+Migration 00002 also adds a `BEFORE UPDATE` trigger (`trg_transaction_no_update`) on the
+`transaction` table that rejects any UPDATE with the error
+`Ledger transactions are immutable and cannot be updated`. Corrections must always be
+made with new transactions (e.g., a reject or a compensating movement), never by
+editing history.
+
+### Table: `outbox` (migration 00004)
+
+Transactional-outbox entries: one row per created ledger transaction, written inside
+the same database transaction as the ledger row and delivered to a message broker by
+`OutboxService::dispatch()`. The table stays empty unless the outbox is enabled
+(see [Transactional Outbox](outbox.md)).
+
+| Column          | Type                        | Description                                     |
+|-----------------|-----------------------------|-------------------------------------------------|
+| `outboxid`      | INT(11) AUTO_INCREMENT      | Entry id (FIFO dispatch order)                  |
+| `transactionid` | INT(11)                     | The ledger transaction the event is about       |
+| `uuid`          | BINARY(16)                  | The transaction UUID (consumer idempotency key) |
+| `event`         | VARCHAR(40)                 | Event name (`transaction.created`)              |
+| `status`        | ENUM('pending','processed') | Delivery status                                 |
+| `attempts`      | INT                         | Delivery attempts so far                        |
+| `lasterror`     | VARCHAR(500)                | Last processor error (null after success)       |
+| `createdat`     | TIMESTAMP                   | When the ledger transaction committed           |
+| `processedat`   | TIMESTAMP NULL              | When the entry was delivered                    |
+
+No foreign key to `transaction` (extended entities may use a different ledger table)
+and no immutability trigger (the dispatcher updates the delivery status). Indexes:
+`(status, outboxid)` for the pending scan and `(transactionid)`.
 
 ## Data Integrity
 
@@ -194,16 +230,25 @@ This creates an **immutable audit trail** where:
 
 ### Checksum
 
-Each transaction includes a SHA-256 checksum calculated from:
+Each transaction includes a SHA-256 checksum. The current algorithm (version 2,
+migration 00003) covers every business field and chains to the previous
+transaction's checksum:
 
 ```
-SHA256(amount|balance|reserved|available|uuid|previousuuid)
+SHA256(walletid|wallettypeid|typeid|amount|scale|balance|reserved|available|
+       code|description|referenceid|referencesource|transactionparentid|
+       uuid|previousuuid|previouschecksum|secret)
 ```
+
+Rows created before the upgrade keep `checksumversion = 1` and validate with the
+legacy algorithm (`SHA256(amount|balance|reserved|available|uuid|previousuuid)`).
 
 This ensures:
-- Data integrity - detects any tampering
-- Verification - can validate historical transactions
-- Consistency - database values match checksum
+- Data integrity - detects tampering of any field
+- Chained history - rewriting one row invalidates every subsequent checksum
+- Optional keyed hash - with a configured secret, checksums cannot be recomputed
+  by an attacker with database access only (see `docs/transaction-operations.md`)
+- Verification - `TransactionService::verifyChain()` validates the whole chain
 
 ### UUID Format
 
