@@ -56,7 +56,7 @@ class OutboxService
 
         // Short claim transaction: READ COMMITTED is enough (rows are claimed
         // with FOR UPDATE) and avoids the wider gap locks of SERIALIZABLE
-        $executor->beginTransaction(IsolationLevelEnum::READ_COMMITTED, allowJoin: true);
+        $executor->beginTransaction(IsolationLevelEnum::ReadCommitted, allowJoin: true);
         try {
             $entries = $this->outboxRepository->getPendingForUpdate($limit);
 

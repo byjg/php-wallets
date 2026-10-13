@@ -128,7 +128,7 @@ abstract class BaseRepository
      */
     public function bulkExecute(array $queries): ?GenericIterator
     {
-        return $this->repository->bulkExecute($queries, IsolationLevelEnum::SERIALIZABLE);
+        return $this->repository->bulkExecute($queries, IsolationLevelEnum::Serializable);
     }
 
     public function getExecutor(): DatabaseExecutor

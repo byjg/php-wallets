@@ -221,7 +221,7 @@ class TransactionService
         $walletUpdateStmt->getOrmContext()->defer();
 
         // 4) Execute both queries atomically
-        $executor->beginTransaction(IsolationLevelEnum::SERIALIZABLE, allowJoin: true);
+        $executor->beginTransaction(IsolationLevelEnum::Serializable, allowJoin: true);
         try {
             $executor->execute($transactionInsertStmt);
             $executor->execute($walletUpdateStmt);
@@ -744,7 +744,7 @@ class TransactionService
             $transactionDto = TransactionDTO::createEmpty();
         }
 
-        $this->getRepository()->getExecutor()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, true);
+        $this->getRepository()->getExecutor()->beginTransaction(IsolationLevelEnum::Serializable, true);
         try {
             $transaction = $this->validateReservedTransaction($transactionId, $transactionDto);
 
@@ -863,7 +863,7 @@ class TransactionService
             throw new AmountException('Partial amount must be greater than zero.');
         }
 
-        $this->getRepository()->getExecutor()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, true);
+        $this->getRepository()->getExecutor()->beginTransaction(IsolationLevelEnum::Serializable, true);
         try {
             $transaction = $this->transactionRepository->getById($transactionId);
             if (is_null($transaction)) {
@@ -922,7 +922,7 @@ class TransactionService
             $transactionDto = TransactionDTO::createEmpty();
         }
 
-        $this->getRepository()->getExecutor()->beginTransaction(IsolationLevelEnum::SERIALIZABLE, true);
+        $this->getRepository()->getExecutor()->beginTransaction(IsolationLevelEnum::Serializable, true);
         try {
             $transaction = $this->validateReservedTransaction($transactionId, $transactionDto);
 

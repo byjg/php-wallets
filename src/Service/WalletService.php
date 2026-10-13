@@ -372,7 +372,7 @@ class WalletService
 
         // Withdraw and deposit are all-or-nothing: both run inside a single database transaction
         $executor = $this->walletRepository->getExecutor();
-        $executor->beginTransaction(IsolationLevelEnum::SERIALIZABLE, allowJoin: true);
+        $executor->beginTransaction(IsolationLevelEnum::Serializable, allowJoin: true);
         try {
             // Lock both wallets in a consistent order to avoid deadlocks between concurrent transfers
             $lockOrder = $walletSource < $walletTarget

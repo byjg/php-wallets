@@ -925,7 +925,7 @@ class WalletTransactionsTest extends TestCase
     public function testJoinTransactionAndCommit(): void
     {
         // This transaction starts outside the Transaction Context
-        $this->dbExecutor->beginTransaction(IsolationLevelEnum::SERIALIZABLE);
+        $this->dbExecutor->beginTransaction(IsolationLevelEnum::Serializable);
 
         $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $transaction = $this->transactionService->withdrawFunds(
@@ -946,7 +946,7 @@ class WalletTransactionsTest extends TestCase
     public function testJoinTransactionAndRollback(): void
     {
         // This transaction starts outside the Transaction Context
-        $this->dbExecutor->beginTransaction(IsolationLevelEnum::SERIALIZABLE);
+        $this->dbExecutor->beginTransaction(IsolationLevelEnum::Serializable);
 
         $walletId = $this->walletService->createWallet('USDTEST', "___TESTUSER-1", 1000);
         $transaction = $this->transactionService->withdrawFunds(
@@ -967,7 +967,7 @@ class WalletTransactionsTest extends TestCase
     public function testJoinTransactionDifferentIsolationLevel(): void
     {
         // This transaction starts outside the Transaction Context
-        $this->dbExecutor->beginTransaction(IsolationLevelEnum::READ_UNCOMMITTED);
+        $this->dbExecutor->beginTransaction(IsolationLevelEnum::ReadUncommitted);
 
         $this->expectException(TransactionStartedException::class);
         $this->expectExceptionMessage('You cannot join a transaction with a different isolation level');
