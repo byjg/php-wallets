@@ -18,7 +18,9 @@ are now chained hashes covering every business field, optionally keyed with an i
 secret, and an opt-in transactional outbox guarantees at-least-once event delivery to
 message brokers.
 
-The public API of the Wallets library is backward compatible with 6.x; new methods were added.
+The public API of the Wallets library is backward compatible with 6.x, except for the removal of the
+`TransactionEntity::calculateChecksum()`/`validateChecksum()` static methods (see Breaking Changes);
+new methods were added.
 Observers registered with `Repository::addObserver()` keep receiving the same payloads as in 6.x:
 the wallet `Update` event still carries the updated `WalletEntity` plus the pre-change wallet as
 old data, and the transaction `Insert` event still carries the rehydrated `TransactionEntity`.
@@ -56,6 +58,15 @@ When no UUID is supplied, one is generated automatically, as before.
 
 Combined with idempotency keys, the whole reserve/accept lifecycle can be driven with identifiers
 the caller generated and owns, without storing the internal transaction ids.
+
+### Other new methods
+
+- `TransactionRepository::getAllByWalletId(int $walletId): array` - every transaction of a wallet,
+  without pagination, ordered by `transactionid` (used by `verifyChain()`)
+- `TransactionService::getChecksumSecret(): string` - the secret given to the constructor (empty
+  string when none)
+- `TransactionService::recordOutbox(TransactionEntity $transaction): void` - writes the outbox
+  entry for a transaction; a no-op unless the outbox is enabled
 
 ### Chain verification for reconciliation jobs
 

@@ -14,13 +14,11 @@ composer require byjg/wallets
 
 ## Database Setup
 
-This library requires a MySQL database. You can run the database schema using the provided SQL file:
+This library requires a MySQL database. The schema is `db/base.sql` plus the migrations in
+`db/migrations/up` (check constraints, ledger immutability trigger, checksum v2 columns and
+the outbox table). `base.sql` alone is not enough: apply the migrations too.
 
-```bash
-mysql -u root -p your_database < vendor/byjg/wallets/db/base.sql
-```
-
-Or use [ByJG Migration](https://opensource.byjg.com/docs/php/migration) for database migrations:
+The simplest way is [ByJG Migration](https://opensource.byjg.com/docs/php/migration), which runs both:
 
 ```bash
 vendor/bin/migrate up mysql://user:pass@localhost/dbname -path=vendor/byjg/wallets/db
@@ -32,20 +30,23 @@ vendor/bin/migrate up mysql://user:pass@localhost/dbname -path=vendor/byjg/walle
 use ByJG\Wallets\Service\WalletService;
 use ByJG\Wallets\Service\WalletTypeService;
 use ByJG\Wallets\Service\TransactionService;
+use ByJG\Wallets\Entity\TransactionEntity;
+use ByJG\Wallets\Entity\WalletEntity;
 use ByJG\Wallets\Entity\WalletTypeEntity;
 use ByJG\Wallets\Repository\WalletRepository;
 use ByJG\Wallets\Repository\WalletTypeRepository;
 use ByJG\Wallets\Repository\TransactionRepository;
 use ByJG\Wallets\DTO\TransactionDTO;
+use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\AnyDataset\Db\Factory;
 
 // Create database connection
-$dbDriver = Factory::getDbInstance('mysql://user:pass@localhost/dbname');
+$dbExecutor = DatabaseExecutor::using(Factory::getDbInstance('mysql://user:pass@localhost/dbname'));
 
 // Initialize repositories
-$walletTypeRepo = new WalletTypeRepository($dbDriver);
-$transactionRepo = new TransactionRepository($dbDriver);
-$walletRepo = new WalletRepository($dbDriver);
+$walletTypeRepo = new WalletTypeRepository($dbExecutor, WalletTypeEntity::class);
+$transactionRepo = new TransactionRepository($dbExecutor, TransactionEntity::class);
+$walletRepo = new WalletRepository($dbExecutor, WalletEntity::class);
 
 // Initialize services
 $walletTypeService = new WalletTypeService($walletTypeRepo);

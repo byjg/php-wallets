@@ -256,7 +256,7 @@ UUIDs are stored as `BINARY(16)` for efficiency:
 
 ```php
 // Generate UUID
-$uuid = \ByJG\MicroOrm\Literal\HexUuidLiteral::uuid();
+$uuid = \ByJG\MicroOrm\Literal\HexUuidLiteral::v7();
 
 // Store in database (automatic conversion to binary)
 $transaction->setUuid($uuid);

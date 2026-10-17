@@ -36,6 +36,11 @@ $dto->setDescription('Purchase payment')
 | `referenceId`     | string | External reference ID                              |
 | `referenceSource` | string | Source system name                                 |
 | `uuid`            | string | Idempotency key (auto-generated when not supplied) |
+| `scale`           | int    | Scale used by `setAmountFloat()`                   |
+
+`setAmountFloat(float $amount, int $scale = 2)` converts a decimal amount to the integer amount, and
+`setProperty(string $name, ?string $value)` passes values for custom fields of an extended
+`TransactionEntity` (see [Extending Entities](extending-entities.md)).
 
 ## Add Funds (Deposit)
 
@@ -116,14 +121,13 @@ echo "Balance after: " . ($transaction->getBalance() / 100);
 ### Get Transactions by Wallet
 
 ```php
-// Get all transactions for a wallet
-$transactions = $transactionService->getByWallet($walletId);
+// Get the latest transactions of a wallet (default limit: 20)
+$transactions = $transactionService->getRepository()->getByWalletId($walletId);
 
-// Get with limit and offset
-$transactions = $transactionService->getByWallet(
+// Get with a different limit
+$transactions = $transactionService->getRepository()->getByWalletId(
     walletId: $walletId,
-    limit: 50,
-    offset: 0
+    limit: 50
 );
 ```
 
@@ -133,19 +137,22 @@ $transactions = $transactionService->getByWallet(
 $transactions = $transactionService->getByDate(
     walletId: $walletId,
     startDate: '2024-01-01',
-    endDate: '2024-01-31',
-    limit: 100,
-    offset: 0
+    endDate: '2024-01-31'
 );
 ```
 
 ### Get Transactions by Reference
 
 ```php
-$transactions = $transactionService->getByReference(
+$transactions = $transactionService->getRepository()->getByReferenceId(
+    walletId: $walletId,
     referenceSource: 'ecommerce',
     referenceId: 'order-12345'
 );
+// Optional: startDate / endDate to restrict the period
+
+// Get transactions by code
+$transactions = $transactionService->getRepository()->getByCode($walletId, 'PMT');
 ```
 
 ### Get Reserved Transactions
@@ -415,7 +422,7 @@ try {
 
 ```php
 // Amount must be positive
-TransactionDTO::create($walletId, -100);  // Throws AmountException
+$transactionService->addFunds(TransactionDTO::create($walletId, -100));  // Throws AmountException
 
 // Must respect minValue
 $walletService->createWallet('USD', $userId, 1000, 2, 0);
@@ -452,7 +459,7 @@ $transactionService->withdrawFunds(
        ->setReferenceId('order-12345');
 
    // Later, find all transactions for an order
-   $txs = $transactionService->getByReference('ecommerce', 'order-12345');
+   $txs = $transactionService->getRepository()->getByReferenceId($walletId, 'ecommerce', 'order-12345');
    ```
 
 4. **Handle idempotency for external operations**
@@ -460,7 +467,7 @@ $transactionService->withdrawFunds(
    $externalId = 'payment-provider-tx-123';
 
    // Check if already processed
-   $existing = $transactionService->getByReference('payment-provider', $externalId);
+   $existing = $transactionService->getRepository()->getByReferenceId($walletId, 'payment-provider', $externalId);
    if (!empty($existing)) {
        return $existing[0];  // Already processed
    }
@@ -474,9 +481,12 @@ $transactionService->withdrawFunds(
 
 5. **Use database transactions for complex operations**
    ```php
+   use ByJG\AnyDataset\Db\IsolationLevelEnum;
+
    $dbExecutor = $transactionService->getRepository()->getExecutor();
 
-   $dbExecutor->beginTransaction();
+   // The service operations join the outer transaction only with the same isolation level
+   $dbExecutor->beginTransaction(IsolationLevelEnum::Serializable);
    try {
        $tx1 = $transactionService->withdrawFunds($dto1);
        $tx2 = $transactionService->addFunds($dto2);

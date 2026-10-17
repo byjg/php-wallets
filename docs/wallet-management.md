@@ -177,6 +177,7 @@ without arriving at the target.
 $balanceFloat = $wallet->getBalanceFloat();      // 100.50
 $availableFloat = $wallet->getAvailableFloat();  // 75.25
 $reservedFloat = $wallet->getReservedFloat();    // 25.25
+$minValueFloat = $wallet->getMinValueFloat();    // 0.00
 
 // Convert array representation
 $walletArray = $wallet->toArray();
@@ -197,24 +198,20 @@ $walletTypeService->update($walletType);
 
 ### Common Wallet Types
 
+`update()` also accepts an array (the setters of `WalletTypeEntity` return `void`, so they cannot be chained):
+
 ```php
 // Fiat currencies
-$walletTypeService->update((new WalletTypeEntity())
-    ->setWalletTypeId('USD')->setName('US Dollar'));
-$walletTypeService->update((new WalletTypeEntity())
-    ->setWalletTypeId('EUR')->setName('Euro'));
-$walletTypeService->update((new WalletTypeEntity())
-    ->setWalletTypeId('GBP')->setName('British Pound'));
+$walletTypeService->update(['wallettypeid' => 'USD', 'name' => 'US Dollar']);
+$walletTypeService->update(['wallettypeid' => 'EUR', 'name' => 'Euro']);
+$walletTypeService->update(['wallettypeid' => 'GBP', 'name' => 'British Pound']);
 
 // Cryptocurrencies (use scale=8)
-$walletTypeService->update((new WalletTypeEntity())
-    ->setWalletTypeId('BTC')->setName('Bitcoin'));
-$walletTypeService->update((new WalletTypeEntity())
-    ->setWalletTypeId('ETH')->setName('Ethereum'));
+$walletTypeService->update(['wallettypeid' => 'BTC', 'name' => 'Bitcoin']);
+$walletTypeService->update(['wallettypeid' => 'ETH', 'name' => 'Ethereum']);
 
 // Points/Credits (use scale=0)
-$walletTypeService->update((new WalletTypeEntity())
-    ->setWalletTypeId('POINTS')->setName('Loyalty Points'));
+$walletTypeService->update(['wallettypeid' => 'POINTS', 'name' => 'Loyalty Points']);
 ```
 
 ## Best Practices

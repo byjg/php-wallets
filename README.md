@@ -41,20 +41,23 @@ composer require byjg/wallets
 use ByJG\Wallets\Service\WalletService;
 use ByJG\Wallets\Service\WalletTypeService;
 use ByJG\Wallets\Service\TransactionService;
+use ByJG\Wallets\Entity\TransactionEntity;
+use ByJG\Wallets\Entity\WalletEntity;
 use ByJG\Wallets\Entity\WalletTypeEntity;
 use ByJG\Wallets\Repository\WalletRepository;
 use ByJG\Wallets\Repository\WalletTypeRepository;
 use ByJG\Wallets\Repository\TransactionRepository;
 use ByJG\Wallets\DTO\TransactionDTO;
+use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\AnyDataset\Db\Factory;
 
 // Initialize database connection
-$dbDriver = Factory::getDbInstance('mysql://user:pass@localhost/dbname');
+$dbExecutor = DatabaseExecutor::using(Factory::getDbInstance('mysql://user:pass@localhost/dbname'));
 
 // Initialize repositories
-$walletTypeRepo = new WalletTypeRepository($dbDriver);
-$transactionRepo = new TransactionRepository($dbDriver);
-$walletRepo = new WalletRepository($dbDriver);
+$walletTypeRepo = new WalletTypeRepository($dbExecutor, WalletTypeEntity::class);
+$transactionRepo = new TransactionRepository($dbExecutor, TransactionEntity::class);
+$walletRepo = new WalletRepository($dbExecutor, WalletEntity::class);
 
 // Initialize services
 $walletTypeService = new WalletTypeService($walletTypeRepo);
@@ -223,6 +226,50 @@ $transactionService->addFunds(
 // $transactionService->acceptFundsById($betReserve->getTransactionId());
 ```
 
+## API Reference
+
+### WalletService
+
+- `createWallet(string $walletTypeId, string $userId, int $balance, int $scale = 2, int $minValue = 0, ?string $extra = null): int`
+- `getById(int $walletId): array|WalletEntity`
+- `getByUserId(string $userId, string $walletType = ""): array`
+- `getByWalletTypeId(string $walletTypeId): array`
+- `overrideBalance(int $walletId, int $newBalance, int $newScale = 2, int $newMinValue = 0, string $description = "Reset Balance"): ?int`
+- `partialBalance(int $walletId, int $balance, string $description = "Partial Balance"): TransactionEntity`
+- `closeWallet(int $walletId): ?int`
+- `transferFunds(int $walletSource, int $walletTarget, int $amount): array`
+
+### TransactionService
+
+- `addFunds(TransactionDTO $dto): TransactionEntity`
+- `withdrawFunds(TransactionDTO $dto, bool $capAtZero = false): TransactionEntity`
+- `reserveFundsForWithdraw(TransactionDTO $dto): TransactionEntity`
+- `reserveFundsForDeposit(TransactionDTO $dto): TransactionEntity`
+- `acceptFundsById(int $transactionId, ?TransactionDTO $transactionDto = null): int`
+- `acceptFundsByUuid(Literal|string $uuid, ?TransactionDTO $transactionDto = null): int`
+- `rejectFundsById(int $transactionId, ?TransactionDTO $transactionDto = null): int`
+- `rejectFundsByUuid(Literal|string $uuid, ?TransactionDTO $transactionDto = null): int`
+- `acceptPartialFundsById(int $transactionId, TransactionDTO $transactionDtoWithdraw, TransactionDTO $transactionDtoRefund): TransactionEntity`
+- `getById(int|string $transactionId): ?TransactionEntity`
+- `getByDate(int $walletId, string $startDate, string $endDate): array`
+- `getByUuid(Literal|string $uuid): ?TransactionEntity`
+- `getRepository()->getByWalletId(int $walletId, int $limit = 20): array`
+- `getRepository()->getByReferenceId(int $walletId, string $referenceSource, string $referenceId, ?string $startDate = null, ?string $endDate = null): array`
+- `getRepository()->getByCode(int $walletId, string $code, ?string $startDate = null, ?string $endDate = null): array`
+- `getRepository()->getByParentId(int $parentId, bool $forUpdate = false): ?TransactionEntity`
+- `getReservedTransactions(?int $walletId = null): array`
+- `isTransactionReserved(?int $transactionId = null): bool`
+- `verifyChain(int $walletId): ChainVerificationResult`
+- `recordOutbox(TransactionEntity $transaction): void` (no-op unless the outbox is enabled)
+
+Constructor: `new TransactionService($transactionRepo, $walletRepo, ?string $checksumSecret = null, ?OutboxRepository $outboxRepository = null)`
+
+### OutboxService
+
+- `dispatch(int $limit = 100): OutboxDispatchResult` - deliver pending outbox entries to your `OutboxProcessorInterface`
+- `purgeProcessed(?int $olderThanDays = null): int`
+- `countPending(): int`
+
 ## Running Tests
 
 ```bash
@@ -237,47 +284,6 @@ vendor/bin/migrate up mysql://root:password@localhost/test -path=db
 # Run tests
 vendor/bin/phpunit
 ```
-
-## API Reference
-
-### WalletService
-
-- `createWallet(string $walletTypeId, string $userId, int $balance, int $scale = 2, int $minValue = 0, ?string $extra = null): int`
-- `getById(int $walletId): WalletEntity`
-- `getByUserId(string $userId, string $walletType = ""): array`
-- `getByWalletTypeId(string $walletTypeId): array`
-- `overrideBalance(int $walletId, int $newBalance, int $newScale = 2, int $newMinValue = 0, string $description = "Reset Balance"): ?int`
-- `partialBalance(int $walletId, int $balance, string $description = "Partial Balance"): TransactionEntity`
-- `closeWallet(int $walletId): ?int`
-- `transferFunds(int $walletSource, int $walletTarget, int $amount): array`
-
-### TransactionService
-
-- `addFunds(TransactionDTO $dto): TransactionEntity`
-- `withdrawFunds(TransactionDTO $dto): TransactionEntity`
-- `reserveFundsForWithdraw(TransactionDTO $dto): TransactionEntity`
-- `reserveFundsForDeposit(TransactionDTO $dto): TransactionEntity`
-- `acceptFundsById(int $transactionId): int`
-- `acceptFundsByUuid(string $uuid): int`
-- `rejectFundsById(int $transactionId): int`
-- `rejectFundsByUuid(string $uuid): int`
-- `acceptPartialFundsById(int $transactionId, TransactionDTO $transactionDTO, TransactionDTO $transactionRefundDTO): TransactionEntity`
-- `getById(int $transactionId): TransactionEntity`
-- `getByDate(int $walletId, string $startDate, string $endDate): array`
-- `getByUuid(string $uuid): ?TransactionEntity`
-- `getRepository()->getByWalletId(int $walletId, int $limit = 20): array`
-- `getRepository()->getByReferenceId(int $walletId, string $referenceSource, string $referenceId): array`
-- `getReservedTransactions(int $walletId): array`
-- `verifyChain(int $walletId): ChainVerificationResult`
-- `recordOutbox(TransactionEntity $transaction): void` (no-op unless the outbox is enabled)
-
-Constructor: `new TransactionService($transactionRepo, $walletRepo, ?string $checksumSecret = null, ?OutboxRepository $outboxRepository = null)`
-
-### OutboxService
-
-- `dispatch(int $limit = 100): OutboxDispatchResult` - deliver pending outbox entries to your `OutboxProcessorInterface`
-- `purgeProcessed(?int $olderThanDays = null): int`
-- `countPending(): int`
 
 ----
 [Open source ByJG](https://opensource.byjg.com)
