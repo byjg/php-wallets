@@ -79,12 +79,19 @@ $transaction = $transactionService->withdrawFunds(
 Creates a **Withdraw (W)** transaction that:
 - Decreases `balance` by amount
 - Decreases `available` by amount
-- Validates that `available >= amount`
-- Validates that `available - amount >= minValue`
+- Validates that `available - amount >= minValue` (`minValue` is 0 unless the wallet allows an overdraft)
 
 :::danger Insufficient Funds
-Throws `AmountException` if insufficient available funds or would violate `minValue`.
+Throws `AmountException` if the withdraw would take `available` below `minValue`.
 :::
+
+Pass `capAtZero: true` to withdraw as much as possible instead of failing: the amount is reduced so
+`available` stops at `minValue`, and the DTO receives the amount actually withdrawn.
+
+```php
+// Wallet with available = 1000 and minValue = 0: withdraws 1000, not 1500
+$transaction = $transactionService->withdrawFunds(TransactionDTO::create($walletId, 1500), capAtZero: true);
+```
 
 ## Transaction Types
 

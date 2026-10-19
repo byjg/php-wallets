@@ -91,13 +91,6 @@ trait BaseDALTrait
         $dbDriver = $migration->getDbDriver();
         $this->dbExecutor = DatabaseExecutor::using($dbDriver);
 
-        // Drop the CHECK constraints so the negative amount can be validated
-        /** @psalm-suppress InternalMethod */
-        if (str_contains($this->name(), "Allow_Negativ")) {
-            $this->dbExecutor->execute("ALTER TABLE transaction DROP CONSTRAINT transaction_chk_value_nonnegative");
-            $this->dbExecutor->execute("ALTER TABLE wallet DROP CONSTRAINT wallet_chk_value_nonnegative");
-        }
-
         $this->dbExecutor->execute("CREATE TABLE transaction_extended LIKE transaction");
         $this->dbExecutor->execute("alter table transaction_extended add extra_property varchar(100) null;");
     }

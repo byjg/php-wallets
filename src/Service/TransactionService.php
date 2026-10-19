@@ -177,7 +177,7 @@ class TransactionService
      *
      * @param string $operation One of TransactionEntity::DEPOSIT, WITHDRAW, DEPOSIT_BLOCKED, WITHDRAW_BLOCKED
      * @param TransactionDTO $dto Input data (wallet, amount, description, etc.)
-     * @param bool $capAtZero When true and operation is WITHDRAW, caps the withdrawal so the net balance never goes below zero
+     * @param bool $capAtZero When true and operation is WITHDRAW, caps the withdrawal so the available funds never go below the wallet's minValue (zero by default)
      * @return TransactionEntity
      * @throws AmountException
      * @throws DatabaseException
@@ -260,7 +260,8 @@ class TransactionService
             if ($this->getRepository()->getExecutor()->hasActiveTransaction()) {
                 $this->getRepository()->getExecutor()->rollbackTransaction();
             }
-            if ($ex instanceof PDOException && str_contains($ex->getMessage(), 'chk_value_nonnegative')) {
+            // wallet_chk_available_minvalue (migration 00005), or the chk_value_nonnegative constraints before it
+            if ($ex instanceof PDOException && (str_contains($ex->getMessage(), 'chk_available_minvalue') || str_contains($ex->getMessage(), 'chk_value_nonnegative'))) {
                 throw new AmountException('Cannot withdraw above the wallet balance');
             }
             if ($ex instanceof PDOException && str_contains($ex->getMessage(), 'idx_transaction_uuid')) {
@@ -384,8 +385,8 @@ class TransactionService
         $exprAmount = (string)$amount;
 
         if ($capAtZero && $operation === TransactionEntity::WITHDRAW) {
-            // Cap withdraw so available never goes below zero
-            $exprAmount = "case when available - {$amount} < 0 then {$amount} + (available - {$amount}) else {$amount} end";
+            // Cap withdraw so available never goes below the wallet's minvalue (0 unless it allows an overdraft)
+            $exprAmount = "case when available - {$amount} < minvalue then available - minvalue else {$amount} end";
             $exprBalance = "balance - $exprAmount";
             $exprAvailable = "available - $exprAmount";
         }

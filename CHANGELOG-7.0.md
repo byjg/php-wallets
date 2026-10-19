@@ -137,8 +137,13 @@ money moves. Transfers to the same wallet are rejected with a `WalletException`.
 - **`TransactionDTO::setToTransaction()` bug**: a stray `if (!empty($this->get))` statement made
   the custom-properties loop dead code, silently dropping extended-entity properties in the
   accept/reject flows. Fixed.
+- **Overdraft (`minValue`) was never enforced**: a negative `minValue` did not allow an overdraft,
+  because the `available >= 0` CHECK constraints rejected any withdraw or reserve below zero. Now the
+  wallet's `available` can go down to its `minValue` (migration 00005): withdraw, reserve and
+  transfer fail with `AmountException` below it, and `withdrawFunds(..., capAtZero: true)` caps the
+  amount at the `minValue` instead of at zero. With the default `minValue` of 0 nothing changes.
 
-## Database Schema Changes (migrations 00002 to 00004)
+## Database Schema Changes (migrations 00002 to 00005)
 
 ```sql
 -- Migration 00002
@@ -183,6 +188,16 @@ CREATE TABLE `outbox` (
 - The `outbox` table stays empty unless the outbox is enabled. There is intentionally no
   foreign key to `transaction` (extended entities may use a different ledger table) and no
   immutability trigger (the dispatcher updates the delivery status).
+
+```sql
+-- Migration 00005
+ALTER TABLE `transaction` DROP CONSTRAINT `transaction_chk_value_nonnegative`;
+ALTER TABLE `wallet` DROP CONSTRAINT `wallet_chk_value_nonnegative`;
+ALTER TABLE `wallet` ADD CONSTRAINT `wallet_chk_available_minvalue` CHECK (`available` >= `minvalue`);
+```
+
+- A wallet's `available` can go down to its `minvalue`. The ledger row has no `minvalue`; the wallet
+  row is updated in the same database transaction, so its constraint guards every operation.
 
 ### Observer scope: global → per connection
 
@@ -231,7 +246,8 @@ two; adjust observers (or tests) that counted on the second event.
 
 Migration 00002 adds the unique index on `transactionparentid` and the immutability trigger;
 migration 00003 adds the `previouschecksum` and `checksumversion` columns; migration 00004
-creates the `outbox` table (inert unless the outbox is enabled):
+creates the `outbox` table (inert unless the outbox is enabled); migration 00005 replaces the
+`available >= 0` constraints with `available >= minvalue`:
 
 ```bash
 migrate update
@@ -239,7 +255,8 @@ migrate update
 
 Before applying, make sure no existing data violates the new unique index (each
 `transactionparentid` value must appear at most once) and that nothing in your application issues
-`UPDATE` statements against the `transaction` table. Existing rows keep `checksumversion = 1`
+`UPDATE` statements against the `transaction` table, and that no wallet has `available` below
+its `minvalue` (00005 would fail to add the constraint). Existing rows keep `checksumversion = 1`
 and continue validating with the legacy algorithm; new rows are created with the chained v2
 checksum automatically.
 

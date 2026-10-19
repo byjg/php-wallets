@@ -2,12 +2,16 @@
 
 namespace Tests\Database;
 
+use ByJG\AnyDataset\Core\Exception\DatabaseException;
+use ByJG\AnyDataset\Db\Exception\DbDriverNotConnected;
 use ByJG\AnyDataset\Db\Exception\TransactionStartedException;
 use ByJG\AnyDataset\Db\IsolationLevelEnum;
 use ByJG\MicroOrm\Exception\InvalidArgumentException;
 use ByJG\MicroOrm\Exception\OrmBeforeInvalidException;
 use ByJG\MicroOrm\Exception\OrmInvalidFieldsException;
+use ByJG\MicroOrm\Exception\RepositoryReadOnlyException;
 use ByJG\MicroOrm\Exception\TransactionException;
+use ByJG\MicroOrm\Exception\UpdateConstraintException;
 use ByJG\MicroOrm\Literal\HexUuidLiteral;
 use ByJG\Serializer\Serialize;
 use ByJG\Wallets\Checksum\ChecksumFactory;
@@ -21,6 +25,8 @@ use ByJG\Wallets\Exception\WalletTypeException;
 use ByJG\Wallets\Service\TransactionService;
 use ByJG\Wallets\Service\WalletService;
 use ByJG\Wallets\Service\WalletTypeService;
+use ByJG\XmlUtil\Exception\FileException;
+use ByJG\XmlUtil\Exception\XmlUtilException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Tests\BaseDALTrait;
@@ -423,15 +429,75 @@ class WalletTransactionsTest extends TestCase
 
     /**
      * @return void
-     * @throws WalletException
-     * @throws WalletTypeException
      * @throws AmountException
+     * @throws InvalidArgumentException
      * @throws OrmBeforeInvalidException
      * @throws OrmInvalidFieldsException
-     * @throws TransactionException
-     * @throws \ByJG\MicroOrm\Exception\InvalidArgumentException
+     * @throws WalletException
+     * @throws WalletTypeException
+     * @throws DatabaseException
+     * @throws DbDriverNotConnected
+     * @throws RepositoryReadOnlyException
+     * @throws UpdateConstraintException
      * @throws \ByJG\Serializer\Exception\InvalidArgumentException
+     * @throws \ByJG\Wallets\Exception\TransactionException
+     * @throws FileException
+     * @throws XmlUtilException
      */
+    public function testReserveFunds_Allow_Negative(): void
+    {
+        $walletId = $this->walletService->createWallet('NEGTEST', "___TESTUSER-1", 1000, 2, -400);
+        $this->transactionService->reserveFundsForWithdraw(TransactionDTO::create($walletId, 1400)->setDescription('Test Reserve'));
+
+        $wallet = $this->walletService->getById($walletId);
+        $this->assertEquals(1000, $wallet->getBalance());
+        $this->assertEquals(1400, $wallet->getReserved());
+        $this->assertEquals(-400, $wallet->getAvailable());
+    }
+
+    public function testReserveFunds_NegativeInvalid(): void
+    {
+        $this->expectException(AmountException::class);
+
+        $walletId = $this->walletService->createWallet('NEGTEST', "___TESTUSER-1", 1000, 2, -400);
+        $this->transactionService->reserveFundsForWithdraw(TransactionDTO::create($walletId, 1401)->setDescription('Test Reserve'));
+    }
+
+    public function testWithdrawFunds_NegativeInvalidKeepsWallet(): void
+    {
+        $walletId = $this->walletService->createWallet('NEGTEST', "___TESTUSER-1", 1000, 2, -400);
+        $this->transactionService->withdrawFunds(TransactionDTO::create($walletId, 1300)->setDescription('Test Withdraw'));
+
+        try {
+            $this->transactionService->withdrawFunds(TransactionDTO::create($walletId, 101)->setDescription('Test Withdraw'));
+            $this->fail('The withdraw below minValue was accepted');
+        } catch (AmountException $ex) {
+            $this->assertEquals('Cannot withdraw above the wallet balance', $ex->getMessage());
+        }
+
+        // The rejected withdraw left no trace
+        $wallet = $this->walletService->getById($walletId);
+        $this->assertEquals(-300, $wallet->getAvailable());
+        $this->assertCount(2, $this->transactionService->getRepository()->getByWalletId($walletId));
+    }
+
+    public function testCapAtZeroTrue_Allow_Negative(): void
+    {
+        $walletId = $this->walletService->createWallet('NEGTEST', "___TESTUSER-1", 1000, 2, -400);
+
+        $dto = TransactionDTO::create($walletId, 2000)->setDescription('Test Withdraw');
+        $transaction = $this->transactionService->withdrawFunds($dto, capAtZero: true);
+
+        // Capped at the minValue, not at zero
+        $wallet = $this->walletService->getById($walletId);
+        $this->assertEquals(-400, $wallet->getBalance());
+        $this->assertEquals(-400, $wallet->getAvailable());
+
+        $transaction = $this->transactionService->getById($transaction->getTransactionId());
+        $this->assertEquals(1400, $transaction->getAmount());
+        $this->assertEquals(1400, $dto->getAmount());
+    }
+
     public function testGetWalletByUserId()
     {
         $walletId = $this->walletService->createWallet(

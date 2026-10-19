@@ -61,7 +61,7 @@ CREATE TABLE `wallet` (
   CONSTRAINT `fk_wallet_wallettype` FOREIGN KEY (`wallettypeid`)
       REFERENCES `wallettype` (`wallettypeid`)
       ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `wallet_chk_value_nonnegative` CHECK (`available` >= 0)
+  CONSTRAINT `wallet_chk_available_minvalue` CHECK (`available` >= `minvalue`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 ```
 
@@ -81,7 +81,8 @@ CREATE TABLE `wallet` (
 
 **Constraints:**
 - One wallet per user per currency (`unique_userid_type`)
-- `available` must be non-negative (enforced by CHECK constraint)
+- `available` cannot go below `minvalue` (CHECK constraint `wallet_chk_available_minvalue`, migration 00005):
+  0 by default, negative to allow an overdraft
 - `wallettypeid` must exist in `wallettype` table
 
 **Example:**
