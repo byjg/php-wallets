@@ -162,13 +162,13 @@ $refundDto = TransactionDTO::createEmpty()
 
 $finalTransaction = $transactionService->acceptPartialFundsById(
     transactionId: $reserveTransaction->getTransactionId(),
-    transactionDTO: $withdrawDto,
-    transactionRefundDTO: $refundDto
+    transactionDtoWithdraw: $withdrawDto,
+    transactionDtoRefund: $refundDto
 );
 
-// Creates two child transactions:
-// 1. Withdraw (W) for $80 (actual bet)
-// 2. Reject (R) for $100 (releasing the full reservation)
+// Creates two transactions, in this order:
+// 1. Reject (R) for $100, child of the reservation (releasing the full reservation)
+// 2. Withdraw (W) for $80 (actual bet), returned by the method
 ```
 
 **Balance flow:**
@@ -399,7 +399,7 @@ $transactionService->addFunds(
    $reserve = $transactionService->reserveFundsForWithdraw($dto);
 
    // Later, find the reservation by external ID
-   $txs = $transactionService->getByReference('ecommerce', 'order-12345');
+   $txs = $transactionService->getRepository()->getByReferenceId($walletId, 'ecommerce', 'order-12345');
    $reserve = $txs[0];
    $transactionService->acceptFundsById($reserve->getTransactionId());
    ```
@@ -407,12 +407,10 @@ $transactionService->addFunds(
 4. **Handle accept/reject idempotently**
    ```php
    function acceptReservation($reserveId) {
-       $reserve = $transactionService->getById($reserveId);
-
-       // Check if already processed
-       if ($reserve->getTransactionParentId() !== null) {
-           // Already accepted/rejected, find the child transaction
-           return $transactionService->getByParentId($reserveId);
+       // Check if already processed: the accept/reject transaction has the reservation as parent
+       $child = $transactionService->getRepository()->getByParentId($reserveId);
+       if ($child !== null) {
+           return $child->getTransactionId();
        }
 
        return $transactionService->acceptFundsById($reserveId);

@@ -35,7 +35,12 @@ $dto->setDescription('Purchase payment')
 | `code`            | string | Transaction code for categorization (max 10 chars) |
 | `referenceId`     | string | External reference ID                              |
 | `referenceSource` | string | Source system name                                 |
-| `uuid`            | string | Unique transaction identifier (auto-generated)     |
+| `uuid`            | string | Idempotency key (auto-generated when not supplied) |
+| `scale`           | int    | Scale used by `setAmountFloat()`                   |
+
+`setAmountFloat(float $amount, int $scale = 2)` converts a decimal amount to the integer amount, and
+`setProperty(string $name, ?string $value)` passes values for custom fields of an extended
+`TransactionEntity` (see [Extending Entities](extending-entities.md)).
 
 ## Add Funds (Deposit)
 
@@ -74,12 +79,19 @@ $transaction = $transactionService->withdrawFunds(
 Creates a **Withdraw (W)** transaction that:
 - Decreases `balance` by amount
 - Decreases `available` by amount
-- Validates that `available >= amount`
-- Validates that `available - amount >= minValue`
+- Validates that `available - amount >= minValue` (`minValue` is 0 unless the wallet allows an overdraft)
 
 :::danger Insufficient Funds
-Throws `AmountException` if insufficient available funds or would violate `minValue`.
+Throws `AmountException` if the withdraw would take `available` below `minValue`.
 :::
+
+Pass `capAtZero: true` to withdraw as much as possible instead of failing: the amount is reduced so
+`available` stops at `minValue`, and the DTO receives the amount actually withdrawn.
+
+```php
+// Wallet with available = 1000 and minValue = 0: withdraws 1000, not 1500
+$transaction = $transactionService->withdrawFunds(TransactionDTO::create($walletId, 1500), capAtZero: true);
+```
 
 ## Transaction Types
 
@@ -116,14 +128,13 @@ echo "Balance after: " . ($transaction->getBalance() / 100);
 ### Get Transactions by Wallet
 
 ```php
-// Get all transactions for a wallet
-$transactions = $transactionService->getByWallet($walletId);
+// Get the latest transactions of a wallet (default limit: 20)
+$transactions = $transactionService->getRepository()->getByWalletId($walletId);
 
-// Get with limit and offset
-$transactions = $transactionService->getByWallet(
+// Get with a different limit
+$transactions = $transactionService->getRepository()->getByWalletId(
     walletId: $walletId,
-    limit: 50,
-    offset: 0
+    limit: 50
 );
 ```
 
@@ -133,19 +144,22 @@ $transactions = $transactionService->getByWallet(
 $transactions = $transactionService->getByDate(
     walletId: $walletId,
     startDate: '2024-01-01',
-    endDate: '2024-01-31',
-    limit: 100,
-    offset: 0
+    endDate: '2024-01-31'
 );
 ```
 
 ### Get Transactions by Reference
 
 ```php
-$transactions = $transactionService->getByReference(
+$transactions = $transactionService->getRepository()->getByReferenceId(
+    walletId: $walletId,
     referenceSource: 'ecommerce',
     referenceId: 'order-12345'
 );
+// Optional: startDate / endDate to restrict the period
+
+// Get transactions by code
+$transactions = $transactionService->getRepository()->getByCode($walletId, 'PMT');
 ```
 
 ### Get Reserved Transactions
@@ -164,19 +178,34 @@ foreach ($reserved as $tx) {
 
 ```php
 $transaction = $transactionService->getByUuid($uuid);
-```
 
-### Check for Duplicate Transactions
-
-```php
-// Check if transaction with UUID already exists
-$exists = $transactionService->existsTransactionByUuid($uuid);
-
-if ($exists) {
-    // Handle duplicate - maybe return existing transaction
-    $transaction = $transactionService->getByUuid($uuid);
+if ($transaction === null) {
+    // No transaction with this UUID
 }
 ```
+
+### Accept or Reject Reserved Funds by UUID
+
+When the caller supplies its own UUIDs (see [Idempotency](#idempotency)), the whole
+reserve/accept lifecycle can be driven with identifiers the caller owns - no need
+to store the internal transaction id:
+
+```php
+$uuid = 'F47AC10B-58CC-4372-A567-0E02B2C3D479';
+
+$transactionService->reserveFundsForWithdraw(
+    TransactionDTO::create($walletId, 5000)->setUuid($uuid)
+);
+
+// Later, e.g. when an external callback arrives:
+$transactionService->acceptFundsByUuid($uuid);
+// or
+$transactionService->rejectFundsByUuid($uuid);
+```
+
+There is no need to check for duplicates before creating a transaction: calling
+`addFunds()`/`withdrawFunds()` again with the same UUID and the same data returns
+the original transaction (see [Idempotency](#idempotency)).
 
 ## Transaction Entity Properties
 
@@ -214,11 +243,13 @@ These represent wallet state **after** this transaction:
 
 ### Integrity Fields
 
-| Property       | Type             | Description                                    |
-|----------------|------------------|------------------------------------------------|
-| `uuid`         | binary(16)       | Unique transaction identifier for idempotency  |
-| `previousUuid` | binary(16)\|null | UUID of previous transaction (chain integrity) |
-| `checksum`     | string(64)       | SHA-256 hash of transaction data               |
+| Property           | Type             | Description                                        |
+|--------------------|------------------|----------------------------------------------------|
+| `uuid`             | binary(16)       | Unique transaction identifier for idempotency      |
+| `previousUuid`     | binary(16)\|null | UUID of previous transaction (chain integrity)     |
+| `checksum`         | string(64)       | SHA-256 hash of transaction data                   |
+| `previousChecksum` | string(64)\|null | Checksum of the previous transaction (hash chain)  |
+| `checksumVersion`  | int              | Algorithm that produced the checksum (1 = legacy)  |
 
 ## Helper Methods
 
@@ -236,22 +267,57 @@ $availableFloat = $transaction->getAvailableFloat(); // 125.25
 
 ### Checksum Validation
 
-```php
-// Calculate checksum for a transaction
-$checksum = TransactionEntity::calculateChecksum($transaction);
+Checksum algorithms are classes implementing `ChecksumInterface`. Every row records
+the algorithm that produced it (`checksumVersion`), and `ChecksumFactory` resolves
+the right one:
 
-// Validate checksum
-$isValid = TransactionEntity::validateChecksum($transaction, $checksum);
+```php
+use ByJG\Wallets\Checksum\ChecksumFactory;
+
+// Calculate a checksum with the current algorithm (v2)
+$checksum = ChecksumFactory::current()->calculate($transaction);
+
+// Validate a row with the algorithm that produced it
+$algorithm = ChecksumFactory::get($transaction->getChecksumVersion());
+$isValid = $algorithm->validate($transaction, $transaction->getChecksum());
 
 if (!$isValid) {
     throw new Exception('Transaction data integrity compromised!');
 }
 ```
 
-The checksum is calculated from:
+The current checksum (version 2) covers every business field, chained to the
+previous transaction's checksum:
+
 ```
-SHA256(amount|balance|reserved|available|uuid|previousuuid)
+SHA256(walletid|wallettypeid|typeid|amount|scale|balance|reserved|available|
+       code|description|referenceid|referencesource|transactionparentid|
+       uuid|previousuuid|previouschecksum|secret)
 ```
+
+Because each checksum includes the previous one, tampering with any row invalidates
+every subsequent checksum: rewriting history requires recomputing the whole chain
+forward. Rows created before the upgrade (`checksumVersion` = 1) keep validating with
+the legacy algorithm (`SHA256(amount|balance|reserved|available|uuid|previousuuid)`).
+
+### Checksum Secret
+
+Without a secret, an attacker with full database access can recompute the chain.
+Pass an installation secret to `TransactionService` to turn the checksum into a
+keyed hash that cannot be recomputed without it:
+
+```php
+$transactionService = new TransactionService(
+    $transactionRepository,
+    $walletRepository,
+    getenv('WALLET_CHECKSUM_SECRET')
+);
+```
+
+- Keep the secret out of the database (environment variable, secret manager).
+- Once transactions are created with a secret, the same secret must always be
+  provided; verification fails otherwise.
+- Legacy (v1) rows predate the secret and keep validating without it.
 
 ## Transaction Chain Integrity
 
@@ -268,29 +334,71 @@ This ensures:
 2. **Tamper detection** - any modification breaks the chain
 3. **Auditability** - can verify entire transaction history
 
-## Idempotency
+### Verifying the Chain
 
-Use UUIDs to prevent duplicate transactions:
+`verifyChain()` walks the chain from the wallet's `last_uuid` back to the genesis
+transaction, validating every checksum (with the algorithm each row was created
+with) and confirming the wallet balances match the head transaction's snapshot.
+It detects tampered wallet state, tampered transaction data, deleted rows (broken
+links), forked/orphan rows, cycles, broken previous-checksum links and checksum
+version downgrades.
 
 ```php
-use ByJG\MicroOrm\Literal\HexUuidLiteral;
+$result = $transactionService->verifyChain($walletId);
 
-// Generate a UUID for this operation
-$uuid = HexUuidLiteral::uuid();
-
-$dto = TransactionDTO::create($walletId, 5000)
-    ->setUuid($uuid)
-    ->setDescription('Payment');
-
-// First attempt - succeeds
-$transaction = $transactionService->addFunds($dto);
-
-// Retry with same UUID - will detect duplicate
-if ($transactionService->existsTransactionByUuid($uuid)) {
-    // Return existing transaction instead of creating duplicate
-    $transaction = $transactionService->getByUuid($uuid);
+if (!$result->isValid()) {
+    foreach ($result->getErrors() as $error) {
+        // e.g. "Checksum mismatch on transaction 42 (UUID ...)"
+        alertOperations($error);
+    }
 }
+
+echo $result->getTransactionsVerified(); // number of transactions walked
+echo $result->getLegacyChecksums();      // rows still carrying a pre-v2 checksum
 ```
+
+In a healthy wallet `getLegacyChecksums()` never grows — it only shrinks as old
+rows are superseded by new activity. An increase means a row was rewritten with a
+downgraded checksum.
+
+Run it from a scheduled reconciliation job so a corruption is detected as soon as
+it happens, not when a human audits the ledger.
+
+> Observer callbacks are in-process and best-effort: an event can be lost if PHP dies
+> after the commit. For guaranteed delivery to a message broker, enable the
+> [transactional outbox](outbox.md).
+
+## Idempotency
+
+Supply your own UUID as an idempotency key to prevent duplicate transactions.
+A retry with the same UUID and the same data returns the original transaction
+instead of creating a new movement:
+
+```php
+// The idempotency key is generated by the caller, once per business operation
+$uuid = 'F47AC10B-58CC-4372-A567-0E02B2C3D479';
+
+// First attempt - creates the transaction
+$transaction = $transactionService->addFunds(
+    TransactionDTO::create($walletId, 5000)
+        ->setUuid($uuid)
+        ->setDescription('Payment')
+);
+
+// Retry after a timeout (same UUID, same data) - returns the original transaction
+$replay = $transactionService->addFunds(
+    TransactionDTO::create($walletId, 5000)
+        ->setUuid($uuid)
+        ->setDescription('Payment')
+);
+// $replay->getTransactionId() === $transaction->getTransactionId()
+```
+
+Reusing a UUID with **different** data throws a `TransactionException`
+(`The UUID was already used by a different transaction`).
+
+When no UUID is supplied, one is generated automatically and every call
+creates a new movement.
 
 ## Error Handling
 
@@ -321,7 +429,7 @@ try {
 
 ```php
 // Amount must be positive
-TransactionDTO::create($walletId, -100);  // Throws AmountException
+$transactionService->addFunds(TransactionDTO::create($walletId, -100));  // Throws AmountException
 
 // Must respect minValue
 $walletService->createWallet('USD', $userId, 1000, 2, 0);
@@ -358,7 +466,7 @@ $transactionService->withdrawFunds(
        ->setReferenceId('order-12345');
 
    // Later, find all transactions for an order
-   $txs = $transactionService->getByReference('ecommerce', 'order-12345');
+   $txs = $transactionService->getRepository()->getByReferenceId($walletId, 'ecommerce', 'order-12345');
    ```
 
 4. **Handle idempotency for external operations**
@@ -366,7 +474,7 @@ $transactionService->withdrawFunds(
    $externalId = 'payment-provider-tx-123';
 
    // Check if already processed
-   $existing = $transactionService->getByReference('payment-provider', $externalId);
+   $existing = $transactionService->getRepository()->getByReferenceId($walletId, 'payment-provider', $externalId);
    if (!empty($existing)) {
        return $existing[0];  // Already processed
    }
@@ -380,9 +488,12 @@ $transactionService->withdrawFunds(
 
 5. **Use database transactions for complex operations**
    ```php
+   use ByJG\AnyDataset\Db\IsolationLevelEnum;
+
    $dbExecutor = $transactionService->getRepository()->getExecutor();
 
-   $dbExecutor->beginTransaction();
+   // The service operations join the outer transaction only with the same isolation level
+   $dbExecutor->beginTransaction(IsolationLevelEnum::Serializable);
    try {
        $tx1 = $transactionService->withdrawFunds($dto1);
        $tx2 = $transactionService->addFunds($dto2);

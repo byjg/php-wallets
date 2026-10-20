@@ -76,7 +76,6 @@ class TransactionDTO
         if (!empty($this->getUuid())) {
             $transaction->setUuid($this->getUuid());
         }
-        if (!empty($this->get))
 
         foreach ($this->getProperties() as $name => $value) {
             if (method_exists($transaction, "set$name")) {

@@ -10,26 +10,24 @@ You can extend the `TransactionEntity` and `WalletEntity` classes to add custom 
 
 ### 1. Create Database Table
 
-First, create a new table that extends the base `transaction` table:
+First, create the ledger table of the extended entity: a copy of the base `transaction`
+table with your custom columns added:
 
 ```sql
-CREATE TABLE transaction_extended (
-    transactionid INT(11) NOT NULL,
-    extra_property VARCHAR(255) DEFAULT NULL,
-    custom_field INT DEFAULT NULL,
-    metadata JSON DEFAULT NULL,
-    PRIMARY KEY (transactionid),
-    CONSTRAINT fk_transaction_extended_transaction
-        FOREIGN KEY (transactionid)
-        REFERENCES transaction (transactionid)
-        ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+CREATE TABLE transaction_extended LIKE transaction;
+
+ALTER TABLE transaction_extended
+    ADD extra_property VARCHAR(255) DEFAULT NULL,
+    ADD custom_field INT DEFAULT NULL,
+    ADD metadata JSON DEFAULT NULL;
 ```
 
 :::tip Table Design
-- Use same primary key as parent table (`transactionid`)
-- Add foreign key constraint with `ON DELETE CASCADE`
-- Only add your custom fields - inherited fields come from parent
+- The extended entity's table **replaces** `transaction` as the ledger: `TransactionService`
+  inserts every transaction (all base columns plus your custom ones) into it, so it must have
+  all the columns of `transaction`
+- `CREATE TABLE ... LIKE` copies the columns and indexes but not the foreign keys or the
+  immutability trigger of `transaction`; add them to the new table if you need them
 :::
 
 ### 2. Create Extended Entity Class
@@ -95,6 +93,7 @@ class TransactionExtended extends TransactionEntity
 namespace App\Repository;
 
 use ByJG\AnyDataset\Db\DatabaseExecutor;
+use ByJG\MicroOrm\Query;
 use ByJG\Wallets\Repository\TransactionRepository;
 
 class TransactionRepositoryExtended extends TransactionRepository
@@ -113,9 +112,9 @@ class TransactionRepositoryExtended extends TransactionRepository
     public function getByCustomField(int $customFieldValue): array
     {
         return $this->getRepository()->getByQuery(
-            "SELECT * FROM transaction_extended
-             WHERE custom_field = :value",
-            ['value' => $customFieldValue]
+            Query::getInstance()
+                ->table($this->getMapper()->getTable())
+                ->where('custom_field = :value', ['value' => $customFieldValue])
         );
     }
 }
@@ -128,15 +127,17 @@ use App\Repository\TransactionRepositoryExtended;
 use App\Entity\TransactionExtended;
 use ByJG\Wallets\Service\TransactionService;
 use ByJG\Wallets\Service\WalletService;
+use ByJG\Wallets\Entity\WalletEntity;
 use ByJG\Wallets\Repository\WalletRepository;
+use ByJG\AnyDataset\Db\DatabaseExecutor;
 use ByJG\AnyDataset\Db\Factory;
 
 // Create database connection
-$dbDriver = Factory::getDbInstance('mysql://user:pass@localhost/dbname');
+$dbExecutor = DatabaseExecutor::using(Factory::getDbInstance('mysql://user:pass@localhost/dbname'));
 
 // Initialize with extended repository
-$transactionRepo = new TransactionRepositoryExtended($dbDriver);
-$walletRepo = new WalletRepository($dbDriver);
+$transactionRepo = new TransactionRepositoryExtended($dbExecutor);
+$walletRepo = new WalletRepository($dbExecutor, WalletEntity::class);
 
 $transactionService = new TransactionService($transactionRepo, $walletRepo);
 
@@ -153,7 +154,17 @@ if ($transaction instanceof TransactionExtended) {
 
 ### 5. Set Custom Fields During Transaction
 
-You can also set custom fields when creating transactions by using observers or by extending the service:
+Pass the custom fields in the `TransactionDTO` with `setProperty()`, using the property name of
+the extended entity. They are written in the same insert as the transaction:
+
+```php
+$transaction = $transactionService->addFunds(
+    TransactionDTO::create($walletId, 1000)
+        ->setProperty('extraProperty', 'custom value')
+);
+```
+
+You can also set custom fields after the transaction is created by extending the service:
 
 ```php
 class TransactionServiceExtended extends TransactionService
@@ -257,6 +268,7 @@ class WalletExtended extends WalletEntity
 namespace App\Repository;
 
 use ByJG\AnyDataset\Db\DatabaseExecutor;
+use ByJG\MicroOrm\Query;
 use ByJG\Wallets\Repository\WalletRepository;
 
 class WalletRepositoryExtended extends WalletRepository
@@ -275,8 +287,9 @@ class WalletRepositoryExtended extends WalletRepository
     public function getByTier(string $tier): array
     {
         return $this->getRepository()->getByQuery(
-            "SELECT * FROM wallet_extended WHERE tier = :tier",
-            ['tier' => $tier]
+            Query::getInstance()
+                ->table($this->getMapper()->getTable())
+                ->where('tier = :tier', ['tier' => $tier])
         );
     }
 
@@ -300,7 +313,7 @@ class WalletRepositoryExtended extends WalletRepository
 use App\Repository\WalletRepositoryExtended;
 use ByJG\Wallets\Service\WalletService;
 
-$walletRepo = new WalletRepositoryExtended($dbDriver);
+$walletRepo = new WalletRepositoryExtended($dbExecutor);
 $walletService = new WalletService($walletRepo, $walletTypeService, $transactionService);
 
 // Create wallet - custom fields can be set after creation
@@ -315,9 +328,9 @@ if ($wallet instanceof \App\Entity\WalletExtended) {
 }
 ```
 
-## Using Observers for Auto-Population
+## Using Observers to React to Changes
 
-You can use MicroORM observers to automatically populate custom fields:
+You can use MicroORM observers to react to wallet and transaction changes (audit logs, notifications, cache invalidation, etc.):
 
 ### Create Observer
 
@@ -326,51 +339,42 @@ You can use MicroORM observers to automatically populate custom fields:
 
 namespace App\Observer;
 
-use ByJG\MicroOrm\Observer\ObserverInterface;
-use App\Entity\TransactionExtended;
+use ByJG\MicroOrm\Enum\ObserverEvent;
+use ByJG\MicroOrm\Interface\ObserverProcessorInterface;
+use ByJG\MicroOrm\ObserverData;
+use Throwable;
 
-class TransactionObserver implements ObserverInterface
+class TransactionObserver implements ObserverProcessorInterface
 {
-    public function beforeInsert(object $instance): void
+    public function getObservedTable(): string
     {
-        if ($instance instanceof TransactionExtended) {
-            // Auto-populate metadata on insert
-            if (empty($instance->getMetadata())) {
-                $instance->setMetadata(json_encode([
-                    'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-                    'timestamp' => time(),
-                    'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
-                ]));
-            }
+        // Table to watch for changes
+        return 'transaction';
+    }
+
+    public function process(ObserverData $observerData): void
+    {
+        if ($observerData->getEvent() === ObserverEvent::Insert) {
+            // For transactions created by the TransactionService,
+            // getData() carries the rehydrated TransactionEntity
+            $transaction = $observerData->getData();
+            // e.g. write an audit log or send a notification
         }
     }
 
-    public function afterInsert(object $instance): void
+    public function onError(Throwable $exception, ObserverData $observerData): void
     {
-        // Called after insert
-    }
-
-    public function beforeUpdate(object $instance): void
-    {
-        // Called before update
-    }
-
-    public function afterUpdate(object $instance): void
-    {
-        // Called after update
-    }
-
-    public function beforeDelete(object $instance): void
-    {
-        // Called before delete
-    }
-
-    public function afterDelete(object $instance): void
-    {
-        // Called after delete
+        // Called when process() throws; rethrow to propagate
+        throw $exception;
     }
 }
 ```
+
+Observers are notified after the write is committed. When the transaction is created by
+`TransactionService` (`addFunds`, `withdrawFunds`, reserve/accept/reject operations),
+`getData()` contains the entity; the wallet observer also receives the pre-change wallet in
+`getOldData()`. Since MicroORM 7.0 observers are scoped to the database connection of the
+repository where they were registered.
 
 ### Register Observer
 
@@ -391,18 +395,20 @@ class TransactionRepositoryExtended extends TransactionRepository
 
 If your database column names don't match your property names, use field mapping:
 
+Select/update functions are `MapperFunctionInterface` implementations (an instance or a class
+name), not closures:
+
 ```php
 use ByJG\MicroOrm\FieldMapping;
 
 $fieldMappingList = [
     FieldMapping::create('extraProperty')
-        ->withFieldName('extra_property')
-        ->withUpdateFunction(fn($value) => strtoupper($value)),
+        ->withFieldName('extra_property'),
 
     FieldMapping::create('metadata')
         ->withFieldName('metadata')
-        ->withSelectFunction(fn($value) => json_decode($value, true))
-        ->withUpdateFunction(fn($value) => json_encode($value))
+        ->withSelectFunction(JsonDecodeMapper::class)   // your MapperFunctionInterface classes
+        ->withUpdateFunction(JsonEncodeMapper::class)
 ];
 
 $repository = new TransactionRepositoryExtended(
@@ -420,12 +426,12 @@ Here's a complete example combining wallets and transactions with custom fields:
 <?php
 
 // 1. Setup
-$dbDriver = Factory::getDbInstance('mysql://user:pass@localhost/dbname');
+$dbExecutor = DatabaseExecutor::using(Factory::getDbInstance('mysql://user:pass@localhost/dbname'));
 
-$walletRepo = new WalletRepositoryExtended($dbDriver);
-$transactionRepo = new TransactionRepositoryExtended($dbDriver);
+$walletRepo = new WalletRepositoryExtended($dbExecutor);
+$transactionRepo = new TransactionRepositoryExtended($dbExecutor);
 
-$walletTypeService = new WalletTypeService(new WalletTypeRepository($dbDriver));
+$walletTypeService = new WalletTypeService(new WalletTypeRepository($dbExecutor, WalletTypeEntity::class));
 $transactionService = new TransactionService($transactionRepo, $walletRepo);
 $walletService = new WalletService($walletRepo, $walletTypeService, $transactionService);
 
@@ -464,19 +470,11 @@ echo "Loyalty points: {$wallet->getLoyaltyPoints()}\n";
 
 ## Best Practices
 
-1. **Use proper foreign key constraints**
-   ```sql
-   CONSTRAINT fk_transaction_extended_transaction
-       FOREIGN KEY (transactionid)
-       REFERENCES transaction (transactionid)
-       ON DELETE CASCADE
-   ```
-
-2. **Keep base tables clean**
+1. **Keep base tables clean**
    - Don't modify `transaction` or `wallet` tables directly
    - All customizations go in extended tables
 
-3. **Use JSON for flexible metadata**
+2. **Use JSON for flexible metadata**
    ```php
    $transaction->setMetadata(json_encode([
        'ip' => $ipAddress,
@@ -485,7 +483,7 @@ echo "Loyalty points: {$wallet->getLoyaltyPoints()}\n";
    ]));
    ```
 
-4. **Type-hint properly**
+3. **Type-hint properly**
    ```php
    public function processVIPTransaction(TransactionExtended $transaction): void
    {
@@ -494,7 +492,7 @@ echo "Loyalty points: {$wallet->getLoyaltyPoints()}\n";
    }
    ```
 
-5. **Document custom fields**
+4. **Document custom fields**
    ```php
    /**
     * @property string|null $extraProperty Additional transaction info
@@ -504,7 +502,7 @@ echo "Loyalty points: {$wallet->getLoyaltyPoints()}\n";
    class TransactionExtended extends TransactionEntity
    ```
 
-6. **Test extended functionality**
+5. **Test extended functionality**
    ```php
    public function testExtendedTransaction(): void
    {
