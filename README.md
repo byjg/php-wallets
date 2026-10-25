@@ -5,7 +5,7 @@ tags: [php, finance]
 
 # Wallets
 
-A robust PHP library for managing digital wallets and financial transactions with full audit trails, transaction chain integrity, and support for reserved funds.
+Digital wallets with an audit trail you can trust: reserved funds, idempotent operations, and a transaction chain that cannot be rewritten unnoticed.
 
 [![Sponsor](https://img.shields.io/badge/Sponsor-%23ea4aaa?logo=githubsponsors&logoColor=white&labelColor=0d1117)](https://github.com/sponsors/byjg)
 [![Build Status](https://github.com/byjg/php-wallets/actions/workflows/phpunit.yml/badge.svg?branch=master)](https://github.com/byjg/php-wallets/actions/workflows/phpunit.yml)
@@ -14,6 +14,30 @@ A robust PHP library for managing digital wallets and financial transactions wit
 [![GitHub source](https://img.shields.io/badge/Github-source-informational?logo=github)](https://github.com/byjg/php-wallets/)
 [![GitHub license](https://img.shields.io/github/license/byjg/php-wallets.svg)](https://opensource.byjg.com/license/)
 [![GitHub release](https://img.shields.io/github/release/byjg/php-wallets.svg)](https://github.com/byjg/php-wallets/releases/)
+
+## Why
+
+A balance column that you update is easy to write and impossible to audit: when it is wrong,
+nothing tells you how it got there. Money also needs more than add and subtract. A payment
+is authorized before it is captured, and a retried request must not charge twice.
+
+Wallets records every movement as a transaction linked to the previous one:
+
+```php
+$hold = $transactionService->reserveFundsForWithdraw(TransactionDTO::create($walletId, 5000));
+// ... later, the payment is confirmed (or rejectFundsById() to release it)
+$transactionService->acceptFundsById($hold->getTransactionId());
+
+$transactionService->verifyChain($walletId)->isValid();   // reconciliation
+```
+
+- **Tamper-evident history.** Each transaction carries a SHA-256 checksum chained to the
+  previous one, so rewriting a row breaks the rest of the chain. With an installation secret,
+  the checksums cannot be recomputed with database access alone.
+- **Reserved funds.** Pre-authorize a withdrawal or a deposit, then accept it (fully or
+  partially) or reject it.
+- **Events you will not lose.** The transactional outbox writes the event in the same
+  database transaction as the money movement.
 
 ## Features
 
