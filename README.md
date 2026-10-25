@@ -1,5 +1,6 @@
 ---
 sidebar_key: wallets
+sidebar_category: infrastructure
 tags: [php, finance]
 ---
 
